@@ -1,0 +1,1878 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Память и знания: RAG, эмбеддинги и своя база знаний — урок 3</title>
+<style>
+:root{
+  --bg:#0b0a14; --bg2:#12101f; --card:#181529; --card2:#1f1b34;
+  --line:#2d2748; --text:#ece9f8; --dim:#a39dbf; --dim2:#7d7799;
+  --acc:#a78bfa; --acc2:#7c3aed; --grn:#34d399; --amb:#fbbf24; --red:#fb7185; --cyn:#38bdf8;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:18px;line-height:1.55;overflow:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 500px at 12% -8%,rgba(124,58,237,.22),transparent 60%),
+  radial-gradient(800px 500px at 92% 8%,rgba(56,189,248,.12),transparent 60%),
+  radial-gradient(700px 600px at 50% 120%,rgba(52,211,153,.10),transparent 60%)}
+.topbar{position:fixed;top:0;left:0;right:0;height:56px;z-index:60;display:flex;align-items:center;gap:12px;padding:0 14px;
+  background:rgba(11,10,20,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;white-space:nowrap}
+.brand .dot{width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--cyn));box-shadow:0 0 14px rgba(167,139,250,.8)}
+.brand small{color:var(--dim);font-weight:500}
+.stagechip{font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--dim);white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}
+.spacer{flex:1}
+.btn{font:inherit;font-size:14px;color:var(--text);background:var(--card2);border:1px solid var(--line);padding:7px 12px;border-radius:10px;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn:hover{border-color:var(--acc);background:#272145}
+.btn.pri{background:linear-gradient(135deg,#7c3aed,#5b21b6);border-color:#8b5cf6}
+.btn.pri:hover{filter:brightness(1.15)}
+.btn.on{background:#14352a;border-color:var(--grn);color:#a7f3d0}
+.btn.on2{background:#33260b;border-color:var(--amb);color:#fcd34d}
+.progress{position:fixed;top:56px;left:0;right:0;height:3px;background:#1a1730;z-index:59}
+.progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc),var(--cyn));transition:width .25s}
+.stage{position:fixed;inset:59px 0 62px 0;overflow-y:auto;overflow-x:hidden;z-index:10}
+.slide{display:none;padding:26px 22px 44px;max-width:1120px;margin:0 auto;animation:fade .25s ease}
+.slide.active{display:block}
+body.onlypractice .slide:not([data-practice="1"]):not([data-keep="1"]){display:none}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.kicker{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--acc);font-weight:700;margin-bottom:6px}
+h1{font-size:clamp(30px,5.2vw,56px);line-height:1.08;margin:.1em 0 .3em;letter-spacing:-.02em}
+h2{font-size:clamp(24px,3.6vw,38px);line-height:1.15;margin:.1em 0 .45em;letter-spacing:-.01em}
+h3{font-size:20px;margin:1.2em 0 .4em;color:#fff}
+p{margin:.5em 0}
+.lead{font-size:clamp(18px,2.2vw,23px);color:#d7d2ee}
+.muted{color:var(--dim)} .small{font-size:14.5px}
+ul,ol{margin:.5em 0 .8em;padding-left:1.25em}
+li{margin:.32em 0} li::marker{color:var(--acc)}
+strong{color:#fff} a{color:var(--cyn)}
+code{font-family:var(--mono);font-size:.9em;background:#241f3d;padding:2px 6px;border-radius:6px;color:#ddd6fe}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{background:linear-gradient(180deg,var(--card),var(--bg2));border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+.card.acc{border-color:#4c3a86} .card.grn{border-color:#1f5b46} .card.amb{border-color:#6b5318} .card.red{border-color:#7f2b3d} .card.cyn{border-color:#1d5a7c}
+.card h4{margin:0 0 6px;font-size:16.5px;color:#fff;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tag{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2.5px 8px;border-radius:999px;border:1px solid var(--line);background:#221d3a;color:var(--dim)}
+.tag.p{border-color:#5b3fa8;color:#c4b5fd;background:#241a44}
+.tag.g{border-color:#1f6b52;color:#6ee7b7;background:#0f2a22}
+.tag.a{border-color:#7c5a1a;color:#fcd34d;background:#2a1f0b}
+.tag.r{border-color:#8b2740;color:#fda4af;background:#2c1219}
+.tag.b{border-color:#1d5a7c;color:#7dd3fc;background:#0c2231}
+.note{border-left:3px solid var(--acc);background:rgba(124,58,237,.09);padding:11px 14px;border-radius:0 12px 12px 0;margin:12px 0}
+.note.grn{border-color:var(--grn);background:rgba(52,211,153,.08)}
+.note.amb{border-color:var(--amb);background:rgba(251,191,36,.08)}
+.note.red{border-color:var(--red);background:rgba(251,113,133,.08)}
+.note.cyn{border-color:var(--cyn);background:rgba(56,189,248,.08)}
+.note b{color:#fff}
+.quote{font-size:clamp(20px,3vw,30px);line-height:1.35;color:#fff;border-left:4px solid var(--acc);padding-left:18px;margin:18px 0}
+pre{position:relative;background:#0a0912;border:1px solid var(--line);border-radius:14px;padding:16px;overflow-x:auto;margin:12px 0}
+pre code{background:none;padding:0;font-size:14px;line-height:1.6;color:#dcd6f7;white-space:pre}
+.copy{position:absolute;top:8px;right:8px;font-size:12px;padding:4px 9px;border-radius:8px;background:#221d3a;border:1px solid var(--line);color:var(--dim);cursor:pointer;font-family:inherit}
+.copy:hover{color:#fff;border-color:var(--acc)}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:15.5px}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--acc);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+tr:hover td{background:rgba(167,139,250,.05)}
+td code{font-size:13px}
+.pill{display:inline-block;padding:2px 8px;border-radius:8px;font-family:var(--mono);font-size:13px;background:#221d3a;border:1px solid var(--line)}
+.ok{color:#6ee7b7}.no{color:#fda4af}
+kbd{font-family:var(--mono);font-size:12.5px;background:#221d3a;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:2px 7px;color:#e9e5ff}
+.task{background:linear-gradient(180deg,#131b2e,#0f1524);border:1px solid #26406b;border-radius:16px;padding:14px 16px;margin:14px 0}
+.task h4{margin:0 0 8px;color:#93c5fd;font-size:15px;letter-spacing:.1em;text-transform:uppercase;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.task label{display:flex;gap:10px;align-items:flex-start;padding:7px 8px;border-radius:10px;cursor:pointer;font-size:16px}
+.task label:hover{background:rgba(147,197,253,.08)}
+.task input[type=checkbox]{width:19px;height:19px;margin-top:3px;accent-color:#34d399;flex:none;cursor:pointer}
+.task input[type=checkbox]:checked + span{color:var(--dim2);text-decoration:line-through}
+.task .bar{height:5px;background:#1b2b47;border-radius:99px;overflow:hidden;margin-top:10px}
+.task .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#34d399,#38bdf8);transition:width .3s}
+.notes{display:none;margin-top:16px;border:1px dashed #5b4a92;border-radius:14px;padding:13px 16px;background:rgba(124,58,237,.07)}
+.notes{display:none!important}
+.notes h5{margin:0 0 6px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#c4b5fd}
+.notes ul{margin:.3em 0;padding-left:1.1em}
+.notes li{font-size:15px;color:#ddd6fe;margin:.25em 0}
+.q{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:12px 0}
+.q p.qt{margin:0 0 10px;font-weight:600;color:#fff}
+.q .opt{display:block;width:100%;text-align:left;font:inherit;font-size:15.5px;color:var(--text);background:#141127;border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin:6px 0;cursor:pointer;transition:.15s}
+.q .opt:hover{border-color:var(--acc)}
+.q .opt.right{background:#0f2f24;border-color:#2c7a5c;color:#a7f3d0}
+.q .opt.wrong{background:#33121b;border-color:#8b2740;color:#fecdd3}
+.q .exp{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:14.5px;color:var(--dim)}
+.q.answered .exp{display:block}
+.score{font-size:22px;font-weight:700;color:var(--grn)}
+.modal{position:fixed;inset:0;z-index:80;background:rgba(6,5,12,.88);backdrop-filter:blur(6px);display:none;overflow-y:auto;padding:70px 18px 30px}
+.modal.open{display:block}
+.modal .box{max-width:940px;margin:0 auto}
+.ovstage{margin-bottom:18px}
+.ovstage h4{margin:0 0 6px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
+.ovlink{display:flex;gap:10px;align-items:baseline;width:100%;text-align:left;font:inherit;font-size:15.5px;color:var(--text);background:#141127;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:5px 0;cursor:pointer}
+.ovlink:hover{border-color:var(--acc);background:#1d1836}
+.ovlink .n{font-family:var(--mono);color:var(--dim2);font-size:13px;min-width:26px}
+.ovlink .pr{margin-left:auto;font-size:11.5px;color:#6ee7b7;border:1px solid #1f5b46;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.botbar{position:fixed;bottom:0;left:0;right:0;height:62px;z-index:60;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(11,10,20,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
+.counter{font-family:var(--mono);font-size:13.5px;color:var(--dim);min-width:74px;text-align:center}
+.hint{font-size:13px;color:var(--dim2)}
+.center{text-align:center} .mt{margin-top:18px} .mt2{margin-top:30px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.scalebar{display:flex;height:38px;border-radius:10px;overflow:hidden;border:1px solid var(--line);margin:12px 0;font-size:12.5px;font-weight:700;text-align:center}
+.scalebar div{display:flex;align-items:center;justify-content:center;padding:0 4px}
+.pbadge{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 11px;border-radius:999px;margin-bottom:10px;
+  background:rgba(52,211,153,.1);border:1px solid #1f5b46;color:#6ee7b7}
+.pbadge.t{background:rgba(167,139,250,.1);border-color:#4c3a86;color:#c4b5fd}
+.pbadge.d{background:rgba(56,189,248,.1);border-color:#1d5a7c;color:#7dd3fc}
+.divider-slide{min-height:60vh;display:flex;flex-direction:column;justify-content:center}
+.divider-slide .num{font-family:var(--mono);font-size:clamp(60px,14vw,150px);line-height:.9;color:#2d2748}
+.stat{font-family:var(--mono);font-size:clamp(26px,4.4vw,44px);color:#fff;line-height:1}
+.statlabel{font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;margin-top:4px}
+.divider{height:1px;background:var(--line);margin:18px 0}
+.flowline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0;font-size:14.5px}
+.flowline span{background:#1d1836;border:1px solid var(--line);border-radius:10px;padding:7px 12px}
+.flowline i{color:var(--acc);font-style:normal;font-size:18px}
+.step{display:flex;gap:12px;align-items:flex-start;margin:10px 0}
+.step .n{flex:none;width:30px;height:30px;border-radius:50%;background:#241a44;border:1px solid #5b3fa8;color:#c4b5fd;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:15px}
+.cmodal{position:fixed;inset:0;z-index:95;background:rgba(6,5,12,.9);backdrop-filter:blur(6px);display:none;padding:6vh 16px;overflow:auto}
+.cmodal.open{display:block}
+.cmodal .cbox{max-width:900px;margin:0 auto;background:#0a0912;border:1px solid var(--line);border-radius:16px;padding:18px}
+.cmodal pre{margin:10px 0;background:#100e1c;user-select:text}
+@media (max-width:720px){body{font-size:16.5px}.brand small,.hint{display:none}.stagechip{max-width:24vw}}
+@media print{
+  body{overflow:visible;background:#fff;color:#000}
+  .topbar,.botbar,.progress,.modal,.cmodal{display:none!important}
+  .stage{position:static;inset:auto;overflow:visible}
+  .slide{display:block!important;page-break-after:always;max-width:none}
+  .notes{display:none!important}
+}
+
+/* ===== режим обязательного прохождения ===== */
+.lockbar{position:sticky;top:0;z-index:25;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  font-size:13.5px;color:#fcd34d;background:#2a2210;border:1px solid #5c4a1a;border-radius:12px;
+  padding:8px 12px;margin:0 0 16px;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.lockbar.done{color:#6ee7b7;background:rgba(52,211,153,.08);border-color:#1f5b46}
+.lockbar b{color:#fff;font-weight:600}
+.botbar .btn:disabled{opacity:.4;cursor:not-allowed;border-color:var(--line);background:var(--card2)}
+.botbar .btn:disabled:hover{border-color:var(--line);background:var(--card2)}
+.ovlink.locked{opacity:.4;cursor:not-allowed}
+.ovlink.locked:hover{border-color:var(--line);background:#141127}
+.q .exp{display:none!important}
+body.quizok .q .exp{display:block!important}
+.q .opt{pointer-events:none}
+body.quizdone .q .opt{pointer-events:auto}
+.resultbox{border-radius:14px;padding:14px 16px;margin:12px 0;border:1px solid var(--line);background:var(--card)}
+.resultbox.ok{border-color:#1f5b46;background:rgba(52,211,153,.09);color:#a7f3d0}
+.resultbox.bad{border-color:#7f2b3d;background:rgba(251,113,133,.08);color:#fecdd3}
+.studyhint{font-size:13px;color:var(--dim2)}
+.progress.locked i{background:linear-gradient(90deg,#7c5a1a,#fcd34d)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span><span>RAG и память <small>· урок 3 · по шагам</small></span></div>
+  <div class="stagechip" id="stagechip">Урок 3</div>
+  <div class="spacer"></div>
+  <button class="btn" id="btnOv" title="Содержание (O)">☰</button>
+</div>
+<div class="progress"><i id="prog"></i></div>
+
+<main class="stage" id="stage">
+
+<section class="slide" id="s1" data-stage="Введение" data-keep="1">
+  <div class="pbadge t">Урок 3 · завершение курса · 5 блоков · 10 практик · версия для учеников</div>
+  <h1>Память и знания:<br>RAG, эмбеддинги<br>и своя база знаний</h1>
+  <p class="lead">На первом уроке модель научилась <b>говорить</b>, на втором — <b>действовать</b>. Сегодня научим её <b>помнить и знать</b>: соберём собственную базу знаний, научим модель искать в ней по смыслу и отвечать только по своим документам.</p>
+
+  <div class="grid g3 mt">
+    <div class="card"><div class="stat">RAG</div><div class="statlabel">знания без переобучения</div></div>
+    <div class="card"><div class="stat">768</div><div class="statlabel">чисел вместо текста — это эмбеддинг</div></div>
+    <div class="card"><div class="stat">0 ₽</div><div class="statlabel">вся база знаний — на вашем диске</div></div>
+  </div>
+
+  <div class="card acc mt">
+    <h4>🧭 Что будет на уроке</h4>
+    <div class="flow">
+      <div class="fbox"><b>A · Три вида памяти</b>почему модель всё забывает и что с этим делать</div><div class="farr">→</div>
+      <div class="fbox"><b>B · Эмбеддинги</b>поиск по смыслу, а не по словам</div><div class="farr">→</div>
+      <div class="fbox"><b>C · RAG своими руками</b>пишем базу знаний на чистом Python</div><div class="farr">→</div>
+      <div class="fbox"><b>D · Долгая память</b>бот, который помнит вас неделями</div><div class="farr">→</div>
+      <div class="fbox"><b>E · Проекты</b>свой справочник, FAQ, поиск по конспектам</div>
+    </div>
+  </div>
+
+  <div class="note amb"><b>Как и раньше:</b> домашних заданий нет, все 10 практик делаются в классе. Материала хватит на 2–3 занятия. </div>
+
+  <div class="note grn"><b>Почему это самый практичный урок курса:</b> RAG — это то, чем в промышленности пользуются чаще всего. «Задай вопрос по нашей документации», «поддержка отвечает по базе знаний», «поиск по внутренним регламентам» — всё это RAG. И всё это сегодня соберём своими руками без единой платной подписки.</div></section>
+
+<section class="slide" id="s2" data-stage="Введение" data-keep="1">
+  <div class="pbadge t">Проверка перед стартом</div>
+  <h2>Что должно работать</h2>
+
+  <div class="task" data-task>
+    <h4>✅ Чек-лист готовности</h4>
+    <label><input type="checkbox"><span>LM Studio установлен, языковая модель скачана и отвечает в чате</span></label>
+    <label><input type="checkbox"><span>API-сервер запускается: <b>Developer → Start Server</b>, <code>http://localhost:1234/v1/models</code> открывается в браузере</span></label>
+    <label><input type="checkbox"><span>Python 3.10+ и библиотека <code>openai</code>: <code>pip install openai</code></span></label>
+    <label><input type="checkbox"><span><b>Новое:</b> скачана <b>модель эмбеддингов</b> (список ниже) — она отдельная от чат-модели!</span></label>
+    <label><input type="checkbox"><span><b>Новое:</b> есть текстовый документ-источник для базы знаний (учебник, устав, правила, статья) в <code>.txt</code>, <code>.md</code> или <code>.pdf</code></span></label>
+    <label><input type="checkbox"><span>Создана рабочая папка, например <code>C:\rag</code></span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <h3>Какую модель эмбеддингов взять</h3>
+  <table>
+    <tr><th>Модель</th><th>Размер</th><th>Вектор</th><th>Почему</th></tr>
+    <tr><td><b>qwen3-embedding-0.6b</b> <span class="tag g">рекомендуем</span></td><td>~0,6 ГБ</td><td>до 1024</td><td>Apache 2.0, <b>100+ языков включая русский</b>, контекст 32K. Лучший выбор для наших задач</td></tr>
+    <tr><td><b>embeddinggemma-300m</b></td><td>~0,3 ГБ</td><td>768 (можно 512/256/128)</td><td>От Google, 100+ языков, работает даже на телефоне. В LM Studio есть сборки сообщества, не требующие подтверждения лицензии</td></tr>
+    <tr><td><b>nomic-embed-text-v1.5</b></td><td>~0,3 ГБ</td><td>768 (от 64)</td><td>Классика, Apache 2.0, без ограничений на скачивание. Но обучена в основном на английском — для русского текста работает хуже</td></tr>
+  </table>
+
+  <div class="note red"><b>Главное отличие от прошлых уроков:</b> теперь в LM Studio живут <b>две модели одновременно</b>. Одна <b>генерирует текст</b> (Gemma 4 E4B или Qwen3-8B), другая <b>превращает текст в числа</b> (эмбеддинги). Они разные, и путать их нельзя: эмбеддинг-модель не умеет отвечать на вопросы, а чат-модель не умеет делать векторы.</div>
+
+  <div class="note cyn"><b>Хорошая новость про память:</b> модель эмбеддингов весит 300–600 МБ и почти не занимает видеопамять. Обе модели спокойно уживаются на RTX 3060 с 8 ГБ: ~5,5 ГБ на чат-модель и ~0,6 ГБ на эмбеддинги.</div></section>
+
+<section class="slide" id="s3" data-stage="A · Виды памяти">
+  <div class="pbadge t">Разбираемся в понятиях</div>
+  <h2>Почему модель всё забывает</h2>
+  <div class="quote">У нейросети нет памяти. Совсем. Каждый запрос она видит <b>впервые</b> — и знает только то, что вы ей прислали в этом запросе.</div>
+
+  <p class="lead">Мы уже сталкивались с этим на первом уроке, когда писали чат-бота: «память живёт в программе, а не в модели». Теперь разложим по полочкам, какая вообще бывает память у ИИ-систем.</p>
+
+  <table>
+    <tr><th>Тип</th><th>Что это</th><th>Где живёт</th><th>Сколько держится</th></tr>
+    <tr><td><b>Веса модели</b></td><td>Знания, полученные при обучении на триллионах токенов</td><td>В файле <code>.gguf</code></td><td>Навсегда, но <b>заморожены</b> на дату обучения</td></tr>
+    <tr><td><b>Контекстное окно</b></td><td>«Оперативная память»: системный промпт + вся переписка + ваш вопрос</td><td>В видеопамяти, пока идёт диалог</td><td>Один разговор. Закрыли чат — всё исчезло</td></tr>
+    <tr><td><b>Внешняя память (RAG)</b></td><td>Ваши документы, база знаний, заметки — подсовываются модели в момент ответа</td><td>На диске, в векторной базе</td><td>Столько, сколько храните файл</td></tr>
+    <tr><td><b>Долговременная память</b></td><td>Факты о пользователе и прошлых разговорах, которые специально сохраняются</td><td>Файл или база данных</td><td>Месяцы, годы</td></tr>
+  </table>
+
+  <div class="grid g2">
+    <div class="card amb"><h4>Главная проблема контекстного окна</h4>
+      <p class="small muted">Оно <b>ограничено</b>. У Gemma 4 E4B заявлено 128K токенов, но на 8 ГБ VRAM реально получается 4–16 тысяч. А учебник на 200 страниц — это 300 000+ токенов. Не влезет никак.</p>
+      <p class="small muted">И даже если бы влезло: чем длиннее контекст, тем <b>медленнее</b> ответ и тем больше видеопамяти он съедает.</p></div>
+    <div class="card grn"><h4>Решение — не запихивать всё, а искать нужное</h4>
+      <p class="small muted">Вместо «дать модели всю книгу» — <b>найти в книге три абзаца</b>, которые относятся к вопросу, и дать только их. Это и есть <b>RAG</b>: Retrieval-Augmented Generation, «генерация с подтягиванием данных».</p>
+      <p class="small muted">Тот же принцип, что и у человека: вы не помните учебник наизусть, но умеете быстро найти нужную страницу по оглавлению.</p></div>
+  </div></section>
+
+<section class="slide" id="s4" data-stage="A · Виды памяти" data-practice="1">
+  <div class="pbadge">Практика 1 · ломаем контекст</div>
+  <h2>Смотрим, как модель «забывает»</h2>
+  <p class="lead">Прежде чем строить память, посмотрим на её границы своими глазами.</p>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 1</h4>
+    <label><input type="checkbox"><span>Открыть чат и сообщить модели три факта о себе: имя, любимый предмет, город</span></label>
+    <label><input type="checkbox"><span>Спросить их обратно в этом же чате → модель помнит</span></label>
+    <label><input type="checkbox"><span>Создать <b>новый чат</b> и спросить то же самое → модель не помнит ничего</span></label>
+    <label><input type="checkbox"><span>Вернуться в старый чат и задать 30–40 посторонних вопросов (можно длинных)</span></label>
+    <label><input type="checkbox"><span>Снова спросить имя → посмотреть, помнит ли. Если забыла — это <b>выпадение из контекста</b></span></label>
+    <label><input type="checkbox"><span>Открыть <b>Диспетчер задач → Производительность → GPU</b> и понаблюдать, как растёт занятая память по мере удлинения диалога</span></label>
+    <label><input type="checkbox"><span>Поставить в настройках загрузки <b>Context Length = 2048</b>, повторить опыт → убедиться, что забывание наступает намного раньше</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="note cyn"><b>Что происходит на шаге 5–7:</b> контекстное окно заполняется, и самые <b>старые</b> сообщения перестают в него помещаться. Ваши первые фразы с именем просто выпадают. Модель не «плохо запомнила» — ей их больше не показывают.</div>
+    <div class="note grn"><b>Что показывает Диспетчер задач:</b> каждый токен истории хранится в видеопамяти в виде KV-кэша. Именно поэтому длинный диалог на 8 ГБ VRAM в какой-то момент начинает тормозить — память кончилась.</div>
+  </div>
+
+  <div class="note amb"><b>Вывод, к которому мы пришли сами:</b> хранить всё в контексте <b>невозможно и дорого</b>. Нужен другой способ: держать знания <b>снаружи</b> и подкладывать в контекст только то, что нужно прямо сейчас. Этим и займёмся.</div></section>
+
+<section class="slide" id="s5" data-stage="A · Виды памяти" data-practice="1">
+  <div class="pbadge">Практика 2 · документы в чате</div>
+  <h2>Самый простой RAG — встроенный</h2>
+  <p class="lead">В LM Studio уже есть готовый RAG: можно приложить файл к сообщению, и модель будет отвечать <b>по нему</b>. Никакого кода.</p>
+
+  <div class="card acc">
+    <h4>Как это устроено внутри</h4>
+    <p class="small muted">LM Studio поддерживает вложение файлов <code>.txt</code>, <code>.docx</code> и <code>.pdf</code>. Дальше программа действует по одному из двух сценариев:</p>
+    <ul class="small muted">
+      <li><b>Документ короткий</b> и целиком влезает в контекст → его содержимое добавляется в диалог <b>полностью</b>. Это не совсем RAG, а просто «документ в контексте».</li>
+      <li><b>Документ длинный</b> → включается настоящий <b>retrieval</b>: из текста вытаскиваются фрагменты, относящиеся к вопросу, и модели передаются только они.</li>
+    </ul>
+    <p class="small muted">Всё это работает <b>полностью офлайн</b>: файл не покидает ваш компьютер.</p>
+  </div>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 2</h4>
+    <label><input type="checkbox"><span>Приложить к сообщению свой документ (иконка скрепки/файла в поле ввода)</span></label>
+    <label><input type="checkbox"><span>Задать вопрос, ответ на который <b>точно есть</b> в документе → проверить точность</span></label>
+    <label><input type="checkbox"><span>Задать вопрос, которого в документе <b>нет</b> → посмотреть, признается ли модель</span></label>
+    <label><input type="checkbox"><span>Задать вопрос <b>другими словами</b>, без ключевых терминов из текста → найти, где поиск начинает сбоить</span></label>
+    <label><input type="checkbox"><span>Попробовать длинный документ (50+ страниц) и короткий (1 страница) — сравнить качество ответов</span></label>
+    <label><input type="checkbox"><span>Записать два удачных и два неудачных вопроса — пригодятся в практике 8 для сравнения</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="note grn"><b>Совет из официальной документации LM Studio:</b> формулируйте запрос так, чтобы в нём были <b>те же слова и термины</b>, что и в источнике. «Какие требования к форме одежды?» сработает лучше, чем «что там про одежду?», если в документе написано именно «требования к форме одежды». Поиск ищет близкое — помогите ему.</div>
+
+  <div class="note red"><b>Главный недостаток встроенного RAG:</b> вы не видите и не контролируете, <b>какие именно фрагменты</b> попали в контекст. Модель ответила неправильно — непонятно, то ли поиск не нашёл нужный абзац, то ли модель его не поняла. В блоке C мы соберём свой RAG, где видно каждый шаг.</div></section>
+
+<section class="slide" id="s6" data-stage="B · Эмбеддинги">
+  <div class="pbadge t">Главное понятие урока</div>
+  <h2>Эмбеддинг: текст как точка в пространстве</h2>
+  <p class="lead">Специальная маленькая модель превращает текст в <b>длинный список чисел</b> — вектор. Смысл текста превращается в координаты. Близкий смысл → близкие координаты.</p>
+
+  <div class="grid g2">
+    <div class="card"><h4>Как это выглядит</h4>
+      <pre><code>"кот"        → [ 0.21, -0.87, 0.04, ... ]
+"кошка"      → [ 0.19, -0.85, 0.06, ... ]
+"автомобиль" → [-0.62,  0.31, 0.77, ... ]</code><button class="copy">копировать</button></pre>
+      <p class="small muted">Чисел обычно <b>768 или 1024</b> — по количеству измерений. «Кот» и «кошка» стоят рядом, «автомобиль» — далеко. Хотя общих букв у «кота» и «автомобиля» не меньше.</p></div>
+    <div class="card"><h4>Зачем это нужно</h4>
+      <p class="small muted">Потому что <b>расстояние между векторами можно посчитать</b>. А значит, можно найти текст, <b>близкий по смыслу</b>, а не по совпадению букв.</p>
+      <table style="margin:8px 0 0">
+        <tr><th>Запрос</th><th>Найдёт обычный поиск</th><th>Найдёт поиск по смыслу</th></tr>
+        <tr><td>«как оплатить»</td><td>только слово «оплатить»</td><td>и «внести платёж», и «способы расчёта»</td></tr>
+        <tr><td>«почему не включается»</td><td>«не включается»</td><td>и «не запускается», и «нет питания»</td></tr>
+      </table></div>
+  </div>
+
+  <h3>Косинусная близость — как измеряют «похожесть»</h3>
+  <p>Самая простая мера: <b>косинус угла</b> между двумя векторами. Считается одной строкой кода и не требует никаких библиотек.</p>
+  <table>
+    <tr><th>Значение</th><th>Что значит</th></tr>
+    <tr><td><b>1.0</b></td><td>Векторы совпадают по направлению: практически один и тот же смысл</td></tr>
+    <tr><td><b>0.7 – 0.9</b></td><td>Очень похоже. Обычно это и есть нужный фрагмент</td></tr>
+    <tr><td><b>0.4 – 0.7</b></td><td>Похоже отдалённо, тема пересекается</td></tr>
+    <tr><td><b>около 0</b></td><td>Ничего общего</td></tr>
+  </table>
+  <p class="small muted">Точные пороги зависят от модели эмбеддингов — их всегда подбирают на своих данных. Поэтому в практике 7 мы будем <b>печатать числа</b> и смотреть на них глазами.</p>
+
+  <div class="note cyn"><b>Важно понимать:</b> эмбеддинг-модель <b>не отвечает на вопросы</b>. Она только превращает текст в числа. Отвечает обычная языковая модель — уже после того, как мы найдём по числам подходящий фрагмент. Две модели работают в паре.</div></section>
+
+<section class="slide" id="s7" data-stage="B · Эмбеддинги" data-practice="1">
+  <div class="pbadge">Практика 3 · первый эмбеддинг</div>
+  <h2>Получаем векторы через API</h2>
+  <p class="lead">Эмбеддинги делаются через тот же сервер LM Studio, отдельным эндпоинтом — <code>/v1/embeddings</code>. Код занимает пятнадцать строк.</p>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 3</h4>
+    <label><input type="checkbox"><span>Скачать модель эмбеддингов (<code>qwen3-embedding-0.6b</code>) и убедиться, что она видна в <code>/v1/models</code></span></label>
+    <label><input type="checkbox"><span>Создать <code>emb1.py</code>, вставить код, вписать ID своей модели эмбеддингов</span></label>
+    <label><input type="checkbox"><span>Запустить → увидеть длину вектора и первые числа</span></label>
+    <label><input type="checkbox"><span>Добавить свои фразы в список <code>TEXTS</code> и посмотреть, какие пары оказались самыми близкими</span></label>
+    <label><input type="checkbox"><span>Проверить «ловушку»: фразы с одинаковыми словами, но разным смыслом</span></label>
+    <label><input type="checkbox"><span>Записать вывод: при каком значении близости фрагмент можно считать подходящим</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <pre><code>import math
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
+EMBED = "text-embedding-qwen3-embedding-0.6b"   # ← ID модели эмбеддингов из /v1/models
+
+def embed(text: str) -> list:
+    """Превратить текст в список чисел."""
+    r = client.embeddings.create(model=EMBED, input=text)
+    return r.data[0].embedding
+
+def cosine(a: list, b: list) -> float:
+    """Косинусная близость: 1 = одинаковый смысл, 0 = ничего общего."""
+    dot = sum(x * y for x, y in zip(a, b))
+    na = math.sqrt(sum(x * x for x in a))
+    nb = math.sqrt(sum(y * y for y in b))
+    return dot / (na * nb) if na and nb else 0.0
+
+TEXTS = [
+    "Как оплатить проезд в метро",
+    "Способы внесения платежа за поездку в подземке",
+    "Как приготовить борщ",
+    "Кот спит на подоконнике",
+    "Почему не работает оплата картой",
+]
+
+vectors = [embed(t) for t in TEXTS]
+print("длина вектора:", len(vectors[0]))
+print("первые 5 чисел:", [round(x, 4) for x in vectors[0][:5]])
+
+print("\nБлизость между всеми парами:")
+for i in range(len(TEXTS)):
+    for j in range(i + 1, len(TEXTS)):
+        s = cosine(vectors[i], vectors[j])
+        print("  %.3f  |  %s   <->   %s" % (s, TEXTS[i][:34], TEXTS[j][:34]))
+
+QUERY = "как заплатить за поездку"
+qv = embed(QUERY)
+print("\nЗапрос: %r" % QUERY)
+ranked = sorted(((cosine(qv, v), t) for t, v in zip(TEXTS, vectors)), reverse=True)
+for score, text in ranked:
+    print("  %.3f  %s" % (score, text))</code><button class="copy">копировать</button></pre>
+
+  <div class="note grn"><b>Что вы увидите:</b> «Как оплатить проезд в метро» и «Способы внесения платежа за поездку в подземке» дадут высокую близость, хотя <b>общих слов у них почти нет</b>. А «Кот спит на подоконнике» окажется рядом со всем примерно одинаково далеко. Это и есть поиск по смыслу.</div>
+
+  <div class="note amb"><b>Ловушка для обсуждения:</b> «Я поставил точку в конце» и «Поставь чайник на точку кипения» содержат одно слово, но смысл разный. Проверьте, насколько модель это различает. Эмбеддинги не идеальны — они работают со <b>смыслом целой фразы</b>, а не отдельных слов.</div></section>
+
+<section class="slide" id="s8" data-stage="B · Эмбеддинги" data-practice="1">
+  <div class="pbadge">Практика 4 · чанки</div>
+  <h2>Нарезка текста: самый недооценённый шаг</h2>
+  <p class="lead">Документ нельзя превратить в один вектор: модель эмбеддингов принимает на вход ограниченное число токенов, а «средняя температура по книге» ничего не описывает. Текст <b>режут на куски</b> — чанки.</p>
+
+  <div class="grid g3">
+    <div class="card red"><h4>Слишком мелко</h4><p class="small muted">По 1–2 предложения. Каждый кусочек вырван из контекста: «Он сделал это» — кто он? что сделал? Поиск найдёт мусор.</p></div>
+    <div class="card red"><h4>Слишком крупно</h4><p class="small muted">По 5–10 страниц. В векторе смешается всё подряд, и конкретная мысль «размажется». Плюс найденный кусок не влезет в контекст.</p></div>
+    <div class="card grn"><h4>В самый раз</h4><p class="small muted"><b>400–900 символов</b> с <b>перекрытием 10–15%</b>. Для русского текста это примерно 2–5 абзацев — законченная мысль в понятном окружении.</p></div>
+  </div>
+
+  <div class="note cyn"><b>Что такое «перекрытие» (overlap):</b> соседние куски слегка дублируют друг друга — конец предыдущего повторяется в начале следующего. Иначе мысль, оказавшаяся ровно на границе разреза, потеряется для обоих кусков.</div>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 4</h4>
+    <label><input type="checkbox"><span>Создать <code>chunk_test.py</code>, вставить код и путь к своему документу</span></label>
+    <label><input type="checkbox"><span>Нарезать текст тремя способами: <b>200</b>, <b>700</b> и <b>3000</b> символов (перекрытие 12%)</span></label>
+    <label><input type="checkbox"><span>Посчитать, сколько чанков получилось в каждом случае</span></label>
+    <label><input type="checkbox"><span>Прочитать по три случайных чанка из каждой нарезки: понятны ли они <b>без остального текста</b>?</span></label>
+    <label><input type="checkbox"><span>Проверить границу: найти чанк, который обрывается на середине мысли, и убедиться, что перекрытие её спасает</span></label>
+    <label><input type="checkbox"><span>Выбрать размер для своего документа и записать, почему</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <pre><code>import io
+
+PATH = "document.txt"        # ← путь к своему документу
+
+def chunk(text: str, size: int = 700, overlap: int = 90) -> list:
+    """Режем текст на куски по size символов с перекрытием overlap."""
+    parts, start = [], 0
+    while start < len(text):
+        piece = text[start:start + size]
+        # по возможности дорезаем до конца предложения — так аккуратнее
+        for stop in ("\n\n", ". ", "! ", "? "):
+            cut = piece.rfind(stop)
+            if cut > size // 2:
+                piece = piece[:cut + len(stop)]
+                break
+        parts.append(piece.strip())
+        start += max(1, len(piece) - overlap)
+    return [p for p in parts if p]
+
+text = io.open(PATH, encoding="utf-8", errors="replace").read()
+print("всего символов:", len(text))
+
+for size in (200, 700, 3000):
+    parts = chunk(text, size=size, overlap=int(size * 0.12))
+    print("\n=== размер %d, перекрытие %d ===" % (size, int(size * 0.12)))
+    print("чанков:", len(parts))
+    print("пример №1:", parts[1][:180].replace("\n", " "), "...")
+    print("пример №2:", parts[len(parts) // 2][:180].replace("\n", " "), "...")</code><button class="copy">копировать</button></pre>
+
+  <div class="note grn"><b>Правило, которое стоит запомнить:</b> качество RAG на <b>70% зависит от нарезки и поиска</b> и только на 30% — от языковой модели. Можно взять модель поскромнее, но при кривых чанках не спасёт и самая сильная. Поэтому этот шаг никогда не пропускают.</div></section>
+
+<section class="slide" id="s9" data-stage="C · RAG своими руками">
+  <div class="pbadge t">Архитектура</div>
+  <h2>Как устроен RAG: два этапа</h2>
+  <p class="lead">RAG — это не одна технология, а <b>конвейер</b>. Его собирают один раз, а потом просто меняют документы.</p>
+
+  <div class="card acc">
+    <h4>Этап 1 · Индексация (делается один раз, заранее)</h4>
+    <div class="flow">
+      <div class="fbox"><b>1. Документ</b>читаем файл: .txt, .md, .pdf, .docx</div><div class="farr">→</div>
+      <div class="fbox"><b>2. Нарезка</b>режем на чанки 400–900 символов с перекрытием</div><div class="farr">→</div>
+      <div class="fbox"><b>3. Эмбеддинги</b>каждый чанк → вектор через <code>/v1/embeddings</code></div><div class="farr">→</div>
+      <div class="fbox"><b>4. Хранилище</b>сохраняем пары «текст + вектор» в файл или базу</div>
+    </div>
+  </div>
+
+  <div class="card acc">
+    <h4>Этап 2 · Ответ на вопрос (делается на каждый запрос)</h4>
+    <div class="flow">
+      <div class="fbox"><b>5. Запрос</b>вопрос пользователя → тоже в вектор</div><div class="farr">→</div>
+      <div class="fbox"><b>6. Поиск</b>считаем косинусную близость со всеми чанками, берём top-3</div><div class="farr">→</div>
+      <div class="fbox"><b>7. Сборка промпта</b>«вот фрагменты, ответь по ним, не выдумывай»</div><div class="farr">→</div>
+      <div class="fbox"><b>8. Ответ</b>языковая модель пишет ответ <b>по найденному тексту</b></div>
+    </div>
+  </div>
+
+  <h3>RAG или просто засунуть весь документ в контекст?</h3>
+  <table>
+    <tr><th></th><th>Весь документ в контекст</th><th>RAG</th></tr>
+    <tr><td><b>Когда годится</b></td><td>Документ короткий: договор на 3 страницы, инструкция, статья</td><td>Большие объёмы: учебник, база знаний, вся документация проекта</td></tr>
+    <tr><td><b>Точность</b></td><td>Выше: модель видит весь текст и все связи</td><td>Ниже: если поиск не нашёл нужный кусок — ответа не будет</td></tr>
+    <tr><td><b>Скорость</b></td><td>Медленно, каждый запрос перечитывает всё</td><td>Быстро: ищем по числам, модели отдаём только 2–3 фрагмента</td></tr>
+    <tr><td><b>Память</b></td><td>Съедает контекст и видеопамять целиком</td><td>Расход минимальный</td></tr>
+    <tr><td><b>Цена</b></td><td>Много токенов в каждом запросе</td><td>Мало токенов</td></tr>
+  </table>
+
+  <div class="note grn"><b>Практическое правило:</b> если документ влезает в контекст и запросов немного — <b>не усложняйте</b>, отдайте его целиком. RAG нужен, когда текста много, запросов много или документ постоянно пополняется. LM Studio, кстати, делает этот выбор за вас автоматически при прикреплении файла.</div></section>
+
+<section class="slide" id="s10" data-stage="C · RAG своими руками" data-practice="1">
+  <div class="pbadge">Практика 5 · собираем свой RAG</div>
+  <h2>База знаний на чистом Python</h2>
+  <p class="lead">Без сторонних библиотек: только <code>openai</code> для запросов к LM Studio и стандартная библиотека. Ни векторных баз, ни <code>numpy</code> — всё помещается в один файл.</p>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 5 — часть 1: построить базу</h4>
+    <label><input type="checkbox"><span>Создать <code>rag.py</code> и вставить код ниже</span></label>
+    <label><input type="checkbox"><span>Вписать пути: <code>SOURCE</code> — свой документ, а также ID обеих моделей</span></label>
+    <label><input type="checkbox"><span>Запустить <code>python rag.py build</code> → дождаться построения индекса</span></label>
+    <label><input type="checkbox"><span>Открыть получившийся <code>index.json</code> и посмотреть на его устройство</span></label>
+    <label><input type="checkbox"><span>Записать: сколько чанков получилось и сколько занял файл индекса</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <pre><code>"""Своя база знаний: RAG на чистом Python без сторонних библиотек.
+
+Использование:
+    python rag.py build            построить индекс из документа
+    python rag.py ask "вопрос"     спросить у базы знаний
+    python rag.py find "вопрос"    только посмотреть, что нашёл поиск
+"""
+import io, json, math, os, sys
+from openai import OpenAI
+
+client  = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
+CHAT    = "qwen/qwen3-8b"                              # ← чат-модель
+EMBED   = "text-embedding-qwen3-embedding-0.6b"        # ← модель эмбеддингов
+SOURCE  = "document.txt"                               # ← ваш документ
+INDEX   = "index.json"
+CHUNK_SIZE, OVERLAP, TOP_K = 700, 90, 3
+
+# ---------- 1. нарезка ----------
+def chunk(text, size=CHUNK_SIZE, overlap=OVERLAP):
+    parts, start = [], 0
+    while start < len(text):
+        piece = text[start:start + size]
+        for stop in ("\n\n", ". ", "! ", "? "):
+            cut = piece.rfind(stop)
+            if cut > size // 2:
+                piece = piece[:cut + len(stop)]
+                break
+        parts.append(piece.strip())
+        start += max(1, len(piece) - overlap)
+    return [p for p in parts if p]
+
+# ---------- 2. эмбеддинги ----------
+def embed(text):
+    return client.embeddings.create(model=EMBED, input=text).data[0].embedding
+
+def cosine(a, b):
+    dot = sum(x * y for x, y in zip(a, b))
+    na  = math.sqrt(sum(x * x for x in a))
+    nb  = math.sqrt(sum(y * y for y in b))
+    return dot / (na * nb) if na and nb else 0.0
+
+# ---------- 3. построение индекса ----------
+def build():
+    text = io.open(SOURCE, encoding="utf-8", errors="replace").read()
+    parts = chunk(text)
+    print("документ: %d символов, чанков: %d" % (len(text), len(parts)))
+    data = []
+    for n, part in enumerate(parts, 1):
+        print("  эмбеддинг %d/%d" % (n, len(parts)), end="\r")
+        data.append({"id": n, "text": part, "vector": embed(part)})
+    io.open(INDEX, "w", encoding="utf-8").write(
+        json.dumps(data, ensure_ascii=False))
+    print("\nготово: %s (%.1f КБ)" % (INDEX, os.path.getsize(INDEX) / 1024))
+
+# ---------- 4. поиск ----------
+def load():
+    if not os.path.exists(INDEX):
+        sys.exit("Индекса нет. Сначала выполните: python rag.py build")
+    return json.loads(io.open(INDEX, encoding="utf-8").read())
+
+def find(query, top_k=TOP_K):
+    qv = embed(query)
+    scored = [(cosine(qv, d["vector"]), d) for d in load()]
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return scored[:top_k]
+
+# ---------- 5. ответ модели по найденному ----------
+PROMPT = """Отвечай, опираясь ТОЛЬКО на приведённые фрагменты.
+Правила:
+- Если во фрагментах нет ответа — так и напиши: «В базе знаний этого нет».
+- Не добавляй сведения из собственных знаний.
+- В конце укажи номера фрагментов, которые использовал.
+
+ФРАГМЕНТЫ:
+{context}
+
+ВОПРОС: {question}"""
+
+def ask(question):
+    found = find(question)
+    print("\nЧто нашёл поиск:")
+    for score, d in found:
+        print("  %.3f  [чанк %d] %s..." % (score, d["id"], d["text"][:80].replace("\n", " ")))
+    context = "\n\n".join("[фрагмент %d]\n%s" % (d["id"], d["text"])
+                          for _, d in found)
+    r = client.chat.completions.create(
+        model=CHAT,
+        messages=[{"role": "user",
+                   "content": PROMPT.format(context=context, question=question)}],
+        temperature=0.2,
+        max_tokens=600,
+    )
+    print("\nОТВЕТ:\n" + r.choices[0].message.content)
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        sys.exit(__doc__)
+    cmd = sys.argv[1]
+    if cmd == "build":
+        build()
+    elif cmd == "find":
+        for s, d in find(" ".join(sys.argv[2:])):
+            print("%.3f [чанк %d] %s\n" % (s, d["id"], d["text"][:200]))
+    elif cmd == "ask":
+        ask(" ".join(sys.argv[2:]))
+    else:
+        sys.exit(__doc__)</code><button class="copy">копировать</button></pre>
+
+  <div class="note cyn"><b>Что здесь происходит по шагам:</b> <code>chunk</code> режет текст → <code>embed</code> превращает каждый кусок в вектор → всё складывается в обычный <code>index.json</code> → <code>find</code> считает косинусную близость и сортирует → <code>ask</code> подставляет три лучших фрагмента в строгий промпт и просит модель ответить. <b>База знаний — это просто JSON-файл</b>, который можно открыть блокнотом.</div></section>
+
+<section class="slide" id="s11" data-stage="C · RAG своими руками" data-practice="1">
+  <div class="pbadge">Практика 6 · настраиваем поиск</div>
+  <h2>Доводим базу знаний до ума</h2>
+  <p class="lead">RAG почти никогда не работает идеально с первого раза. Разберёмся, <b>что именно</b> ломается и какой ручкой это чинится.</p>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 6</h4>
+    <label><input type="checkbox"><span>Прогнать <b>5 вопросов</b> через <code>python rag.py find "вопрос"</code> и посмотреть только на выдачу поиска (без ответа модели)</span></label>
+    <label><input type="checkbox"><span>Отметить: в скольких случаях нужный чанк оказался в топ-3</span></label>
+    <label><input type="checkbox"><span>Поменять <code>CHUNK_SIZE</code> на 300 и на 1500, перестроить индекс и сравнить точность поиска</span></label>
+    <label><input type="checkbox"><span>Поменять <code>TOP_K</code> с 3 на 1 и на 8 — посмотреть, как меняется ответ</span></label>
+    <label><input type="checkbox"><span>Задать вопрос, которого <b>точно нет</b> в документе → убедиться, что модель отвечает «в базе знаний этого нет», а не выдумывает</span></label>
+    <label><input type="checkbox"><span>Сравнить те же вопросы через встроенный RAG LM Studio (практика 2) и через свой — кто точнее</span></label>
+    <label><input type="checkbox"><span>Записать в заметки лучшую найденную конфигурацию</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <h3>Главный приём отладки: разделяйте поиск и ответ</h3>
+  <div class="grid g2">
+    <div class="card red"><h4>Плохой ответ — где причина?</h4>
+      <p class="small muted">Если сразу смотреть на финальный текст, непонятно, кто виноват: <b>поиск</b> не нашёл нужный фрагмент или <b>модель</b> его не поняла.</p></div>
+    <div class="card grn"><h4>Решение: команда <code>find</code></h4>
+      <p class="small muted">Она показывает только выдачу поиска с числами близости. Нужного чанка нет в списке → проблема в нарезке или в эмбеддингах. Чанк есть, а ответ плохой → проблема в промпте или в модели.</p></div>
+  </div>
+
+  <table>
+    <tr><th>Что наблюдаем</th><th>Что крутим</th></tr>
+    <tr><td>Нужный фрагмент не попадает в топ-3</td><td>Увеличить <code>TOP_K</code>; укрупнить <code>CHUNK_SIZE</code>; переформулировать вопрос терминами из документа</td></tr>
+    <tr><td>В выдаче много похожего мусора</td><td>Уменьшить <code>CHUNK_SIZE</code>; уменьшить <code>TOP_K</code></td></tr>
+    <tr><td>Ответ обрывается и не покрывает вопрос</td><td>Увеличить <code>TOP_K</code> и <code>max_tokens</code>; увеличить размер чанка</td></tr>
+    <tr><td>Модель отвечает «в базе знаний этого нет», хотя текст там есть</td><td>Проверить <code>find</code>: скорее всего, поиск не сработал. Затем — смягчить формулировку промпта</td></tr>
+    <tr><td>Модель всё равно выдумывает</td><td>Усилить промпт («используй только фрагменты, цитируй»), снизить <code>temperature</code> до 0.0–0.1, взять модель побольше</td></tr>
+    <tr><td>Всё работает, но медленно</td><td>Индекс перестраивается на каждый вопрос? Проверьте: <code>build</code> запускается <b>один раз</b>, дальше только <code>ask</code></td></tr>
+  </table>
+
+  <div class="note grn"><b>Вывод практики:</b> у RAG есть <b>измеримое качество</b>. «Топ-3 содержит нужный чанк в 4 случаях из 5» — это конкретная метрика, которую можно улучшать. Именно так и работают над такими системами в реальной жизни, а не «крутят настройки наугад».</div></section>
+
+<section class="slide" id="s12" data-stage="C · RAG своими руками">
+  <div class="pbadge d">Справочник</div>
+  <h2>Если RAG не работает</h2>
+
+  <table>
+    <tr><th>Симптом</th><th>Причина</th><th>Лечение</th></tr>
+    <tr><td><code>Индекса нет. Сначала выполните build</code></td><td>Забыли построить индекс</td><td><code>python rag.py build</code></td></tr>
+    <tr><td>Ошибка <code>model not found</code> при эмбеддингах</td><td>Неверный ID модели эмбеддингов</td><td>Скопировать точный ID из <code>/v1/models</code>. Он отличается от ID чат-модели</td></tr>
+    <tr><td>Эмбеддинги возвращают ошибку или пустоту</td><td>Эмбеддинг-модель не загружена</td><td>Загрузить её в LM Studio или включить Just-in-Time Model Loading в Developer</td></tr>
+    <tr><td>Пытались получить эмбеддинг от чат-модели</td><td>Перепутали модели</td><td>Чат-модель не умеет делать векторы. Нужна отдельная, с меткой <b>embedding</b></td></tr>
+    <tr><td>Индекс строится очень долго</td><td>Документ огромный, или эмбеддинги считаются на CPU</td><td>Норма — примерно секунда на несколько чанков. Проверьте, что модель эмбеддингов загружена на GPU</td></tr>
+    <tr><td><code>index.json</code> весит сотни мегабайт</td><td>Так и должно быть: в нём лежат векторы</td><td>768–1024 числа на каждый чанк. Чтобы уменьшить — взять модель с меньшей размерностью или обрезать вектор</td></tr>
+    <tr><td>Поиск всегда возвращает одни и те же чанки</td><td>Слишком крупный чанк «перетягивает» на себя любой запрос</td><td>Уменьшить <code>CHUNK_SIZE</code> до 400–700</td></tr>
+    <tr><td>Все значения близости около нуля</td><td>Документ и вопрос на разных языках, или модель эмбеддингов не поддерживает русский</td><td>Взять мультиязычную модель (Qwen3-Embedding, EmbeddingGemma)</td></tr>
+    <tr><td>Все значения близкости около единицы</td><td>Модель эмбеддингов плохо различает тексты (или чанки почти одинаковые)</td><td>Сменить модель; проверить нарезку — возможно, куски дублируют друг друга</td></tr>
+    <tr><td>Модель игнорирует фрагменты и отвечает «от себя»</td><td>Слабый промпт или слишком высокая температура</td><td>Усилить PROMPT, поставить <code>temperature=0.0</code>, взять модель побольше</td></tr>
+    <tr><td>Ответ обрывается</td><td>Мало <code>max_tokens</code></td><td>Поднять до 800–1200</td></tr>
+    <tr><td>После правки документа ответы старые</td><td>Индекс не перестроен</td><td>Индекс — это снимок. После любого изменения файла заново <code>python rag.py build</code></td></tr>
+  </table>
+
+  <div class="note"><b>Как понять, что всё настроено правильно:</b> команда <code>find</code> на пяти контрольных вопросах выдаёт нужный чанк в топ-3 минимум в четырёх случаях, а на вопрос «чего в документе нет» модель честно отвечает «в базе знаний этого нет».</div></section>
+
+<section class="slide" id="s13" data-stage="D · Долгая память">
+  <div class="pbadge t">Теория · три приёма</div>
+  <h2>Как делают память, которая не кончается</h2>
+  <p class="lead">Контекстное окно конечное, а разговор может длиться месяцами. Есть три рабочих приёма — и в настоящих продуктах используют все три сразу.</p>
+
+  <div class="grid g3">
+    <div class="card acc"><h4>① Окно истории</h4>
+      <p class="small muted"><b>Что:</b> храним последние N сообщений и каждый раз отправляем их модели.</p>
+      <p class="small muted"><b>Плюсы:</b> просто, работает сразу.</p>
+      <p class="small muted"><b>Минусы:</b> всё, что старше N сообщений, исчезает бесследно.</p>
+      <p class="small muted"><b>Где видели:</b> чат-бот из первого урока.</p></div>
+    <div class="card acc"><h4>② Сжатие (суммаризация)</h4>
+      <p class="small muted"><b>Что:</b> когда история разрастается, просим модель <b>пересказать её саму</b> и заменяем старые сообщения кратким содержанием.</p>
+      <p class="small muted"><b>Плюсы:</b> история может длиться вечно, смысл сохраняется.</p>
+      <p class="small muted"><b>Минусы:</b> детали теряются; тратятся токены на сам пересказ.</p></div>
+    <div class="card acc"><h4>③ Внешнее хранилище фактов</h4>
+      <p class="small muted"><b>Что:</b> важное вытаскивается из разговора и сохраняется <b>отдельно</b> — в файл или базу. Перед ответом нужные факты подтягиваются обратно.</p>
+      <p class="small muted"><b>Плюсы:</b> работает месяцами, ничего не теряется, можно смотреть и править руками.</p>
+      <p class="small muted"><b>Минусы:</b> нужно решить, <b>что именно</b> запоминать.</p></div>
+  </div>
+
+  <div class="note cyn"><b>Заметьте:</b> приём ③ — это тот же самый RAG из блока C, только документом работает <b>история разговоров</b>. Ничего нового изобретать не нужно: те же эмбеддинги, тот же поиск по косинусной близости, та же подстановка в промпт.</div>
+
+  <div class="note grn"><b>Что запоминать — решает отдельный запрос к модели.</b> После каждого ответа спрашиваем: «выпиши из этого разговора факты, которые стоит помнить долго, в формате JSON». Так из болтовни получается аккуратная база фактов: имя, предпочтения, важные даты, принятые решения.</div></section>
+
+<section class="slide" id="s14" data-stage="D · Долгая память" data-practice="1">
+  <div class="pbadge">Практика 7 · бот, который помнит</div>
+  <h2>Пишем память для чат-бота</h2>
+  <p class="lead">Соединяем всё: окно истории + сжатие + база фактов с векторным поиском. Бот помнит вас <b>между запусками</b> — то есть завтра он всё ещё знает, как вас зовут.</p>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 7</h4>
+    <label><input type="checkbox"><span>Создать <code>memory_bot.py</code>, вставить код, вписать ID моделей</span></label>
+    <label><input type="checkbox"><span>Запустить, представиться и рассказать о себе 3–4 факта</span></label>
+    <label><input type="checkbox"><span>Закрыть программу и <b>запустить заново</b> → спросить «как меня зовут?» → бот помнит</span></label>
+    <label><input type="checkbox"><span>Открыть <code>memory.json</code> в блокноте и посмотреть, какие факты сохранились</span></label>
+    <label><input type="checkbox"><span>Вручную дописать в файл свой факт → перезапустить → проверить, что бот его знает</span></label>
+    <label><input type="checkbox"><span>Задать вопрос, требующий старого факта: «какой предмет я называл любимым?»</span></label>
+    <label><input type="checkbox"><span><b>Усложнение:</b> добавить команду <code>/forget</code> — удаляет все факты о пользователе</span></label>
+    <label><input type="checkbox"><span><b>Усложнение:</b> вынести бота в Telegram (код бота есть в уроке 1, практика 14)</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <pre><code>"""Чат-бот с долгой памятью: окно истории + сжатие + база фактов."""
+import io, json, math, os
+from datetime import datetime
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
+CHAT   = "qwen/qwen3-8b"                           # ← чат-модель
+EMBED  = "text-embedding-qwen3-embedding-0.6b"     # ← модель эмбеддингов
+MEMORY = "memory.json"
+KEEP   = 8          # сколько последних сообщений держим в окне истории
+
+def load_mem():
+    if os.path.exists(MEMORY):
+        return json.loads(io.open(MEMORY, encoding="utf-8").read())
+    return {"summary": "", "facts": []}
+
+def save_mem(mem):
+    io.open(MEMORY, "w", encoding="utf-8").write(
+        json.dumps(mem, ensure_ascii=False, indent=2))
+
+def embed(text):
+    return client.embeddings.create(model=EMBED, input=text).data[0].embedding
+
+def cosine(a, b):
+    dot = sum(x * y for x, y in zip(a, b))
+    na, nb = math.sqrt(sum(x*x for x in a)), math.sqrt(sum(y*y for y in b))
+    return dot / (na * nb) if na and nb else 0.0
+
+def llm(messages, temperature=0.4, max_tokens=500):
+    r = client.chat.completions.create(model=CHAT, messages=messages,
+                                       temperature=temperature,
+                                       max_tokens=max_tokens)
+    return r.choices[0].message.content
+
+# ---------- 1. запомнить факты ----------
+def remember(mem, user_text, bot_text):
+    prompt = ("Выпиши из диалога факты о пользователе, которые стоит помнить долго "
+              "(имя, возраст, город, интересы, учёба, важные даты, решения). "
+              "Ответ — строго JSON-массив строк. Если запоминать нечего — [].\n\n"
+              "Пользователь: %s\nАссистент: %s" % (user_text, bot_text))
+    try:
+        raw = llm([{"role": "user", "content": prompt}], 0.0, 200)
+        raw = raw[raw.find("["):raw.rfind("]") + 1]
+        new = json.loads(raw) if raw.startswith("[") else []
+    except Exception:
+        return
+    old = {f["text"] for f in mem["facts"]}
+    for item in new:
+        if isinstance(item, str) and item.strip() and item not in old:
+            mem["facts"].append({
+                "text": item.strip(),
+                "vector": embed(item.strip()),
+                "when": datetime.now().strftime("%Y-%m-%d"),
+            })
+            print("   🧠 запомнил:", item.strip())
+
+# ---------- 2. вспомнить нужное ----------
+def recall(mem, query, top_k=3):
+    if not mem["facts"]:
+        return ""
+    qv = embed(query)
+    scored = sorted(((cosine(qv, f["vector"]), f) for f in mem["facts"]),
+                    key=lambda x: x[0], reverse=True)
+    picked = [f["text"] for s, f in scored[:top_k] if s > 0.35]
+    return "\n".join("- " + p for p in picked)
+
+# ---------- 3. сжать старую историю ----------
+def compress(mem, history):
+    if len(history) <= KEEP:
+        return history
+    old, new = history[:-KEEP], history[-KEEP:]
+    text = "\n".join("%s: %s" % (m["role"], m["content"]) for m in old)
+    summary = llm([{"role": "user",
+                    "content": "Сожми этот диалог в 2–3 предложения, "
+                               "сохранив главное:\n" + text}], 0.2, 200)
+    mem["summary"] = (mem["summary"] + " " + summary).strip()
+    return new
+
+# ---------- основной цикл ----------
+mem = load_mem()
+history = []
+print("Бот с памятью запущен. Выход — слово «выход».\n")
+
+while True:
+    user = input("Вы: ").strip()
+    if not user:
+        continue
+    if user.lower() in ("выход", "exit"):
+        save_mem(mem)
+        print("Память сохранена. Пока!")
+        break
+
+    relevant = recall(mem, user)
+    system = ("Ты — внимательный ассистент. Отвечай кратко и по-русски.\n"
+              "Что ты уже знаешь о пользователе:\n"
+              + (relevant or "- пока ничего")
+              + ("\nКраткое содержание прошлых разговоров:\n" + mem["summary"]
+                 if mem["summary"] else ""))
+
+    history = compress(mem, history)
+    history.append({"role": "user", "content": user})
+    answer = llm([{"role": "system", "content": system}] + history)
+    history.append({"role": "assistant", "content": answer})
+    remember(mem, user, answer)
+    save_mem(mem)
+    print("Бот:", answer, "\n")</code><button class="copy">копировать</button></pre>
+
+  <div class="grid g2">
+    <div class="note cyn"><b>Как устроена память в этом коде:</b> файл <code>memory.json</code> хранит <b>краткое содержание</b> прошлых разговоров и <b>список фактов</b> с их векторами. Перед каждым ответом программа находит три самых близких к вопросу факта и подставляет их в системный промпт. Всё остальное — уже знакомый RAG.</div>
+    <div class="note amb"><b>Порог 0.35 в функции <code>recall</code></b> — защита от мусора: если ни один факт не похож на вопрос, в промпт не подставляется ничего. Без порога бот всегда тащил бы три случайных факта и начинал путаться. Подбирайте порог на своих данных.</div>
+  </div></section>
+
+<section class="slide" id="s15" data-stage="E · Проекты" data-practice="1">
+  <div class="pbadge">Практики 8–10 · проекты на выбор</div>
+  <h2>Своя база знаний</h2>
+  <p class="lead">Финал курса. Все три проекта собираются из уже написанного кода <code>rag.py</code> — меняется только источник данных и системный промпт.</p>
+
+  <div class="grid g3">
+    <div class="card acc"><h4>📚 Практика 8 · «Справочник по учебнику»</h4>
+      <p class="small muted"><b>Источник:</b> глава учебника, конспект, статья из Википедии.</p>
+      <p class="small muted"><b>Задачи:</b> «объясни, что такое X, простыми словами», «составь 5 вопросов для проверки по этому тексту», «найди все определения и выпиши списком».</p>
+      <p class="small muted"><b>Что проверить:</b> отвечает ли бот <b>по учебнику</b>, а не «из интернета». Спросите то, чего в главе нет.</p>
+      <p class="small muted"><b>Усложнение:</b> добавить режим «экзамен» — бот задаёт вопросы и проверяет ответы.</p></div>
+    <div class="card acc"><h4>❓ Практика 9 · «FAQ школы или кружка»</h4>
+      <p class="small muted"><b>Источник:</b> устав школы, правила секции, расписание, частые вопросы — свой текст на 20–50 вопросов и ответов.</p>
+      <p class="small muted"><b>Задачи:</b> «во сколько начинается третья пара», «можно ли приносить телефон», «как записаться в кружок».</p>
+      <p class="small muted"><b>Что проверить:</b> как бот отвечает на вопрос, сформулированный <b>совершенно другими словами</b>, чем в документе. Это главная проверка качества поиска.</p>
+      <p class="small muted"><b>Усложнение:</b> подключить к Telegram — получится настоящая справочная.</p></div>
+    <div class="card acc"><h4>🗂 Практика 10 · «Поиск по своим конспектам»</h4>
+      <p class="small muted"><b>Источник:</b> папка с файлами: все свои конспекты, заметки, сохранённые статьи.</p>
+      <p class="small muted"><b>Задачи:</b> «что мы проходили по теме Y», «найди, где я записывал формулу Z», «собери всё, что у меня есть про эту тему, в один текст».</p>
+      <p class="small muted"><b>Что сделать:</b> научить <code>rag.py</code> обходить <b>все файлы в папке</b> и сохранять в чанке имя файла.</p>
+      <p class="small muted"><b>Усложнение:</b> выводить в ответе ссылки на файлы и номера чанков.</p></div>
+  </div>
+
+  <div class="task" data-task>
+    <h4>🛠 Общий чек-лист для любого проекта</h4>
+    <label><input type="checkbox"><span>Источник данных выбран и переведён в текстовый вид</span></label>
+    <label><input type="checkbox"><span>Индекс построен, <code>index.json</code> существует и открывается</span></label>
+    <label><input type="checkbox"><span>Подобран размер чанка — обосновать выбор в двух предложениях</span></label>
+    <label><input type="checkbox"><span>Команда <code>find</code> на 5 контрольных вопросах даёт нужный чанк в топ-3 минимум 4 раза</span></label>
+    <label><input type="checkbox"><span>На вопрос «чего в документе нет» бот отвечает честно, а не выдумывает</span></label>
+    <label><input type="checkbox"><span>В ответе видны номера использованных фрагментов — можно проверить источник</span></label>
+    <label><input type="checkbox"><span>Проверен вопрос, заданный <b>другими словами</b> — поиск сработал</span></label>
+    <label><input type="checkbox"><span>Всё работает офлайн: интернет выключен, база отвечает</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <h3>Заготовка для практики 10: обход папки</h3>
+  <pre><code>import os
+
+FOLDER = "notes"
+
+def read_all(folder=FOLDER):
+    """Собираем текст из всех файлов папки, помечая источник."""
+    out = []
+    for name in sorted(os.listdir(folder)):
+        path = os.path.join(folder, name)
+        if not os.path.isfile(path):
+            continue
+        if not name.lower().endswith((".txt", ".md")):
+            continue
+        text = io.open(path, encoding="utf-8", errors="replace").read()
+        for piece in chunk(text):
+            out.append({"source": name, "text": piece})
+    return out
+
+# дальше для каждого элемента считаем embed(item["text"])
+# и сохраняем вместе с полем "source" — в ответе можно писать,
+# из какого файла взят фрагмент</code><button class="copy">копировать</button></pre>
+
+  <div class="note grn"><b>Как оценивать:</b> восемь пунктов чек-листа — готовый критерий приёмки. Особенно важны пункты 4, 5 и 7: они проверяют не «красивость», а реальное качество поиска и честность ответов.</div></section>
+
+<section class="slide" id="s16" data-stage="E · Проекты">
+  <div class="pbadge t">Что дальше</div>
+  <h2>Куда развивают такие системы</h2>
+  <p class="lead">Мы собрали учебный RAG. В настоящих продуктах к нему добавляют несколько слоёв — знать о них полезно, даже если делать не будете.</p>
+
+  <table>
+    <tr><th>Улучшение</th><th>Что даёт</th><th>Сложность</th></tr>
+    <tr><td><b>Гибридный поиск</b></td><td>Векторный поиск + обычный поиск по словам. Чинит случаи, когда важны точные термины, номера, фамилии</td><td>Средняя</td></tr>
+    <tr><td><b>Переранжирование (rerank)</b></td><td>Сначала берём 20 кандидатов, потом специальная модель выбирает 3 лучших. Заметно поднимает точность</td><td>Средняя</td></tr>
+    <tr><td><b>Умная нарезка</b></td><td>Резать не по символам, а по структуре: заголовки, разделы, абзацы. Особенно важно для документации и кода</td><td>Низкая</td></tr>
+    <tr><td><b>Векторная база данных</b></td><td>Когда чанков сотни тысяч, сортировка списка в Python становится медленной. ChromaDB, Qdrant, FAISS хранят индекс эффективно</td><td>Средняя</td></tr>
+    <tr><td><b>Метаданные и фильтры</b></td><td>«ищи только в документах за 2026 год», «только в разделе про безопасность». Ускоряет и уточняет поиск</td><td>Низкая</td></tr>
+    <tr><td><b>Оценка качества</b></td><td>Набор контрольных вопросов с известными ответами + автоматический прогон после каждого изменения. Без этого настройка превращается в гадание</td><td>Низкая</td></tr>
+    <tr><td><b>Графовый RAG</b></td><td>Вместо плоского списка фактов — связи между сущностями. Помогает отвечать на вопросы «как это связано с тем»</td><td>Высокая</td></tr>
+  </table>
+
+  <div class="grid g2">
+    <div class="note cyn"><b>Готовые решения, если не хочется писать код:</b>AnythingLLM, Open WebUI, Dify, RAGFlow — программы с интерфейсом, куда закидываешь документы и получаешь чат по ним. Все умеют работать с локальным сервером LM Studio на <code>localhost:1234</code>. Но тогда вы не увидите, что происходит внутри, — а мы это теперь знаем.</div>
+    <div class="note grn"><b>Связь с предыдущими уроками:</b> RAG + инструменты из урока 2 = агент, который ищет по вашей базе знаний <b>и</b> ходит в интернет, <b>и</b> пишет результат в файл. Соберите это вместе — получится полноценный помощник. Все три компонента у вас уже написаны.</div>
+  </div></section>
+
+<section class="slide" id="s17" data-stage="F · Итоги" data-practice="1">
+  <div class="pbadge t">Итоговая проверка · 8 вопросов</div>
+  <h2>Тест по уроку</h2>
+  <p class="muted small">Нажмите на вариант — правильный подсветится, объяснение появится под вопросом.</p>
+
+  <div class="q" data-right="1">
+    <p class="qt">1. Открыли новый чат — модель забыла, как вас зовут. Почему?</p>
+    <button class="opt">У модели плохая память, нужно взять версию побольше</button>
+    <button class="opt">У модели нет памяти вообще: она видит только то, что прислали в текущем запросе</button>
+    <button class="opt">Настройки сбросились, нужно поднять Context Length</button>
+    <div class="exp">Каждый запрос модель обрабатывает с нуля. «Память» разговора — это список сообщений, который <b>ваша программа</b> отправляет заново каждый раз. Новый чат = пустой список. Размер модели и Context Length тут ни при чём.</div>
+  </div>
+
+  <div class="q" data-right="2">
+    <p class="qt">2. Что такое эмбеддинг?</p>
+    <button class="opt">Сжатая версия текста, как ZIP-архив</button>
+    <button class="opt">Короткое резюме документа</button>
+    <button class="opt">Список чисел (вектор), в котором закодирован смысл текста</button>
+    <div class="exp">Эмбеддинг — это координаты текста в многомерном пространстве. Близкий смысл → близкие координаты → высокое значение косинусной близости. Это не сжатие: из вектора нельзя восстановить исходный текст.</div>
+  </div>
+
+  <div class="q" data-right="0">
+    <p class="qt">3. Чем поиск по эмбеддингам лучше обычного поиска по словам?</p>
+    <button class="opt">Находит текст с близким смыслом, даже если общих слов почти нет</button>
+    <button class="opt">Работает быстрее на любом объёме данных</button>
+    <button class="opt">Никогда не ошибается</button>
+    <div class="exp">«Способы внесения платежа» найдётся по запросу «как оплатить», хотя общих слов нет. Обычный поиск по подстроке такое пропустит. При этом векторный поиск тоже ошибается — поэтому пороги близости подбирают на своих данных.</div>
+  </div>
+
+  <div class="q" data-right="1">
+    <p class="qt">4. Зачем текст режут на чанки перед построением индекса?</p>
+    <button class="opt">Чтобы сэкономить место на диске</button>
+    <button class="opt">Чтобы каждый вектор описывал одну законченную мысль, а не «средний смысл» всей книги</button>
+    <button class="opt">Так требует лицензия модели эмбеддингов</button>
+    <div class="exp">Вектор целого учебника не описывает ничего конкретного. А чанк в 400–900 символов — это законченная мысль, которую можно точно сопоставить с вопросом. Плюс модель эмбеддингов ограничена по длине входа (например, 2048 токенов).</div>
+  </div>
+
+  <div class="q" data-right="2">
+    <p class="qt">5. Что такое «перекрытие» (overlap) при нарезке?</p>
+    <button class="opt">Случайное перемешивание чанков для надёжности</button>
+    <button class="opt">Дублирование документа в двух экземплярах</button>
+    <button class="opt">Конец предыдущего куска повторяется в начале следующего</button>
+    <div class="exp">Без перекрытия мысль, оказавшаяся ровно на границе разреза, потеряется для обоих кусков. Обычно берут 10–15% от размера чанка.</div>
+  </div>
+
+  <div class="q" data-right="0">
+    <p class="qt">6. RAG ответил неверно. С чего начать отладку?</p>
+    <button class="opt">Посмотреть выдачу поиска отдельно от ответа модели</button>
+    <button class="opt">Сразу взять модель побольше</button>
+    <button class="opt">Поднять temperature, чтобы ответ был разнообразнее</button>
+    <div class="exp">Нужно понять, кто виноват: <b>поиск</b> не нашёл фрагмент или <b>модель</b> его не поняла. Команда <code>find</code> показывает только поиск с числами близости. Нужного чанка нет → крутим нарезку и TOP_K. Чанк есть, а ответ плохой → крутим промпт и температуру (причём вниз, а не вверх).</div>
+  </div>
+
+  <div class="q" data-right="1">
+    <p class="qt">7. Как заставить модель не выдумывать, а отвечать строго по документу?</p>
+    <button class="opt">Никак — нейросети всегда привирают</button>
+    <button class="opt">Строгий промпт («если во фрагментах нет ответа — так и скажи») + низкая температура + требование указать номера фрагментов</button>
+    <button class="opt">Увеличить TOP_K до 20</button>
+    <div class="exp">Гарантии нет, но сочетание работает хорошо: явное разрешение ответить «этого нет», температура 0.0–0.2 и требование сослаться на фрагменты. Слишком большой TOP_K, наоборот, вредит — в контексте появляется мусор.</div>
+  </div>
+
+  <div class="q" data-right="2">
+    <p class="qt">8. В документе исправили абзац. Что нужно сделать?</p>
+    <button class="opt">Ничего, база знаний обновится сама</button>
+    <button class="opt">Перезапустить LM Studio</button>
+    <button class="opt">Перестроить индекс: <code>python rag.py build</code></button>
+    <div class="exp">Индекс — это снимок документа на момент построения. Он хранится в отдельном файле и не знает об изменениях исходника. Любая правка документа требует перестроения.</div>
+  </div>
+
+  <div class="card center mt2">
+    <div class="score" id="score">— / 8</div>
+    <div class="small muted">Ответьте на вопросы и нажмите кнопку</div>
+    <div class="row mt" style="justify-content:center">
+      <button class="btn pri" id="btnScore">Показать результат</button>
+      <button class="btn" id="btnQuizReset">Пройти заново</button>
+    </div>
+  </div></section>
+
+<section class="slide" id="s18" data-stage="F · Итоги" data-keep="1">
+  <div class="pbadge t">Итоги курса</div>
+  <h2>Что вы теперь умеете</h2>
+
+  <div class="grid g2">
+    <div class="card grn"><h4>🧠 Понимать память ИИ</h4>
+      <ul class="small muted">
+        <li>различать веса модели, контекстное окно, внешнюю память и долгое хранилище</li>
+        <li>объяснить, почему модель «забывает» и что именно она забывает</li>
+        <li>видеть, как длина диалога расходует видеопамять</li>
+      </ul></div>
+    <div class="card grn"><h4>🔢 Работать с эмбеддингами</h4>
+      <ul class="small muted">
+        <li>получать векторы через <code>/v1/embeddings</code></li>
+        <li>считать косинусную близость и интерпретировать числа</li>
+        <li>выбирать модель эмбеддингов под язык и под железо</li>
+        <li>понимать, почему эмбеддинг-модель не отвечает на вопросы</li>
+      </ul></div>
+    <div class="card grn"><h4>📚 Строить RAG с нуля</h4>
+      <ul class="small muted">
+        <li>резать текст на чанки с перекрытием и обосновывать размер</li>
+        <li>строить индекс и хранить его в обычном JSON-файле</li>
+        <li>искать по смыслу и подставлять найденное в строгий промпт</li>
+        <li>отлаживать: разделять качество поиска и качество ответа</li>
+        <li>знать, что улучшить дальше: гибридный поиск, rerank, метаданные</li>
+      </ul></div>
+    <div class="card grn"><h4>⏳ Делать долгую память</h4>
+      <ul class="small muted">
+        <li>три приёма: окно истории, сжатие, внешнее хранилище фактов</li>
+        <li>извлекать факты из разговора в структурированном виде</li>
+        <li>бот, который помнит пользователя между запусками и между днями</li>
+        <li>понимать, что память — это файл, который можно открыть и исправить</li>
+      </ul></div>
+  </div>
+
+  <div class="note cyn"><b>Главная мысль урока:</b> чтобы ИИ что-то знал, его <b>не нужно переучивать</b>. Нужно найти правильный текст и положить его в контекст в правильный момент. Всё остальное — техника поиска.</div>
+
+  <div class="note grn"><b>Курс целиком в одной фразе:</b>
+    <div class="grid g3 mt" style="gap:10px">
+      <div class="card" style="padding:12px"><b>Урок 1</b><br><span class="small muted">модель <b>говорит</b><br>скачали, настроили, поймали на выдумке, подняли API</span></div>
+      <div class="card" style="padding:12px"><b>Урок 2</b><br><span class="small muted">модель <b>действует</b><br>инструменты, MCP, свой агент, безопасность</span></div>
+      <div class="card" style="padding:12px"><b>Урок 3</b><br><span class="small muted">модель <b>знает</b><br>эмбеддинги, RAG, долгая память</span></div>
+    </div>
+  </div>
+
+  <div class="note amb"><b>Пять правил, которые стоит унести:</b>
+    <ol class="small" style="margin-bottom:0">
+      <li><b>У модели нет памяти.</b> Всё, что она «помнит», прислала ваша программа.</li>
+      <li><b>Не переучивайте — ищите.</b> RAG дешевле и быстрее fine-tuning почти всегда.</li>
+      <li><b>Качество RAG на 70% — это нарезка и поиск,</b> и только на 30% — модель.</li>
+      <li><b>Отлаживайте раздельно:</b> сначала проверка поиска, потом проверка ответа.</li>
+      <li><b>Разрешите модели сказать «не знаю».</b> Иначе она найдёт, чем заполнить паузу.</li>
+    </ol></div></section>
+
+<section class="slide" id="s19" data-stage="F · Итоги" data-keep="1">
+  <div class="pbadge t">Одна страница · можно распечатать</div>
+  <h2>Шпаргалка по RAG и памяти</h2>
+
+  <div class="grid g2">
+    <div class="card"><h4>🔢 Эмбеддинги через API</h4>
+      <pre><code>POST http://localhost:1234/v1/embeddings
+
+r = client.embeddings.create(
+    model="text-embedding-qwen3-embedding-0.6b",
+    input="ваш текст",
+)
+vector = r.data[0].embedding   # список чисел
+
+def cosine(a, b):
+    dot = sum(x*y for x, y in zip(a, b))
+    na  = math.sqrt(sum(x*x for x in a))
+    nb  = math.sqrt(sum(y*y for y in b))
+    return dot / (na * nb)</code><button class="copy">копировать</button></pre></div>
+    <div class="card"><h4>✂️ Нарезка текста</h4>
+      <pre><code>def chunk(text, size=700, overlap=90):
+    parts, start = [], 0
+    while start &lt; len(text):
+        piece = text[start:start + size]
+        for stop in ("\n\n", ". ", "! ", "? "):
+            cut = piece.rfind(stop)
+            if cut &gt; size // 2:
+                piece = piece[:cut + len(stop)]
+                break
+        parts.append(piece.strip())
+        start += max(1, len(piece) - overlap)
+    return [p for p in parts if p]
+
+# size: 400–900 символов
+# overlap: 10–15% от size</code><button class="copy">копировать</button></pre></div>
+    <div class="card"><h4>📚 Строгий промпт для RAG</h4>
+      <pre><code>Отвечай, опираясь ТОЛЬКО на
+приведённые фрагменты.
+Правила:
+- Если во фрагментах нет ответа —
+  напиши «В базе знаний этого нет».
+- Не добавляй сведения из
+  собственных знаний.
+- В конце укажи номера фрагментов.
+
+ФРАГМЕНТЫ:
+{context}
+
+ВОПРОС: {question}
+
+# temperature = 0.0 … 0.2
+# max_tokens  = 600 … 1200</code><button class="copy">копировать</button></pre></div>
+    <div class="card"><h4>⚙️ Ориентиры настроек</h4>
+      <table style="margin:0">
+        <tr><th>Параметр</th><th>Значение</th></tr>
+        <tr><td>CHUNK_SIZE</td><td>400–900 симв.</td></tr>
+        <tr><td>OVERLAP</td><td>10–15%</td></tr>
+        <tr><td>TOP_K</td><td>3–5</td></tr>
+        <tr><td>temperature</td><td>0.0–0.2</td></tr>
+        <tr><td>порог близости</td><td>0.3–0.4 (подбирать!)</td></tr>
+        <tr><td>контекст чат-модели</td><td>4096–16384 на 8 ГБ VRAM</td></tr>
+      </table></div>
+  </div>
+
+  <h3>Команды</h3>
+  <pre><code>python rag.py build              # построить индекс (один раз и после правок документа)
+python rag.py find "вопрос"      # только поиск: видно числа близости и чанки
+python rag.py ask "вопрос"       # поиск + ответ модели
+
+pip install openai               # единственная зависимость
+http://localhost:1234/v1/models  # список моделей и их точные ID</code><button class="copy">копировать</button></pre>
+
+  <h3>Если не работает — по порядку</h3>
+  <ol class="small">
+    <li><b>Сервер:</b> <code>/v1/models</code> в браузере. Не открывается → Developer → Start Server.</li>
+    <li><b>Две модели:</b> чат-модель и эмбеддинг-модель — это разные ID. Проверьте оба.</li>
+    <li><b>Индекс:</b> существует ли <code>index.json</code>? Правили документ → перестройте.</li>
+    <li><b>Поиск отдельно:</b> <code>python rag.py find</code>. Нужного чанка нет → нарезка и TOP_K.</li>
+    <li><b>Чанк находится, а ответ плохой</b> → промпт, температура вниз, модель побольше.</li>
+    <li><b>Все близости около нуля</b> → модель эмбеддингов не знает русский. Взять Qwen3-Embedding или EmbeddingGemma.</li>
+  </ol>
+
+  <div class="divider"></div>
+  <p class="small muted center">Материалы актуальны на сентябрь 2026 · проверено для LM Studio 0.4.x (эндпоинты <code>/v1/embeddings</code>, <code>/v1/chat/completions</code>, <code>/v1/models</code>), Qwen3-Embedding-0.6B и EmbeddingGemma-300M, RTX 3060 8 ГБ · файл работает без интернета · урок 3 из курса «Локальный ИИ своими руками»</p></section>
+
+</main>
+
+<div class="botbar">
+  <button class="btn" id="prev">← Назад</button>
+  <button class="btn pri" id="next">Далее →</button>
+  <div class="counter" id="counter">1 / 20</div>
+  <div class="spacer"></div>
+  <div class="hint"><kbd>←</kbd><kbd>→</kbd> листать · <kbd>O</kbd> содержание· <kbd>0</kbd>–<kbd>9</kbd> быстрый переход</div>
+  <button class="btn" id="btnPrint" title="Сохранить в PDF / распечатать">🖨 Печать</button>
+</div>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <h2 style="margin:0;font-size:26px">Содержание курса</h2>
+      <button class="btn" id="modalClose">Закрыть ✕</button>
+    </div>
+    <div id="ovlist"></div>
+    <div class="divider"></div>
+    <p class="small muted">Зелёной меткой <span class="tag g">практика</span> отмечены слайды, где класс работает руками. Домашних заданий в курсе нет — всё делается в классе.</p>
+    <p class="small muted"><b>Рекомендуемое разбиение:</b> урок 1 — слайды 1–14 (установка, модели, квантование, зрение, reasoning); урок 2 — слайды 15–25 (семейства, галлюцинации, настройки, JSON); урок 3 — слайды 26–37 (API-сервер, свои проекты, кодинг-ассистент, проверка).</p>
+  </div>
+</div>
+
+<div class="cmodal" id="codeModal">
+  <div class="cbox">
+    <div class="row" style="justify-content:space-between">
+      <b style="font-size:15px;color:#c4b5fd">Фрагмент — выделите текст и скопируйте</b>
+      <span class="row" style="gap:8px">
+        <button class="btn" id="codeSel">Выделить всё</button>
+        <button class="btn" id="codeClose">Закрыть ✕</button>
+      </span>
+    </div>
+    <pre><code id="codeView"></code></pre>
+    <p class="small muted" style="margin:0">Если кнопка «копировать» не срабатывает (ограничения встроенного просмотра) — откройте файл в обычном браузере или скопируйте текст отсюда.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0, practiceOnly = false;
+  var stageEl = document.getElementById('stage');
+
+  var stageOrder = [];
+  slides.forEach(function(s){
+    var st = s.dataset.stage;
+    if (stageOrder.indexOf(st) === -1) stageOrder.push(st);
+  });
+
+  function visibleList(){
+    if (!practiceOnly) return slides.map(function(_, k){ return k; });
+    var out = [];
+    slides.forEach(function(s, k){
+      if (s.dataset.practice === '1' || s.dataset.keep === '1') out.push(k);
+    });
+    return out;
+  }
+
+  function show(n){
+    if (n < 0) n = 0;
+    if (n > slides.length - 1) n = slides.length - 1;
+    if (practiceOnly) {
+      var vis = visibleList();
+      if (vis.indexOf(n) === -1) {
+        var best = vis[0];
+        for (var q = 0; q < vis.length; q++) { if (vis[q] >= n) { best = vis[q]; break; } best = vis[q]; }
+        n = best;
+      }
+    }
+    slides.forEach(function(s){ s.classList.remove('active'); });
+    i = n;
+    slides[i].classList.add('active');
+    stageEl.scrollTop = 0;
+    document.getElementById('counter').textContent = (i+1) + ' / ' + slides.length;
+    document.getElementById('prog').style.width = ((i+1)/slides.length*100) + '%';
+    document.getElementById('stagechip').textContent = slides[i].dataset.stage;
+    if (location.hash !== '#s'+(i+1)) history.replaceState(null,'','#s'+(i+1));
+    markOv();
+    if (window.__studyTick) window.__studyTick();
+    if (window.__studyMax !== undefined && n > window.__studyMax) n = window.__studyMax;
+  }
+  function step(dir){
+    var vis = visibleList();
+    var pos = vis.indexOf(i);
+    if (pos === -1) { show(i + dir); return; }
+    var np = pos + dir;
+    if (np < 0) np = 0;
+    if (np > vis.length - 1) np = vis.length - 1;
+    show(vis[np]);
+  }
+  function next(){ step(1); } function prev(){ step(-1); }
+
+  document.getElementById('next').onclick = next;
+  document.getElementById('prev').onclick = prev;
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target.tagName;
+    if (t === 'INPUT' || t === 'TEXTAREA') return;
+    switch(e.key){
+      /* навигация передана режиму прохождения */
+      case 'o': case 'O': case 'щ': case 'Щ': case 'm': case 'M': case 'ь': case 'Ь': toggleModal(); break;
+      /* режим «только практика» отключён в ученической версии */
+      case 'Escape': closeModal(); cmodalEl().classList.remove('open'); break;
+      default:
+        /* быстрый переход отключён: слайды открываются по порядку */
+    }
+  });
+
+  var wheelLock = false;
+  stageEl.addEventListener('wheel', function(e){
+    var atTop = stageEl.scrollTop <= 0;
+    var atBot = stageEl.scrollTop + stageEl.clientHeight >= stageEl.scrollHeight - 4;
+    if (wheelLock) return;
+    /* прокрутка не переключает слайды */
+  }, {passive:true});
+
+
+  function togglePractice(){ practiceOnly = false; return; }
+  function togglePracticeDisabled(){
+    practiceOnly = !practiceOnly;
+    document.body.classList.toggle('onlypractice', practiceOnly);
+    var b = document.getElementById('btnPractice');
+    b.classList.toggle('on2', practiceOnly);
+    b.textContent = practiceOnly ? '🛠 Практика: вкл' : '🛠 Только практика';
+    markOv();
+    /* фильтр практики в ученической версии не применяется */
+  }
+  var practiceBtnEl = document.getElementById('btnPractice');
+  if (practiceBtnEl) practiceBtnEl.onclick = function(){ practiceBtnEl.classList.remove('on2'); };
+
+  var modal = document.getElementById('modal'), ovlist = document.getElementById('ovlist');
+  (function buildOv(){
+    var n = 0;
+    stageOrder.forEach(function(st){
+      var d = document.createElement('div'); d.className = 'ovstage';
+      d.innerHTML = '<h4>' + st + '</h4>';
+      slides.forEach(function(s, idx){
+        if (s.dataset.stage !== st) return;
+        n++;
+        var b = document.createElement('button'); b.className = 'ovlink'; b.dataset.idx = idx;
+        var title = s.querySelector('h1,h2');
+        var isP = s.dataset.practice === '1';
+        b.innerHTML = '<span class="n">' + n + '</span><span>' + (title ? title.textContent.trim() : 'Слайд') + '</span>' +
+                      (isP ? '<span class="pr">практика</span>' : '');
+        b.onclick = function(){ if (window.__studyCan && !window.__studyCan(idx)) return; show(idx); closeModal(); };
+        d.appendChild(b);
+      });
+      ovlist.appendChild(d);
+    });
+  })();
+  function markOv(){
+    Array.prototype.forEach.call(ovlist.querySelectorAll('.ovlink'), function(b){
+      var k = parseInt(b.dataset.idx,10), on = (k === i);
+      b.style.borderColor = on ? '#a78bfa' : '';
+      b.style.background  = on ? '#1d1836' : '';
+      var hidden = practiceOnly && slides[k].dataset.practice !== '1' && slides[k].dataset.keep !== '1';
+      b.style.opacity = hidden ? '.35' : '1';
+    });
+  }
+  function toggleModal(){ modal.classList.contains('open') ? closeModal() : openModal(); }
+  function openModal(){ modal.classList.add('open'); markOv(); }
+  function closeModal(){ modal.classList.remove('open'); }
+  document.getElementById('btnOv').onclick = toggleModal;
+  document.getElementById('modalClose').onclick = closeModal;
+  modal.addEventListener('click', function(e){ if (e.target === modal) closeModal(); });
+
+  function esc(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function cmodalEl(){ return document.getElementById('codeModal'); }
+  function showCode(txt){
+    document.getElementById('codeView').innerHTML = esc(txt);
+    cmodalEl().classList.add('open');
+  }
+  function copyText(txt, btn){
+    var done = function(){
+      var old = btn.textContent; btn.textContent = '✓ скопировано'; btn.style.color = '#6ee7b7';
+      setTimeout(function(){ btn.textContent = old; btn.style.color = ''; }, 1400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, function(){ fallback(txt, done, btn); });
+    } else fallback(txt, done, btn);
+  }
+  function fallback(txt, done, btn){
+    var ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch(e){ ok = false; }
+    document.body.removeChild(ta);
+    if (ok) done(); else if (btn) showCode(txt);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('pre'), function(pre){
+    var btn = pre.querySelector('.copy');
+    if (btn) {
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var clone = pre.cloneNode(true);
+        var b = clone.querySelector('.copy'); if (b) b.remove();
+        copyText(clone.textContent.replace(/\n+$/,''), btn);
+      });
+    }
+    pre.addEventListener('dblclick', function(){
+      var c = pre.querySelector('code');
+      showCode(c ? c.textContent : pre.textContent);
+    });
+  });
+
+  var cmodal = cmodalEl();
+  document.getElementById('codeClose').onclick = function(){ cmodal.classList.remove('open'); };
+  document.getElementById('codeSel').onclick = function(){
+    var el = document.getElementById('codeView');
+    var r = document.createRange(); r.selectNodeContents(el);
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  };
+  cmodal.addEventListener('click', function(e){ if (e.target === cmodal) cmodal.classList.remove('open'); });
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-task]'), function(task){
+    var boxes = task.querySelectorAll('input[type=checkbox]');
+    var bar = task.querySelector('.bar i');
+    var upd = function(){
+      var done = 0;
+      Array.prototype.forEach.call(boxes, function(b){ if (b.checked) done++; });
+      if (bar) bar.style.width = (boxes.length ? done/boxes.length*100 : 0) + '%';
+    };
+    Array.prototype.forEach.call(boxes, function(b){ b.addEventListener('change', upd); });
+    upd();
+  });
+
+  var qs = Array.prototype.slice.call(document.querySelectorAll('.q'));
+  qs.forEach(function(q){
+    var right = parseInt(q.dataset.right,10);
+    var opts = q.querySelectorAll('.opt');
+    Array.prototype.forEach.call(opts, function(o, idx){
+      o.addEventListener('click', function(){
+        if (q.dataset.done) return;
+        q.dataset.done = '1'; q.classList.add('answered');
+        if (idx === right) { o.classList.add('right'); q.dataset.ok = '1'; }
+        else { o.classList.add('wrong'); opts[right].classList.add('right'); }
+      });
+    });
+  });
+  var scoreEl = document.getElementById('score');
+  var btnScoreEl = document.getElementById('btnScore');
+  if (btnScoreEl) btnScoreEl.onclick = function(){
+    var ok = 0, answered = 0;
+    qs.forEach(function(q){ if (q.dataset.done) { answered++; if (q.dataset.ok) ok++; } });
+    var el = document.getElementById('score');
+    if (answered === 0) { el.textContent = 'Сначала ответьте на вопросы'; el.style.color = '#fcd34d'; return; }
+    el.textContent = ok + ' / ' + qs.length + (answered < qs.length ? '   (отвечено ' + answered + ')' : '');
+    el.style.color = ok >= qs.length-1 ? '#34d399' : (ok >= qs.length-3 ? '#fcd34d' : '#fb7185');
+  };
+  if (document.getElementById('btnQuizReset')) document.getElementById('btnQuizReset').onclick = function(){
+    qs.forEach(function(q){
+      delete q.dataset.done; delete q.dataset.ok; q.classList.remove('answered');
+      Array.prototype.forEach.call(q.querySelectorAll('.opt'), function(o){ o.classList.remove('right','wrong'); });
+    });
+    var el = document.getElementById('score'); el.textContent = '— / ' + qs.length; el.style.color = '#34d399';
+  };
+
+  document.getElementById('btnPrint').onclick = function(){ window.print(); };
+
+  var x0 = null;
+  stageEl.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, {passive:true});
+  stageEl.addEventListener('touchend', function(e){
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0;
+    /* свайп обрабатывает режим прохождения */
+    x0 = null;
+  }, {passive:true});
+
+  var h = parseInt((location.hash||'').replace('#s',''),10);
+  var _hs = (h && h >= 1 && h <= slides.length) ? h-1 : 0;
+  if (window.__studyMax !== undefined && _hs > window.__studyMax) _hs = 0;
+  show(_hs);
+})();
+</script>
+<script>
+/* Режим обязательного прохождения (версия без ожидания).
+
+   Правила:
+   • слайды открываются строго по порядку, вперёд не перемотать;
+   • теоретический слайд: один раз нажать «Далее» — таймеров и прокрутки нет;
+     при возврате назад слайд уже помечен прочитанным и открывается сразу;
+   • слайд с практикой: нужно отметить все пункты чек-листа;
+   • тест: объяснения и переход дальше — только когда все ответы верны;
+   • прогресс хранится в браузере (ключ неочевидный, значение с контрольной суммой).
+*/
+(function(){
+  'use strict';
+  var KEYWORD = "rag";
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var stageEl = document.getElementById('stage');
+  var N = slides.length;
+
+  var cur = 0, unlocked = 0, visited = {}, seen = {}, ready = false;
+  var store = null;
+  try { store = window.localStorage; } catch(e){ store = null; }
+
+  /* ---------- хранилище ---------- */
+  function mix(str){
+    var h1 = 0x811c9dc5, h2 = 0x1000193;
+    for (var i = 0; i < str.length; i++){
+      h1 = (h1 ^ str.charCodeAt(i)) >>> 0; h1 = (h1 * 0x01000193) >>> 0;
+      h2 = (h2 + str.charCodeAt(i) * (i + 7)) >>> 0;
+    }
+    return h1.toString(36) + h2.toString(36);
+  }
+  var SKEY = 'x' + mix(KEYWORD + '|' + N);
+  function blank(){ return { u: 0, v: {}, p: 0, c: '' }; }
+  function sign(u, v, pos){ return mix(KEYWORD + ':' + u + ':' + JSON.stringify(v) + ':' + (pos | 0)); }
+  function load(){
+    if (!store) return blank();
+    try {
+      var raw = store.getItem(SKEY);
+      if (!raw) return blank();
+      var st = JSON.parse(raw);
+      if (!st || typeof st.u !== 'number') return blank();
+      st.v = st.v || {}; st.p = st.p | 0;
+      if (st.c !== sign(st.u, st.v, st.p)) return blank();
+      return st;
+    } catch(e){ return blank(); }
+  }
+  function save(){
+    if (!store) return;
+    try {
+      store.setItem(SKEY, JSON.stringify({ u: unlocked, v: visited, p: cur, c: sign(unlocked, visited, cur) }));
+    } catch(e){}
+  }
+
+  /* ---------- состояние слайда ---------- */
+  function hasTasks(s){ return s.querySelectorAll('[data-task] input[type=checkbox]').length > 0; }
+  function tasksDone(s){
+    var b = s.querySelectorAll('[data-task] input[type=checkbox]');
+    if (!b.length) return true;
+    for (var i = 0; i < b.length; i++) if (!b[i].checked) return false;
+    return true;
+  }
+  function hasQuiz(s){ return s.querySelectorAll('.q').length > 0; }
+  function quizState(s){
+    var qs = s.querySelectorAll('.q'), ok = 0, done = 0;
+    for (var i = 0; i < qs.length; i++){
+      if (qs[i].dataset.done){ done++; if (qs[i].dataset.ok) ok++; }
+    }
+    return { total: qs.length, done: done, ok: ok };
+  }
+
+  function statusOf(i){
+    var s = slides[i];
+    if (hasQuiz(s)){
+      var q = quizState(s);
+      if (q.done < q.total) return { ok:false, text:'Тест обязателен: ответьте на все вопросы (' + q.done + ' из ' + q.total + ')' };
+      if (q.ok < q.total)  return { ok:false, text:'Нужны <b>все</b> верные ответы. Сейчас верно ' + q.ok + ' из ' + q.total + ' — нажмите «Пройти заново» и вернитесь к слайдам' };
+      return { ok:true, text:'Тест сдан: ' + q.total + ' из ' + q.total + '. Объяснения открыты — прочитайте их' };
+    }
+    if (hasTasks(s)){
+      if (!tasksDone(s)) return { ok:false, text:'Отметьте все пункты чек-листа практики' };
+      return { ok:true, text:'Чек-лист практики закрыт — можно идти дальше' };
+    }
+    if (!seen[i]) return { ok:false, text:'Прочитайте слайд и нажмите «Далее»' };
+    return { ok:true, text:'Слайд изучен — можно идти дальше' };
+  }
+
+  /* ---------- элементы ---------- */
+  var lockbar  = document.createElement('div');
+  lockbar.className = 'lockbar';
+  var nextBtn  = document.getElementById('next');
+  var prevBtn  = document.getElementById('prev');
+  var counter  = document.getElementById('counter');
+  var progEl   = document.getElementById('prog');
+  var progWrap = document.querySelector('.progress');
+  var chip     = document.getElementById('stagechip');
+  stageEl.insertBefore(lockbar, stageEl.firstChild);
+
+  function blockedByTask(i){
+    var s = slides[i];
+    if (hasQuiz(s)){
+      var q = quizState(s);
+      return q.done < q.total || q.ok < q.total;
+    }
+    return hasTasks(s) && !tasksDone(s);
+  }
+
+  function studyBar(i){
+    var st = statusOf(i);
+    lockbar.innerHTML = st.ok ? '✅ <b>' + st.text + '</b>' : '🔒 <b>Дальше нельзя.</b> ' + st.text;
+    lockbar.classList.toggle('done', st.ok);
+    /* Кнопку блокируем только когда слайд действительно не сдан (чек-лист или тест):
+       на обычном слайде первый же клик помечает его прочитанным и открывает следующий.
+       Иначе получилась бы ловушка: кнопка выключена, а включить её можно только кликом. */
+    nextBtn.disabled = blockedByTask(i);
+    nextBtn.textContent = st.ok ? 'Далее →' : (nextBtn.disabled ? '🔒 Заблокировано' : 'Прочитал, далее →');
+    return st.ok;
+  }
+
+  function show(i){
+    if (i < 0) i = 0;
+    if (i > unlocked) i = unlocked;
+    if (i > N - 1) i = N - 1;
+    for (var k = 0; k < N; k++) slides[k].classList.remove('active');
+    cur = i;
+    slides[i].classList.add('active');
+    visited[i] = 1;
+    stageEl.scrollTop = 0;
+    chip.textContent = slides[i].dataset.stage || '';
+    document.body.classList.remove('quizok');
+    if (hasQuiz(slides[i])) document.body.classList.add('quizdone');
+    refresh();
+    markOv();
+    save();
+  }
+
+  /* refresh вызывается часто (в том числе из чужого кода), поэтому слайд
+     помечается прочитанным только при явном действии — see() */
+  function refresh(){
+    var ok = studyBar(cur);
+    counter.textContent = (cur + 1) + ' / ' + N + '  ·  открыто ' + (unlocked + 1);
+    progEl.style.width = ((unlocked + 1) / N * 100) + '%';
+    progWrap.classList.toggle('locked', unlocked < N - 1);
+    return ok;
+  }
+  function see(){ seen[cur] = 1; }
+
+  function unlockNext(){
+    if (cur === unlocked && unlocked < N - 1){
+      unlocked = cur + 1;
+      window.__studyMax = unlocked;
+      save();
+      markOv();
+    }
+  }
+  function next(){
+    see();
+    if (statusOf(cur).ok){
+      unlockNext();
+      if (cur < N - 1) show(cur + 1); else refresh();
+    } else {
+      refresh();
+    }
+  }
+  function prev(){ show(cur - 1); }
+
+  window.__studyMax = 0;
+  window.__studyTick = function(){ refresh(); };
+  window.__studyCan = function(idx){ return idx <= unlocked; };
+
+  function markOv(){
+    var links = document.querySelectorAll('.ovlink');
+    for (var k = 0; k < links.length; k++){
+      var idx = parseInt(links[k].dataset.idx, 10);
+      var locked = idx > unlocked;
+      links[k].classList.toggle('locked', locked);
+      var on = (idx === cur);
+      links[k].style.borderColor = on ? '#a78bfa' : '';
+      links[k].style.background  = on ? '#1d1836' : '';
+      var label = links[k].querySelector('.n');
+      if (label) label.textContent = locked ? '🔒' : String(idx + 1);
+    }
+  }
+
+  /* ---------- строка состояния в нижней панели ---------- */
+  var hint = document.querySelector('.botbar .hint');
+  if (hint){
+    hint.className = 'studyhint';
+    hint.innerHTML = '🔒 слайды открываются по порядку · <kbd>O</kbd> содержание · <kbd>🖨</kbd> печать';
+  }
+  var resetBtn = document.createElement('button');
+  resetBtn.className = 'btn';
+  resetBtn.id = 'studyReset';
+  resetBtn.title = 'Сбросить прогресс изучения (нужно подтвердить вторым щелчком)';
+  resetBtn.textContent = '↺ Прогресс';
+  var armed = 0;
+  resetBtn.addEventListener('click', function(){
+    if (!armed){
+      armed = 1; resetBtn.textContent = '↺ Точно сбросить?';
+      setTimeout(function(){ armed = 0; resetBtn.textContent = '↺ Прогресс'; }, 2500);
+      return;
+    }
+    armed = 0; resetBtn.textContent = '↺ Прогресс';
+    unlocked = 0; visited = {}; seen = {};
+    window.__studyMax = 0;
+    if (store){ try { store.removeItem(SKEY); } catch(e){} }
+    var qs = document.querySelectorAll('.q');
+    for (var i = 0; i < qs.length; i++){
+      delete qs[i].dataset.done; delete qs[i].dataset.ok; qs[i].classList.remove('answered');
+      var op = qs[i].querySelectorAll('.opt');
+      for (var j = 0; j < op.length; j++) op[j].classList.remove('right', 'wrong');
+    }
+    var boxes = document.querySelectorAll('[data-task] input[type=checkbox]');
+    for (var b = 0; b < boxes.length; b++) boxes[b].checked = false;
+    var bars = document.querySelectorAll('[data-task] .bar i');
+    for (var r = 0; r < bars.length; r++) bars[r].style.width = '0%';
+    document.body.classList.remove('quizok');
+    show(0);
+  });
+  document.querySelector('.botbar').appendChild(resetBtn);
+
+  /* ---------- перехват управления ---------- */
+  nextBtn.onclick = next;
+  prevBtn.onclick = prev;
+
+  document.addEventListener('keydown', function(e){
+    e.stopImmediatePropagation();
+    var t = e.target.tagName;
+    if (t === 'INPUT' || t === 'TEXTAREA'){ return; }
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': case ' ': next(); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   prev(); e.preventDefault(); break;
+      case 'Home': show(0); break;
+      case 'End':  show(unlocked); break;
+      case 'o': case 'O': case 'щ': case 'Щ': case 'm': case 'M': case 'ь': case 'Ь':
+        document.getElementById('modal').classList.toggle('open'); markOv(); break;
+      case 'Escape':
+        document.getElementById('modal').classList.remove('open');
+        document.getElementById('codeModal').classList.remove('open');
+        break;
+      default:
+        if (/^[0-9]$/.test(e.key)){
+          var n = parseInt(e.key, 10); if (n === 0) n = 10;
+          if (n - 1 <= unlocked) show(n - 1); else refresh();
+        }
+    }
+  }, true);
+
+  var wheelLock = false;
+  stageEl.addEventListener('wheel', function(e){
+    if (wheelLock || Math.abs(e.deltaY) < 30) return;
+    var top = stageEl.scrollTop <= 0;
+    var bot = stageEl.scrollTop + stageEl.clientHeight >= stageEl.scrollHeight - 4;
+    if (e.deltaY > 0 && bot){ wheelLock = true; next(); setTimeout(function(){ wheelLock = false; }, 500); }
+    else if (e.deltaY < 0 && top){ wheelLock = true; prev(); setTimeout(function(){ wheelLock = false; }, 500); }
+  }, { passive: true, capture: true });
+
+  var links = document.querySelectorAll('.ovlink');
+  for (var k = 0; k < links.length; k++){
+    (function(link){
+      link.addEventListener('click', function(e){
+        var idx = parseInt(link.dataset.idx, 10);
+        if (idx > unlocked){
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          document.getElementById('modal').classList.remove('open');
+          show(unlocked);
+        }
+      }, true);
+    })(links[k]);
+  }
+
+  /* ---------- пересчёт статуса ----------
+     нужен после отметки галочки в чек-листе и после ответа в тесте */
+  document.addEventListener('change', function(e){
+    if (e.target && e.target.type === 'checkbox') setTimeout(refresh, 0);
+  });
+  stageEl.addEventListener('scroll', function(){ refresh(); }, { passive: true });
+
+  /* ---------- обязательный тест: объяснения только при полном успехе ---------- */
+  var resultBox = null;
+  function quizRefresh(){
+    var s = slides[cur];
+    if (!hasQuiz(s)) return;
+    var q = quizState(s);
+    var sc = document.getElementById('score');
+    var bs = document.getElementById('btnScore');
+    if (bs) bs.style.display = 'none';
+    if (!sc) return;
+    if (!resultBox){
+      resultBox = document.createElement('div');
+      resultBox.className = 'resultbox';
+      sc.parentNode.insertBefore(resultBox, sc.nextSibling);
+    }
+    if (q.done === q.total && q.ok === q.total){
+      document.body.classList.add('quizok');
+      sc.textContent = q.total + ' / ' + q.total;
+      sc.style.color = '#34d399';
+      resultBox.className = 'resultbox ok';
+      resultBox.innerHTML = '✅ <b>Все ответы верны.</b> Открылись объяснения к вопросам — прочитайте их: '
+        + 'там разобрано, почему остальные варианты не подходят. Слайд разблокирован, можно идти дальше.';
+    } else {
+      document.body.classList.remove('quizok');
+      sc.textContent = q.ok + ' / ' + q.total;
+      sc.style.color = (q.done === q.total) ? '#fb7185' : '#fcd34d';
+      resultBox.className = 'resultbox' + ((q.done === q.total) ? ' bad' : '');
+      resultBox.innerHTML = (q.done < q.total)
+        ? '⚠️ Тест обязателен. Отвечено ' + q.done + ' из ' + q.total + '. Объяснения появятся, только когда <b>все '
+          + q.total + ' ответов будут верными</b>.'
+        : '❌ Верно ' + q.ok + ' из ' + q.total + '. Объяснения закрыты. Нажмите <b>«Пройти заново»</b>, '
+          + 'вернитесь к слайдам и ответьте правильно на все вопросы.';
+    }
+    refresh();
+  }
+  document.addEventListener('click', function(e){
+    var o = e.target.closest ? e.target.closest('.q .opt') : null;
+    if (o) setTimeout(quizRefresh, 30);
+    var r = e.target.closest ? e.target.closest('#btnQuizReset') : null;
+    if (r) setTimeout(function(){
+      document.body.classList.remove('quizok');
+      var qs = slides[cur].querySelectorAll('.q');
+      for (var i = 0; i < qs.length; i++){ delete qs[i].dataset.done; delete qs[i].dataset.ok; }
+      if (resultBox){ resultBox.remove(); resultBox = null; }
+      quizRefresh();
+    }, 30);
+  });
+
+  /* ---------- свайп ---------- */
+  var x0 = null;
+  stageEl.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, { passive: true });
+  stageEl.addEventListener('touchend', function(e){
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 70){ dx < 0 ? next() : prev(); }
+    x0 = null;
+  }, { passive: true });
+
+  /* ---------- старт ---------- */
+  var st0 = load();
+  unlocked = Math.min(Math.max(st0.u | 0, 0), N - 1);
+  visited  = st0.v || {};
+  for (var key in visited){ if (visited.hasOwnProperty(key)) seen[key] = 1; }
+  window.__studyMax = unlocked;
+
+  var startIdx = unlocked;
+  var h = parseInt((location.hash || '').replace('#s', ''), 10);
+  if (h >= 1 && h <= N && (h - 1) <= unlocked && visited[h - 1] !== undefined) startIdx = h - 1;
+  if (startIdx > 0 && visited[startIdx] === undefined){
+    for (var q0 = startIdx - 1; q0 >= 0; q0--){ if (visited[q0] !== undefined){ startIdx = q0; break; } }
+  }
+  show(startIdx);
+  requestAnimationFrame(function(){ ready = true; refresh(); });
+  if (!store){
+    lockbar.innerHTML += ' <span style="color:#fda4af">(браузер не даёт сохранять прогресс — не закрывайте вкладку)</span>';
+  }
+/* === KURS BRIDGE (вставлено build_portal.py) === */
+  var LESSON = "u3";
+
+  /* Мост портала: восстановление прогресса с сервера и отчёт о прогрессе.
+     Встроен сборщиком, работает только внутри портала (в iframe той же origin).
+     Файл по-прежнему можно открыть двойным щелчком — тогда мост просто молчит. */
+  (function(){
+    try {
+      var KEY = 'rag';
+      var SLIDES = document.querySelectorAll('.slide').length;
+      if (!KEY || !SLIDES) { return; }
+      var BASE = 'x' + mix(KEY + '|' + SLIDES);
+      var uid = 0;
+      var lastSent = 0;
+      var lastJson = '';
+
+      function skey(id){ return 'k' + id + '|' + BASE; }
+
+      function readState(key){
+        if (!store) { return null; }
+        try {
+          var raw = store.getItem(key);
+          if (!raw) { return null; }
+          var st = JSON.parse(raw);
+          if (!st || typeof st.u !== 'number') { return null; }
+          st.v = st.v || {};
+          return st;
+        } catch(e){ return null; }
+      }
+
+      function taskStats(){
+        var boxes = document.querySelectorAll('[data-task] input[type=checkbox]');
+        var done = 0;
+        for (var i = 0; i < boxes.length; i++) { if (boxes[i].checked) { done++; } }
+        return { done: done, all: boxes.length };
+      }
+
+      function report(force){
+        if (!uid || !store) { return; }
+        var now = Date.now();
+        if (!force && now - lastSent < 2500) { return; }
+        var st = readState(skey(uid));
+        if (!st) { return; }
+        var t = taskStats();
+        var keys = [];
+        for (var k in st.v) { if (st.v.hasOwnProperty(k)) { keys.push(k); } }
+        var payload = {
+          t: 'kurs-progress', lesson: LESSON, uid: uid,
+          unlocked: st.u | 0, position: st.p | 0, visited: keys,
+          tasks_done: t.done, tasks_all: t.all, updated: st.updated | 0
+        };
+        var json = JSON.stringify(payload);
+        if (!force && json === lastJson) { return; }
+        lastJson = json;
+        lastSent = now;
+        try { window.parent.postMessage(payload, window.location.origin); } catch(e){}
+      }
+
+      function restore(uidNew, st){
+        if (!store || !st) { return; }
+        uid = uidNew;
+        var key = skey(uid);
+        var cur = readState(key);
+        var v = {};
+        var keys = Object.keys(st.v || {}).map(Number).sort(function(a,b){ return a - b; });
+        for (var i = 0; i < keys.length; i++) { v[keys[i]] = 1; }
+        var u = st.u | 0;
+        var p = st.p | 0;
+        if (cur && cur.u === u && cur.p === p && JSON.stringify(cur.v) === JSON.stringify(v)) {
+          report(true);
+          return;
+        }
+        store.setItem(key, JSON.stringify({ u: u, v: v, p: p, c: sign(u, v, p), updated: Math.floor(Date.now()/1000) }));
+        /* перечитываем страницу: штатный код режима прохождения подхватит состояние сам */
+        try { history.replaceState(null, '', location.pathname + location.search); } catch(e){}
+        setTimeout(function(){ location.reload(); }, 30);
+      }
+
+      if (window.parent === window) { return; }   /* файл открыт сам по себе — мост не нужен */
+      var qs = {};
+      (location.search || '').replace(/^\?/, '').split('&').forEach(function(pair){
+        var kv = pair.split('=');
+        if (kv[0]) { qs[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || ''); }
+      });
+      uid = parseInt(qs.uid, 10) || 0;
+      if (!uid) { return; }
+
+      /* портал передаёт сохранённое состояние адресом вида #krestore=<json>;
+         если состояние уже такое же — ничего не делаем, иначе перечитываем страницу */
+      try {
+        var h = location.hash || '';
+        if (h.indexOf('#krestore=') === 0) {
+          var obj = JSON.parse(decodeURIComponent(h.slice('#krestore='.length)));
+          if (obj && obj.uid && (obj.uid | 0) === uid) {
+            restore(uid, obj.state);
+            return;
+          }
+        }
+      } catch(e){}
+
+      report(true);
+      setInterval(function(){ report(false); }, 3000);
+      document.addEventListener('visibilitychange', function(){ if (document.hidden) { report(true); } });
+      window.addEventListener('pagehide', function(){ report(true); });
+    } catch(e){ /* мост не должен мешать уроку */ }
+  })();
+/* === /KURS BRIDGE === */
+})();
+</script>
+</body>
+</html>

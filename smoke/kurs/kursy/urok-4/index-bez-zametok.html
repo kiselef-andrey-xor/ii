@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Дообучение своей модели: LoRA, датасеты, Unsloth — урок 4</title>
+<style>
+:root{
+  --bg:#0b0a14; --bg2:#12101f; --card:#181529; --card2:#1f1b34;
+  --line:#2d2748; --text:#ece9f8; --dim:#a39dbf; --dim2:#7d7799;
+  --acc:#a78bfa; --acc2:#7c3aed; --grn:#34d399; --amb:#fbbf24; --red:#fb7185; --cyn:#38bdf8;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:18px;line-height:1.55;overflow:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 500px at 12% -8%,rgba(124,58,237,.22),transparent 60%),
+  radial-gradient(800px 500px at 92% 8%,rgba(56,189,248,.12),transparent 60%),
+  radial-gradient(700px 600px at 50% 120%,rgba(52,211,153,.10),transparent 60%)}
+.topbar{position:fixed;top:0;left:0;right:0;height:56px;z-index:60;display:flex;align-items:center;gap:12px;padding:0 14px;
+  background:rgba(11,10,20,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;white-space:nowrap}
+.brand .dot{width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--cyn));box-shadow:0 0 14px rgba(167,139,250,.8)}
+.brand small{color:var(--dim);font-weight:500}
+.stagechip{font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--dim);white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}
+.spacer{flex:1}
+.btn{font:inherit;font-size:14px;color:var(--text);background:var(--card2);border:1px solid var(--line);padding:7px 12px;border-radius:10px;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn:hover{border-color:var(--acc);background:#272145}
+.btn.pri{background:linear-gradient(135deg,#7c3aed,#5b21b6);border-color:#8b5cf6}
+.btn.pri:hover{filter:brightness(1.15)}
+.btn.on{background:#14352a;border-color:var(--grn);color:#a7f3d0}
+.btn.on2{background:#33260b;border-color:var(--amb);color:#fcd34d}
+.progress{position:fixed;top:56px;left:0;right:0;height:3px;background:#1a1730;z-index:59}
+.progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc),var(--cyn));transition:width .25s}
+.stage{position:fixed;inset:59px 0 62px 0;overflow-y:auto;overflow-x:hidden;z-index:10}
+.slide{display:none;padding:26px 22px 44px;max-width:1120px;margin:0 auto;animation:fade .25s ease}
+.slide.active{display:block}
+body.onlypractice .slide:not([data-practice="1"]):not([data-keep="1"]){display:none}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.kicker{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--acc);font-weight:700;margin-bottom:6px}
+h1{font-size:clamp(30px,5.2vw,56px);line-height:1.08;margin:.1em 0 .3em;letter-spacing:-.02em}
+h2{font-size:clamp(24px,3.6vw,38px);line-height:1.15;margin:.1em 0 .45em;letter-spacing:-.01em}
+h3{font-size:20px;margin:1.2em 0 .4em;color:#fff}
+p{margin:.5em 0}
+.lead{font-size:clamp(18px,2.2vw,23px);color:#d7d2ee}
+.muted{color:var(--dim)} .small{font-size:14.5px}
+ul,ol{margin:.5em 0 .8em;padding-left:1.25em}
+li{margin:.32em 0} li::marker{color:var(--acc)}
+strong{color:#fff} a{color:var(--cyn)}
+code{font-family:var(--mono);font-size:.9em;background:#241f3d;padding:2px 6px;border-radius:6px;color:#ddd6fe}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{background:linear-gradient(180deg,var(--card),var(--bg2));border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+.card.acc{border-color:#4c3a86} .card.grn{border-color:#1f5b46} .card.amb{border-color:#6b5318} .card.red{border-color:#7f2b3d} .card.cyn{border-color:#1d5a7c}
+.card h4{margin:0 0 6px;font-size:16.5px;color:#fff;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tag{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2.5px 8px;border-radius:999px;border:1px solid var(--line);background:#221d3a;color:var(--dim)}
+.tag.p{border-color:#5b3fa8;color:#c4b5fd;background:#241a44}
+.tag.g{border-color:#1f6b52;color:#6ee7b7;background:#0f2a22}
+.tag.a{border-color:#7c5a1a;color:#fcd34d;background:#2a1f0b}
+.tag.r{border-color:#8b2740;color:#fda4af;background:#2c1219}
+.tag.b{border-color:#1d5a7c;color:#7dd3fc;background:#0c2231}
+.note{border-left:3px solid var(--acc);background:rgba(124,58,237,.09);padding:11px 14px;border-radius:0 12px 12px 0;margin:12px 0}
+.note.grn{border-color:var(--grn);background:rgba(52,211,153,.08)}
+.note.amb{border-color:var(--amb);background:rgba(251,191,36,.08)}
+.note.red{border-color:var(--red);background:rgba(251,113,133,.08)}
+.note.cyn{border-color:var(--cyn);background:rgba(56,189,248,.08)}
+.note b{color:#fff}
+.quote{font-size:clamp(20px,3vw,30px);line-height:1.35;color:#fff;border-left:4px solid var(--acc);padding-left:18px;margin:18px 0}
+pre{position:relative;background:#0a0912;border:1px solid var(--line);border-radius:14px;padding:16px;overflow-x:auto;margin:12px 0}
+pre code{background:none;padding:0;font-size:14px;line-height:1.6;color:#dcd6f7;white-space:pre}
+.copy{position:absolute;top:8px;right:8px;font-size:12px;padding:4px 9px;border-radius:8px;background:#221d3a;border:1px solid var(--line);color:var(--dim);cursor:pointer;font-family:inherit}
+.copy:hover{color:#fff;border-color:var(--acc)}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:15.5px}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--acc);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+tr:hover td{background:rgba(167,139,250,.05)}
+td code{font-size:13px}
+.pill{display:inline-block;padding:2px 8px;border-radius:8px;font-family:var(--mono);font-size:13px;background:#221d3a;border:1px solid var(--line)}
+.ok{color:#6ee7b7}.no{color:#fda4af}
+kbd{font-family:var(--mono);font-size:12.5px;background:#221d3a;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:2px 7px;color:#e9e5ff}
+.task{background:linear-gradient(180deg,#131b2e,#0f1524);border:1px solid #26406b;border-radius:16px;padding:14px 16px;margin:14px 0}
+.task h4{margin:0 0 8px;color:#93c5fd;font-size:15px;letter-spacing:.1em;text-transform:uppercase;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.task label{display:flex;gap:10px;align-items:flex-start;padding:7px 8px;border-radius:10px;cursor:pointer;font-size:16px}
+.task label:hover{background:rgba(147,197,253,.08)}
+.task input[type=checkbox]{width:19px;height:19px;margin-top:3px;accent-color:#34d399;flex:none;cursor:pointer}
+.task input[type=checkbox]:checked + span{color:var(--dim2);text-decoration:line-through}
+.task .bar{height:5px;background:#1b2b47;border-radius:99px;overflow:hidden;margin-top:10px}
+.task .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#34d399,#38bdf8);transition:width .3s}
+.notes{display:none;margin-top:16px;border:1px dashed #5b4a92;border-radius:14px;padding:13px 16px;background:rgba(124,58,237,.07)}
+.notes{display:none!important}
+.notes h5{margin:0 0 6px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#c4b5fd}
+.notes ul{margin:.3em 0;padding-left:1.1em}
+.notes li{font-size:15px;color:#ddd6fe;margin:.25em 0}
+.q{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:12px 0}
+.q p.qt{margin:0 0 10px;font-weight:600;color:#fff}
+.q .opt{display:block;width:100%;text-align:left;font:inherit;font-size:15.5px;color:var(--text);background:#141127;border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin:6px 0;cursor:pointer;transition:.15s}
+.q .opt:hover{border-color:var(--acc)}
+.q .opt.right{background:#0f2f24;border-color:#2c7a5c;color:#a7f3d0}
+.q .opt.wrong{background:#33121b;border-color:#8b2740;color:#fecdd3}
+.q .exp{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:14.5px;color:var(--dim)}
+.q.answered .exp{display:block}
+.score{font-size:22px;font-weight:700;color:var(--grn)}
+.modal{position:fixed;inset:0;z-index:80;background:rgba(6,5,12,.88);backdrop-filter:blur(6px);display:none;overflow-y:auto;padding:70px 18px 30px}
+.modal.open{display:block}
+.modal .box{max-width:940px;margin:0 auto}
+.ovstage{margin-bottom:18px}
+.ovstage h4{margin:0 0 6px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
+.ovlink{display:flex;gap:10px;align-items:baseline;width:100%;text-align:left;font:inherit;font-size:15.5px;color:var(--text);background:#141127;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:5px 0;cursor:pointer}
+.ovlink:hover{border-color:var(--acc);background:#1d1836}
+.ovlink .n{font-family:var(--mono);color:var(--dim2);font-size:13px;min-width:26px}
+.ovlink .pr{margin-left:auto;font-size:11.5px;color:#6ee7b7;border:1px solid #1f5b46;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.botbar{position:fixed;bottom:0;left:0;right:0;height:62px;z-index:60;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(11,10,20,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
+.counter{font-family:var(--mono);font-size:13.5px;color:var(--dim);min-width:74px;text-align:center}
+.hint{font-size:13px;color:var(--dim2)}
+.center{text-align:center} .mt{margin-top:18px} .mt2{margin-top:30px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.scalebar{display:flex;height:38px;border-radius:10px;overflow:hidden;border:1px solid var(--line);margin:12px 0;font-size:12.5px;font-weight:700;text-align:center}
+.scalebar div{display:flex;align-items:center;justify-content:center;padding:0 4px}
+.pbadge{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 11px;border-radius:999px;margin-bottom:10px;
+  background:rgba(52,211,153,.1);border:1px solid #1f5b46;color:#6ee7b7}
+.pbadge.t{background:rgba(167,139,250,.1);border-color:#4c3a86;color:#c4b5fd}
+.pbadge.d{background:rgba(56,189,248,.1);border-color:#1d5a7c;color:#7dd3fc}
+.divider-slide{min-height:60vh;display:flex;flex-direction:column;justify-content:center}
+.divider-slide .num{font-family:var(--mono);font-size:clamp(60px,14vw,150px);line-height:.9;color:#2d2748}
+.stat{font-family:var(--mono);font-size:clamp(26px,4.4vw,44px);color:#fff;line-height:1}
+.statlabel{font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;margin-top:4px}
+.divider{height:1px;background:var(--line);margin:18px 0}
+.flowline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0;font-size:14.5px}
+.flowline span{background:#1d1836;border:1px solid var(--line);border-radius:10px;padding:7px 12px}
+.flowline i{color:var(--acc);font-style:normal;font-size:18px}
+.step{display:flex;gap:12px;align-items:flex-start;margin:10px 0}
+.step .n{flex:none;width:30px;height:30px;border-radius:50%;background:#241a44;border:1px solid #5b3fa8;color:#c4b5fd;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:15px}
+.cmodal{position:fixed;inset:0;z-index:95;background:rgba(6,5,12,.9);backdrop-filter:blur(6px);display:none;padding:6vh 16px;overflow:auto}
+.cmodal.open{display:block}
+.cmodal .cbox{max-width:900px;margin:0 auto;background:#0a0912;border:1px solid var(--line);border-radius:16px;padding:18px}
+.cmodal pre{margin:10px 0;background:#100e1c;user-select:text}
+@media (max-width:720px){body{font-size:16.5px}.brand small,.hint{display:none}.stagechip{max-width:24vw}}
+@media print{
+  body{overflow:visible;background:#fff;color:#000}
+  .topbar,.botbar,.progress,.modal,.cmodal{display:none!important}
+  .stage{position:static;inset:auto;overflow:visible}
+  .slide{display:block!important;page-break-after:always;max-width:none}
+  .notes{display:none!important}
+}
+
+/* ===== режим обязательного прохождения ===== */
+.lockbar{position:sticky;top:0;z-index:25;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  font-size:13.5px;color:#fcd34d;background:#2a2210;border:1px solid #5c4a1a;border-radius:12px;
+  padding:8px 12px;margin:0 0 16px;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.lockbar.done{color:#6ee7b7;background:rgba(52,211,153,.08);border-color:#1f5b46}
+.lockbar b{color:#fff;font-weight:600}
+.botbar .btn:disabled{opacity:.4;cursor:not-allowed;border-color:var(--line);background:var(--card2)}
+.botbar .btn:disabled:hover{border-color:var(--line);background:var(--card2)}
+.ovlink.locked{opacity:.4;cursor:not-allowed}
+.ovlink.locked:hover{border-color:var(--line);background:#141127}
+.q .exp{display:none!important}
+body.quizok .q .exp{display:block!important}
+.q .opt{pointer-events:none}
+body.quizdone .q .opt{pointer-events:auto}
+.resultbox{border-radius:14px;padding:14px 16px;margin:12px 0;border:1px solid var(--line);background:var(--card)}
+.resultbox.ok{border-color:#1f5b46;background:rgba(52,211,153,.09);color:#a7f3d0}
+.resultbox.bad{border-color:#7f2b3d;background:rgba(251,113,133,.08);color:#fecdd3}
+.studyhint{font-size:13px;color:var(--dim2)}
+.progress.locked i{background:linear-gradient(90deg,#7c5a1a,#fcd34d)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span><span>Fine-tuning <small>· урок 4 · по шагам</small></span></div>
+  <div class="stagechip" id="stagechip">Урок 4</div>
+  <div class="spacer"></div>
+  <button class="btn" id="btnOv" title="Содержание (O)">☰</button>
+</div>
+<div class="progress"><i id="prog"></i></div>
+
+<main class="stage" id="stage">
+
+<section class="slide" id="s1" data-stage="Введение" data-keep="1">
+  <div class="pbadge t">Урок 4 · финал курса · 5 блоков · 9 практик · версия для учеников</div>
+  <h1>Дообучение своей модели:<br>LoRA, датасеты<br>и первый чекпойнт</h1>
+  <p class="lead">Промпт задаёт модели <b>характер</b>, RAG даёт ей <b>знания</b>, инструменты — <b>руки</b>. А fine-tuning меняет саму модель: её стиль, её формат ответов, её специализацию. Сегодня обучим <b>собственную</b> нейросеть на своей видеокарте.</p>
+
+  <div class="grid g3 mt">
+    <div class="card"><div class="stat">3,5 ГБ</div><div class="statlabel">VRAM нужно для QLoRA-модели 3B</div></div>
+    <div class="card"><div class="stat">100</div><div class="statlabel">примеров в датасете уже дают эффект</div></div>
+    <div class="card"><div class="stat">~15 мин</div><div class="statlabel">первая тренировка на RTX 3060</div></div>
+  </div>
+
+  <div class="card acc mt">
+    <h4>🧭 Что будет на уроке</h4>
+    <div class="flow">
+      <div class="fbox"><b>A · Зачем</b>когда нужен fine-tuning, а когда хватит промпта или RAG. Что такое LoRA</div><div class="farr">→</div>
+      <div class="fbox"><b>B · Данные</b>форматы датасетов, сколько нужно примеров, как их сделать из своих файлов</div><div class="farr">→</div>
+      <div class="fbox"><b>C · Тренировка</b>Unsloth, гиперпараметры, кривая потерь, экспорт в GGUF</div><div class="farr">→</div>
+      <div class="fbox"><b>D · Код</b>то же самое скриптом на Python + диагностика</div><div class="farr">→</div>
+      <div class="fbox"><b>E · Ответственность</b>чужие данные, лицензии, деградация модели</div>
+    </div>
+  </div>
+
+  <div class="note amb"><b>Честное предупреждение:</b> это самый технически тяжёлый урок курса. Установка окружения для тренировки может занять больше времени, чем сама тренировка. Поэтому в уроке <b>три пути</b>: приложение с кнопками, веб-интерфейс и код — и <b>запасной вариант через Google Colab</b>, если школьное железо или сеть не позволяют. Читайте слайд 3.</div>
+
+  <div class="note grn"><b>Как и раньше:</b> домашних заданий нет, все 9 практик делаются в классе. Материала хватит на 2–3 занятия. </div></section>
+
+<section class="slide" id="s2" data-stage="Введение" data-keep="1">
+  <div class="pbadge t">Проверка перед стартом</div>
+  <h2>Что нужно для тренировки</h2>
+
+  <div class="grid g2">
+    <div class="card cyn"><h4>Железо и система</h4>
+      <table style="margin:0">
+        <tr><td>Видеокарта</td><td><b>RTX 3060, 8 ГБ VRAM</b> — подходит</td></tr>
+        <tr><td>ОЗУ</td><td>16 ГБ — подходит</td></tr>
+        <tr><td>Диск</td><td><b>40–60 ГБ свободно</b>: базовая модель, чекпойнты, экспорт</td></tr>
+        <tr><td>Windows</td><td>10 или 11, 64 бит</td></tr>
+        <tr><td>Драйвер NVIDIA</td><td>свежий, CUDA определяется</td></tr>
+        <tr><td>Python</td><td><b>3.11 – 3.13</b> (именно этот диапазон!)</td></tr>
+      </table></div>
+    <div class="card"><h4>Что скачаем</h4>
+      <table style="margin:0">
+        <tr><td>Базовая модель <b>3–4B</b> для тренировки</td><td>2–8 ГБ</td></tr>
+        <tr><td>Unsloth Desktop или Studio</td><td>~1 ГБ + зависимости</td></tr>
+        <tr><td>Git, CMake, VS Build Tools 2022</td><td>3–7 ГБ</td></tr>
+        <tr><td>Свой датасет (JSONL)</td><td>килобайты</td></tr>
+        <tr><td>Результат: GGUF своей модели</td><td>2–4 ГБ</td></tr>
+      </table></div>
+  </div>
+
+  <h3>Сколько VRAM нужно для тренировки (официальная таблица Unsloth)</h3>
+  <table>
+    <tr><th>Размер модели</th><th>QLoRA (4 бита)</th><th>LoRA (16 бит)</th><th>На нашей RTX 3060 8 ГБ</th></tr>
+    <tr><td><b>3B</b> <span class="tag g">наш выбор</span></td><td><b>3,5 ГБ</b></td><td>8 ГБ</td><td class="ok">✔ комфортно, есть запас на контекст</td></tr>
+    <tr><td>4B</td><td>~4 ГБ</td><td>11 ГБ</td><td class="ok">✔ комфортно</td></tr>
+    <tr><td>7B / 8B</td><td>5 / 6 ГБ</td><td>19 / 22 ГБ</td><td class="ok">✔ влезет, но впритык: batch 1, контекст 1024–2048</td></tr>
+    <tr><td>11B</td><td>7,5 ГБ</td><td>29 ГБ</td><td class="warnx">⚠ почти впритык, легко получить OOM</td></tr>
+    <tr><td>14B</td><td>8,5 ГБ</td><td>33 ГБ</td><td class="no">✘ не влезает</td></tr>
+    <tr><td>27B и больше</td><td>22 ГБ+</td><td>64 ГБ+</td><td class="no">✘</td></tr>
+  </table>
+  <p class="small muted">Это <b>абсолютный минимум</b>: реальное потребление зависит от длины контекста и размера батча. Числа — из официальной документации Unsloth.</p>
+
+  <div class="note red"><b>Три железных правила для 8 ГБ:</b> ① метод <b>QLoRA</b>, а не LoRA и не full fine-tuning; ② <b>batch size 1–2</b> (при необходимости компенсируем gradient accumulation); ③ <b>context length 1024–2048</b>. Официальный совет Unsloth при нехватке памяти — первым делом снижать именно batch size.</div></section>
+
+<section class="slide" id="s3" data-stage="Введение" data-keep="1">
+  <div class="pbadge d">Выбираем путь</div>
+  <h2>Чем тренировать: четыре варианта</h2>
+  <p class="lead">Один и тот же результат можно получить четырьмя способами. Выберите <b>один</b> для класса — не пытайтесь пройти все.</p>
+
+  <div class="grid g2">
+    <div class="card grn"><h4>🥇 Путь A · Unsloth Desktop <span class="tag g">рекомендуем для класса</span></h4>
+      <p class="small muted"><b>Бесплатное приложение</b> с открытым кодом для Windows, macOS и Linux. Скачиваете как обычную программу, выбираете модель, датасет и параметры кнопками.</p>
+      <ul class="small muted">
+        <li>Умеет не только текст: LLM, GGUF, MLX, diffusion (картинки и видео), аудио</li>
+        <li>Встроенный <b>Data Recipes</b>: загружаете PDF / CSV / DOCX / TXT / JSON — получаете готовый датасет</li>
+        <li>Экспорт в <b>GGUF</b> для LM Studio, Ollama, llama.cpp</li>
+        <li>Можно раздавать модель по локальной сети</li>
+      </ul></div>
+    <div class="card"><h4>🥈 Путь B · Unsloth Studio <span class="tag b">веб-интерфейс</span></h4>
+      <p class="small muted">Локальный веб-интерфейс, открывается в браузере на <code>http://127.0.0.1:8888</code>. То же самое, что Desktop, но в браузере. Работает на Windows <b>без WSL</b>.</p>
+      <p class="small muted">Требует: Git, CMake, Visual Studio Build Tools 2022, Python 3.11–3.13 в виртуальном окружении (uv/venv/conda). <b>Установка долгая</b> — только если готовы потратить занятие.</p></div>
+    <div class="card"><h4>🥉 Путь C · Unsloth Core <span class="tag p">код на Python</span></h4>
+      <p class="small muted">Библиотека в ноутбуке или скрипте. Полный контроль, видно каждую строку. Именно этот путь разбираем в блоке D.</p>
+      <p class="small muted">Требует того же окружения, что Studio. Подходит для сильной группы.</p></div>
+    <div class="card amb"><h4>🛟 Путь D · Google Colab <span class="tag a">запасной</span></h4>
+      <p class="small muted">У Unsloth есть <b>бесплатные готовые ноутбуки</b> для Colab и Kaggle. Тренировка идёт на облачной видеокарте, а не на вашей.</p>
+      <p class="small muted"><b>Когда выбирать:</b> школьные ПК не тянут, нет прав на установку, слабый интернет для скачивания зависимостей, или занятие осталось одно. Результат — тот же GGUF, который потом запускаем локально.</p>
+      <p class="small muted"><b>Минус:</b> данные уходят в облако. Для учебного датасета это нормально, для личных данных — нет.</p></div>
+  </div>
+
+  <div class="task" data-task>
+    <h4>✅ Чек-лист выбора пути</h4>
+    <label><input type="checkbox"><span>На школьных ПК есть права на установку программ → <b>путь A</b></span></label>
+    <label><input type="checkbox"><span>Python 3.11–3.13 и 60 ГБ на диске есть → <b>путь A или B</b></span></label>
+    <label><input type="checkbox"><span>Установка не удалась / нет прав / мало времени → <b>путь D (Colab)</b></span></label>
+    <label><input type="checkbox"><span>Группа сильная и хочет видеть код → <b>путь C</b> после A или B</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="note cyn"><b>Про лицензию самого Unsloth:</b> проект распространяется под двойной лицензией — <b>Apache 2.0</b> для основной части и <b>AGPL-3.0</b> для отдельных компонентов. Для учёбы и своих проектов это не ограничение, но если соберётесь продавать продукт — прочитайте текст лицензии, как мы учили в уроке 1.</div></section>
+
+<section class="slide" id="s4" data-stage="A · Зачем fine-tuning">
+  <div class="pbadge t">Самый важный слайд урока</div>
+  <h2>Три способа изменить поведение модели</h2>
+  <p class="lead">Прежде чем что-то обучать, надо понять, <b>нужно ли</b>. В индустрии есть устоявшийся порядок: сначала самое дешёвое.</p>
+
+  <div class="flow">
+    <div class="fbox"><b>1. Промпт</b>минуты, 0 ₽<br>меняет поведение здесь и сейчас</div><div class="farr">→</div>
+    <div class="fbox"><b>2. RAG</b>часы, 0 ₽<br>даёт модели <b>знания</b></div><div class="farr">→</div>
+    <div class="fbox"><b>3. Fine-tuning</b>дни, деньги/время<br>меняет <b>саму модель</b></div><div class="farr">→</div>
+    <div class="fbox"><b>4. Дистилляция</b>недели<br>сжать большую модель в маленькую</div>
+  </div>
+
+  <table>
+    <tr><th>Задача</th><th>Что взять</th><th>Почему</th></tr>
+    <tr><td>Ответы в другом тоне, короче, без дисклеймеров</td><td><b>Промпт</b> (System Context)</td><td>Проверяется за минуту, меняется без переобучения</td></tr>
+    <tr><td>Ответы по нашим документам, правилам, ценам</td><td><b>RAG</b></td><td>Документ поменялся — база знаний обновилась. Модель переучивать не нужно</td></tr>
+    <tr><td>Строгий формат вывода, который промптом не держится</td><td><b>Fine-tuning</b></td><td>Стиль и формат «впечатываются» в веса</td></tr>
+    <tr><td>Устойчивый фирменный стиль на тысячах ответов</td><td><b>Fine-tuning</b></td><td>Промпт могут забыть или обойти, веса — нет</td></tr>
+    <tr><td>Специфическая терминология, манера, «свой человек»</td><td><b>Fine-tuning</b></td><td>Это про поведение, а не про факты</td></tr>
+    <tr><td>Свежие факты, новости, часто меняющиеся данные</td><td><b>RAG</b>, не fine-tuning</td><td>Переобучать модель на каждую новость разорительно</td></tr>
+    <tr><td>Нужно меньше токенов и быстрее ответ</td><td><b>Fine-tuning</b></td><td>Модель не тратит токены на длинные инструкции — она уже знает, как отвечать</td></tr>
+  </table>
+
+  <div class="note grn"><b>Короткое правило:</b> <b>знания</b> — через RAG, <b>поведение и стиль</b> — через fine-tuning. А в серьёзных системах используют <b>оба</b>: дообученная модель задаёт формат и манеру, RAG подсовывает актуальные данные. Так получается точнее и меньше галлюцинаций.</div>
+
+  <div class="note amb"><b>Честный контраргумент:</b> в документации Unsloth прямо написано, что fine-tuning <b>может</b> добавлять модели новые знания, вопреки популярному мифу, и что хорошо обученная модель на специальной задаче нередко превосходит RAG. Так что правило выше — ориентир, а не закон. Проверяют всегда на своих данных.</div></section>
+
+<section class="slide" id="s5" data-stage="A · Зачем fine-tuning">
+  <div class="pbadge t">Механика</div>
+  <h2>LoRA: обучаем не модель, а «заплатку»</h2>
+  <p class="lead">Полное обучение модели меняет <b>все</b> её параметры. Для 8B это сотни гигабайт памяти — так не делают даже крупные компании. Вместо этого обучают маленькую надстройку.</p>
+
+  <div class="grid g2">
+    <div class="card"><h4>Что такое LoRA</h4>
+      <p class="small muted"><b>LoRA</b> (Low-Rank Adaptation) — к каждому слою модели добавляют маленький обучаемый «довесок». Основные веса <b>заморожены</b> и не меняются вообще. Обучается только довесок.</p>
+      <p class="small muted">Результат — файл-<b>адаптер</b> весом в десятки мегабайт вместо гигабайтов модели. Его можно подключить, отключить или поменять, не трогая базу.</p></div>
+    <div class="card"><h4>Что такое QLoRA</h4>
+      <p class="small muted">Та же LoRA, но базовая модель загружена <b>в 4 битах</b> — то есть квантована, ровно как в уроке 1. Отсюда и экономия: 3B модель учится в 3,5 ГБ вместо 8 ГБ.</p>
+      <p class="small muted"><b>Именно QLoRA — наш метод.</b> На 8 ГБ VRAM других вариантов практически нет.</p></div>
+  </div>
+
+  <div class="card mt">
+    <h4>🔍 Ключевые параметры LoRA — что они значат простыми словами</h4>
+    <table style="margin-top:6px">
+      <tr><th>Параметр</th><th>Значение по умолчанию</th><th>Что делает</th></tr>
+      <tr><td><b>Rank (r)</b></td><td>16</td><td>«Ёмкость заплатки». Больше → модель больше может выучить, но больше риск переобучения и расход памяти. Диапазон 8–64</td></tr>
+      <tr><td><b>Alpha</b></td><td>32</td><td>Насколько сильно заплатка влияет на модель. Обычно вдвое больше rank</td></tr>
+      <tr><td><b>Dropout</b></td><td>0.05</td><td>Случайно «выключает» часть связей при обучении — защита от переобучения</td></tr>
+      <tr><td><b>Target modules</b></td><td>все основные</td><td>К каким именно слоям крепим заплатку: <code>q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj</code></td></tr>
+      <tr><td><b>Learning rate</b></td><td>2e-4</td><td>Размер шага обучения. Слишком большой → модель «ломается», слишком маленький → ничему не учится</td></tr>
+      <tr><td><b>Epochs</b></td><td>3</td><td>Сколько раз пройдём по всему датасету. Больше 3–4 для маленьких датасетов обычно вредно</td></tr>
+    </table>
+  </div>
+
+  <div class="note cyn"><b>Аналогия:</b> полная переподготовка врача с нуля — это full fine-tuning. Курсы повышения квалификации, где он остаётся тем же врачом, но осваивает новую методику, — это LoRA. Сертификат с курсов (адаптер) весит пару страниц, а не заменяет весь диплом.</div>
+
+  <div class="note grn"><b>Практическое следствие:</b> к <b>одной и той же</b> базовой модели можно подключить разные адаптеры — «юрист», «переводчик», «детский репетитор» — и переключать их на лету. Каждый весит десятки мегабайт. Так работают сотни моделей на Hugging Face: база общая, адаптеры разные.</div></section>
+
+<section class="slide" id="s6" data-stage="A · Зачем fine-tuning" data-practice="1">
+  <div class="pbadge">Практика 1 · фиксируем «до»</div>
+  <h2>Снимаем показания до обучения</h2>
+  <p class="lead">Без этого шага вы <b>никогда не узнаете</b>, стало ли лучше. Сначала измеряем, потом меняем.</p>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 1</h4>
+    <label><input type="checkbox"><span>Придумать задачу, под которую будем обучать (примеры ниже)</span></label>
+    <label><input type="checkbox"><span>Написать <b>10 контрольных вопросов</b> — именно по ним будем судить о результате</span></label>
+    <label><input type="checkbox"><span>Прогнать все 10 через <b>исходную</b> модель в LM Studio (температура 0.2, чтобы ответы были воспроизводимы)</span></label>
+    <label><input type="checkbox"><span>Сохранить ответы в файл <code>before.txt</code> — скриншотами или копипастой</span></label>
+    <label><input type="checkbox"><span>Оценить каждый ответ: <b>0</b> — не то, <b>1</b> — частично, <b>2</b> — отлично. Итого максимум 20 баллов</span></label>
+    <label><input type="checkbox"><span>Записать итоговый балл — это наша точка отсчёта</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <h3>Какую задачу выбрать для обучения</h3>
+  <div class="grid g3">
+    <div class="card acc"><h4>🎭 Стиль</h4>
+      <p class="small muted">Отвечать в манере конкретного персонажа: пират, строгий профессор, спортивный комментатор, герой книги.</p>
+      <p class="small muted"><b>Проще всего</b> и результат виден сразу. Идеально для первой тренировки.</p></div>
+    <div class="card acc"><h4>📐 Формат</h4>
+      <p class="small muted">Всегда выдавать ответ строго по шаблону: карточка товара, разбор задачи по пунктам, отчёт по плану.</p>
+      <p class="small muted">Отлично сочетается со structured output из урока 1.</p></div>
+    <div class="card acc"><h4>🏫 Домен</h4>
+      <p class="small muted">Отвечать как специалист вашей области: объяснять биологию для 7 класса, разбирать шахматные партии, комментировать правила игры.</p>
+      <p class="small muted">Сложнее: нужен содержательный датасет.</p></div>
+  </div>
+
+  <h3>Шаблон таблицы «до / после»</h3>
+  <pre><code>№ | Контрольный вопрос            | Ожидание                  | Балл ДО (0-2) | Балл ПОСЛЕ (0-2)
+1 | Объясни фотосинтез              | в стиле пирата, 3 предложения|               |
+2 | Что такое квадратное уравнение  | в стиле пирата, с примером   |               |
+3 | ...                             |                            |               |
+  |                                 |                    ИТОГО:  |      /20      |      /20</code><button class="copy">копировать</button></pre>
+
+  <div class="note red"><b>Почему это обязательно:</b> без замеров «до» вы не сможете отличить реальное улучшение от того, что модель просто ответила иначе. И не сможете понять, <b>сломали</b> ли вы модель (такое бывает часто — см. блок про катастрофическое забывание). Оценка из пяти чисел превращает дообучение из лотереи в инженерную задачу.</div></section>
+
+<section class="slide" id="s7" data-stage="B · Данные">
+  <div class="pbadge t">90% успеха</div>
+  <h2>Датасет важнее любых настроек</h2>
+  <div class="quote">Нельзя обучить модель тому, чего нет в данных. Плохой датасет не спасут ни rank, ни learning rate.</div>
+
+  <div class="grid g2">
+    <div class="card grn"><h4>Правила хорошего датасета</h4>
+      <ul class="small">
+        <li><b>Качество &gt; количество.</b> 100 безупречных примеров лучше 5000 сомнительных</li>
+        <li><b>Один датасет — одна задача.</b> Не смешивайте «говорить как пират» и «решать уравнения»</li>
+        <li><b>Разнообразие формулировок.</b> Один и тот же смысл — разными словами, иначе модель выучит шаблоны</li>
+        <li><b>Ответы такие, какие вы хотите видеть.</b> Модель скопирует длину, тон и структуру из примеров</li>
+        <li><b>Без мусора.</b> Опечатки, повторы, противоречия — всё это модель тоже выучит</li>
+        <li><b>Без личных данных.</b> Ни имён, ни адресов, ни чужой переписки</li>
+      </ul></div>
+    <div class="card"><h4>Сколько нужно примеров</h4>
+      <table style="margin:0">
+        <tr><th>Задача</th><th>Примеров</th></tr>
+        <tr><td>Стиль, манера речи</td><td><b>50–300</b></td></tr>
+        <tr><td>Строгий формат вывода</td><td><b>100–500</b></td></tr>
+        <tr><td>Узкая предметная область</td><td><b>500–2000</b></td></tr>
+        <tr><td>Новый язык или много новых фактов</td><td><b>десятки тысяч</b> (это уже continued pretraining)</td></tr>
+      </table>
+      <p class="small muted" style="margin-top:8px">Для учебной тренировки <b>100–200 примеров достаточно</b>. Их реально написать или сгенерировать за занятие.</p></div>
+  </div>
+
+  <h3>Как быстро собрать датасет</h3>
+  <div class="grid g3">
+    <div class="card"><h4>✍️ Написать руками</h4><p class="small muted">30–50 примеров самому. Долго, зато идеально по качеству. Хорошо для стиля и формата.</p></div>
+    <div class="card"><h4>🤖 Сгенерировать моделью</h4><p class="small muted">Попросить сильную модель сделать 100 пар «вопрос–ответ» в нужном стиле. <b>Обязательно проверить и отредактировать каждый пример</b> — иначе модель обучится на своих же ошибках.</p></div>
+    <div class="card"><h4>📄 Сделать из своих файлов</h4><p class="small muted">Unsloth <b>Data Recipes</b> превращает PDF, CSV, DOCX, TXT и JSON в датасет через визуальный редактор. Или берём базу знаний из урока 3 и переформатируем.</p></div>
+  </div>
+
+  <div class="note amb"><b>Откуда ещё брать данные:</b> Hugging Face Datasets и Википедия — официальные рекомендации Unsloth. Полезный приём: <b>смешать свой датасет с общим</b> (например, с ShareGPT) — так модель сохраняет общие способности и меньше «забывает» всё остальное. Про это забывание — в блоке E.</div></section>
+
+<section class="slide" id="s8" data-stage="B · Данные">
+  <div class="pbadge t">Форматы</div>
+  <h2>В каком виде скармливать данные</h2>
+  <p class="lead">Четыре стандартных формата. Для урока нужны первые два.</p>
+
+  <table>
+    <tr><th>Формат</th><th>Структура</th><th>Для чего</th></tr>
+    <tr><td><b>Alpaca</b> (instruct)</td><td><code>instruction</code> + <code>input</code> + <code>output</code></td><td>Один вопрос → один ответ. Наш основной вариант</td></tr>
+    <tr><td><b>ShareGPT</b> (conversation)</td><td>массив <code>conversations</code> с ролями <code>human</code>/<code>gpt</code></td><td>Многоходовые диалоги</td></tr>
+    <tr><td><b>ChatML</b></td><td>массив <code>messages</code> с ролями</td><td>То же, что ShareGPT, в другом нотации</td></tr>
+    <tr><td><b>Raw corpus</b></td><td>одно поле <code>text</code></td><td>Continued pretraining: учим языку или фактам, а не диалогу</td></tr>
+  </table>
+
+  <div class="grid g2">
+    <div class="card acc"><h4>Alpaca — JSONL, по одному примеру в строке</h4>
+      <pre><code>{"instruction": "Объясни, что такое фотосинтез",
+ "input": "",
+ "output": "Арр! Фотосинтез, юнга, — это когда
+зелёные братья-растения жрут солнечный свет,
+как мы ждём ром. Берут воду из трюма-корней,
+углекислый газ из воздуха — и варят себе
+сахар. А нам выдыхают кислород. Вот так
+щедро!"}
+{"instruction": "Реши: 15 яблок разделили на троих",
+ "input": "",
+ "output": "Арр! Пятнадцать на трое — это по пять
+каждому, салага. Делишь 15 на 3, получаешь 5.
+Проверь: 5 × 3 = 15. Сходится!"}</code><button class="copy">копировать</button></pre>
+      <p class="small muted">Файл сохраняется как <code>dataset.jsonl</code>. Поле <code>input</code> можно оставлять пустым.</p></div>
+    <div class="card"><h4>ShareGPT — многоходовый диалог</h4>
+      <pre><code>{"conversations": [
+  {"from": "human",
+   "value": "Помоги решить задачу про яблоки"},
+  {"from": "gpt",
+   "value": "Арр! Ну-ка, выкладывай, юнга,
+что там за задача?"},
+  {"from": "human",
+   "value": "15 яблок на троих"},
+  {"from": "gpt",
+   "value": "Арр! По пять на брата. 15 делим
+на 3 — выходит 5. Проверка: 5 × 3 = 15.
+Всё сходится, салага!"}
+]}</code><button class="copy">копировать</button></pre>
+      <p class="small muted">Роли строго чередуются: <code>human</code> → <code>gpt</code> → <code>human</code> → <code>gpt</code>.</p></div>
+  </div>
+
+  <div class="note cyn"><b>Почему в примерах пират:</b> стиль — самая наглядная задача для первого обучения. Разницу видно с первого взгляда, и датасет пишется за двадцать минут. В реальном проекте вместо пирата будет «отвечай как юрист», «как детский врач» или «в тональности нашего бренда».</div>
+
+  <div class="note red"><b>Две частые ошибки:</b> ① разные ответы на одинаковые вопросы — модель растеряется; ② ответы разной длины и стиля — модель выучит «среднее» и будет отвечать невнятно. Датасет должен быть <b>внутренне согласованным</b>.</div></section>
+
+<section class="slide" id="s9" data-stage="B · Данные" data-practice="1">
+  <div class="pbadge">Практика 2 · делаем датасет кодом</div>
+  <h2>Пишем генератор датасета</h2>
+  <p class="lead">Руками 150 примеров писать долго. Напишем скрипт: шаблон + заготовки + наша локальная модель — и датасет готов за пять минут. А потом <b>проверим его глазами</b>.</p>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 2</h4>
+    <label><input type="checkbox"><span>Создать <code>make_dataset.py</code>, вставить код, вписать ID своей чат-модели</span></label>
+    <label><input type="checkbox"><span>Запустить: <code>python make_dataset.py</code> → получить <code>dataset.jsonl</code></span></label>
+    <label><input type="checkbox"><span><b>Открыть файл и прочитать 10 случайных примеров</b> — годятся ли они?</span></label>
+    <label><input type="checkbox"><span>Удалить плохие примеры вручную (это обязательный шаг, не пропускайте)</span></label>
+    <label><input type="checkbox"><span>Добавить 10–20 своих примеров от руки — они самые ценные</span></label>
+    <label><input type="checkbox"><span>Посчитать итоговое количество строк: <code>python -c "print(sum(1 for _ in open('dataset.jsonl',encoding='utf-8')))"</code></span></label>
+    <label><input type="checkbox"><span><b>Усложнение:</b> переделать генератор под свою задачу (формат карточки товара, разбор задачи по физике)</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <pre><code>"""Генератор учебного датасета: учим модель отвечать в заданном стиле.
+Результат — dataset.jsonl в формате Alpaca."""
+import io, json, random
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
+MODEL = "qwen/qwen3-8b"          # ← чат-модель из урока 1
+
+STYLE = ("морской пират: обращается «юнга» или «салага», восклицает «Арр!», "
+         "использует морские слова (трюм, швартов, абордаж), но отвечает "
+         "точно и по делу, не больше четырёх предложений")
+
+TOPICS = [
+    "что такое фотосинтез", "как решить квадратное уравнение",
+    "почему небо голубое", "что такое нейросеть", "зачем нужна запятая",
+    "как устроена пищеварительная система", "что такое скорость света",
+    "почему зимой холодно", "как работают тормоза у велосипеда",
+    "что такое дробь", "почему самолёт летает", "зачем нужна прививка",
+    "что такое электрон", "как образуется радуга", "почему море солёное",
+    "что такое алгоритм", "как работает компас", "зачем нужен сон",
+    "что такое экосистема", "почему луна меняет форму",
+]
+
+PROMPT = """Переформулируй вопрос и ответь на него в заданном стиле.
+
+Стиль ответа: {style}
+
+Вопрос: {topic}
+
+Верни СТРОГО один JSON-объект без пояснений и без markdown:
+{{"instruction": "вопрос простыми словами", "output": "ответ в заданном стиле"}}"""
+
+rows, seen = [], set()
+random.seed(42)                      # чтобы результат был воспроизводимым
+
+for topic in TOPICS:
+    for attempt in range(3):         # несколько вариантов на каждую тему
+        r = client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "user",
+                       "content": PROMPT.format(style=STYLE, topic=topic)}],
+            temperature=0.9,         # выше обычного — нужно разнообразие
+            max_tokens=400,
+        )
+        raw = r.choices[0].message.content.strip()
+        try:
+            raw = raw[raw.index("{"): raw.rindex("}") + 1]
+            item = json.loads(raw)
+        except Exception:
+            continue
+        text = (item.get("output") or "").strip()
+        if len(text) < 40 or text in seen:
+            continue
+        seen.add(text)
+        rows.append({"instruction": item["instruction"].strip(),
+                     "input": "",
+                     "output": text})
+
+io.open("dataset.jsonl", "w", encoding="utf-8").write(
+    "\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n")
+print("готово: dataset.jsonl, примеров:", len(rows))
+print("\nпервые три:")
+for r in rows[:3]:
+    print(" Q:", r["instruction"])
+    print(" A:", r["output"][:140], "\n")</code><button class="copy">копировать</button></pre>
+
+  <div class="note amb"><b>Чему учит эта практика:</b> синтетические данные — рабочий приём, но <b>только с ручной проверкой</b>. Модель выдаст часть примеров с ошибками, часть — почти одинаковых, часть — не в том стиле. Скрипт уже отфильтровал короткое и повторяющееся, но содержательную проверку делает человек. В индустрии это называется «human-in-the-loop», и без этого не обходится ни один серьёзный датасет.</div></section>
+
+<section class="slide" id="s10" data-stage="C · Тренировка" data-practice="1">
+  <div class="pbadge">Практика 3 · учим модель</div>
+  <h2>Запускаем тренировку в Unsloth</h2>
+  <p class="lead">Дальше — по шагам для <b>пути A/B</b> (приложение или веб-интерфейс). Для Colab-пути шаги те же, только в готовом ноутбуке.</p>
+
+  <div class="step"><div class="n">1</div><div><b>Установить и запустить.</b> Unsloth Desktop — скачать с <code>unsloth.ai/download</code> и установить как обычную программу. Unsloth Studio — запустится и откроется в браузере на <code>http://127.0.0.1:8888</code>.</div></div>
+  <div class="step"><div class="n">2</div><div><b>Выбрать базовую модель.</b> Model Hub → текстовая модель размером <b>3–4B</b>. Хорошие варианты: <code>Llama-3.2-3B-Instruct</code>, <code>Gemma-3-4B-it</code>, <code>Qwen3-4B</code>. Берите <b>Instruct</b>-версию, если учите стилю и формату.</div></div>
+  <div class="step"><div class="n">3</div><div><b>Выбрать метод обучения: QLoRA.</b> Именно он: LoRA (16 бит) и Full fine-tuning на 8 ГБ не поместятся.</div></div>
+  <div class="step"><div class="n">4</div><div><b>Подключить датасет.</b> Local → <code>dataset.jsonl</code>. В поле <b>Format</b> выбрать <code>alpaca</code> (или <code>auto</code>). Если имена колонок не совпали — поправить через <b>Column Mapping</b>.</div></div>
+  <div class="step"><div class="n">5</div><div><b>Разделить на train / eval.</b> Оставьте 10% примеров на проверку — тогда появится график <b>Eval Loss</b>, и вы увидите переобучение, а не догадаетесь о нём.</div></div>
+  <div class="step"><div class="n">6</div><div><b>Проверить гиперпараметры.</b> Значения по умолчанию почти подходят. Для 8 ГБ поправьте два: <b>Batch Size = 1</b> и <b>Context Length = 1024 или 2048</b>. Остальное оставьте как есть (см. следующий слайд).</div></div>
+  <div class="step"><div class="n">7</div><div><b>Нажать Start Training.</b> Пойдут логи и график потерь. Для 100–200 примеров и модели 3B на RTX 3060 это <b>примерно 10–30 минут</b>.</div></div>
+  <div class="step"><div class="n">8</div><div><b>Не трогать компьютер.</b> Видеокарта будет загружена на 100%, вентиляторы раскрутятся. Это норма. Не запускайте параллельно LM Studio с большой моделью — не хватит памяти.</div></div>
+
+  <div class="task" data-task>
+    <h4>🛠 Чек-лист практики 3</h4>
+    <label><input type="checkbox"><span>Unsloth установлен и запускается</span></label>
+    <label><input type="checkbox"><span>Базовая модель 3–4B скачана</span></label>
+    <label><input type="checkbox"><span>Метод — <b>QLoRA</b></span></label>
+    <label><input type="checkbox"><span>Датасет подключён, формат <code>alpaca</code>, колонки распознаны верно</span></label>
+    <label><input type="checkbox"><span>Выделена eval-часть (10%)</span></label>
+    <label><input type="checkbox"><span>Batch Size = 1, Context Length = 1024–2048</span></label>
+    <label><input type="checkbox"><span>Тренировка запущена, график потерь ползёт вниз</span></label>
+    <label><input type="checkbox"><span>Записали: сколько примеров, сколько эпох, сколько минут заняло</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="note red"><b>Если вылетает с ошибкой памяти (OOM):</b> снижайте по одному — <b>Batch Size → 1</b>, затем <b>Context Length → 1024</b>, затем <b>Gradient Accumulation → 4</b>. Официальный совет Unsloth: чаще всего виноват именно слишком большой batch size.</div></section>
+
+<section class="slide" id="s11" data-stage="C · Тренировка" data-practice="1">
+  <div class="pbadge">Практика 4 · читаем график</div>
+  <h2>Гиперпараметры и кривая потерь</h2>
+  <p class="lead"><b>Loss</b> (потери) — число, показывающее, насколько ответ модели отличается от правильного из датасета. Обучение = снижение этого числа. Больше ничего магического в процессе нет.</p>
+
+  <div class="grid g2">
+    <div class="card"><h4>Значения по умолчанию в Unsloth Studio</h4>
+      <table style="margin:0">
+        <tr><td>Learning Rate</td><td><b>2e-4</b></td></tr>
+        <tr><td>Rank (r)</td><td><b>16</b></td></tr>
+        <tr><td>Alpha</td><td><b>32</b></td></tr>
+        <tr><td>Dropout</td><td><b>0.05</b></td></tr>
+        <tr><td>Epochs</td><td><b>3</b></td></tr>
+        <tr><td>Batch Size</td><td>4 → <b>у нас 1</b></td></tr>
+        <tr><td>Gradient Accumulation</td><td><b>8</b></td></tr>
+        <tr><td>Context Length</td><td>2048 → <b>у нас 1024–2048</b></td></tr>
+        <tr><td>Optimizer</td><td><b>AdamW 8-bit</b></td></tr>
+        <tr><td>LR Scheduler</td><td><b>linear</b>, warmup 5 шагов</td></tr>
+        <tr><td>Weight Decay</td><td><b>0.01</b></td></tr>
+        <tr><td>Seed</td><td><b>3407</b></td></tr>
+      </table>
+      <p class="small muted" style="margin-top:8px">В большинстве случаев их <b>не нужно менять вообще</b>. Unsloth подбирает значения под выбранную модель автоматически.</p></div>
+    <div class="card"><h4>Что показывает график</h4>
+      <table style="margin:0">
+        <tr><th>Картина</th><th>Диагноз</th></tr>
+        <tr><td>Train loss плавно падает, eval loss тоже</td><td class="ok">✔ всё хорошо</td></tr>
+        <tr><td>Train loss падает, <b>eval loss растёт</b></td><td class="no">Переобучение: модель заучила примеры наизусть</td></tr>
+        <tr><td>Оба почти не двигаются</td><td>Мало эпох, мал learning rate, или датасет нерелевантен</td></tr>
+        <tr><td>Оба упали почти до нуля за пару шагов</td><td class="no">Датасет слишком простой или содержит повторы</td></tr>
+        <tr><td>Loss скачет, уходит в NaN</td><td class="no">Learning rate слишком большой, или в данных мусор</td></tr>
+        <tr><td>Падает, потом plateau</td><td>Норма: дальше обучение почти не улучшает результат</td></tr>
+      </table>
+      <p class="small muted" style="margin-top:8px"><b>Переобучение</b> — главная беда маленьких датасетов. Симптомы в ответах: модель повторяет примеры дословно, а на чуть изменённый вопрос теряется.</p></div>
+  </div>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 4 — эксперимент с параметрами</h4>
+    <label><input type="checkbox"><span>Дождаться окончания первой тренировки и <b>сделать скриншот графика</b></span></label>
+    <label><input type="checkbox"><span>Записать финальные значения train loss и eval loss</span></label>
+    <label><input type="checkbox"><span>Запустить вторую тренировку с <b>Epochs = 10</b> → посмотреть, что станет с eval loss</span></label>
+    <label><input type="checkbox"><span>Запустить третью с <b>Learning Rate = 2e-3</b> (в 10 раз больше) → посмотреть, что сломается</span></label>
+    <label><input type="checkbox"><span>Сравнить три графика и записать вывод: что именно портит каждый параметр</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="note grn"><b>Зачем ломать тренировку намеренно:</b> увидеть переобучение и «взрыв» loss своими глазами — полезнее, чем сто раз прочитать про них. После этого вы будете rozpoзнавать обе беды за пять секунд.</div></section>
+
+<section class="slide" id="s12" data-stage="C · Тренировка" data-practice="1">
+  <div class="pbadge">Практика 5 · запускаем свою модель</div>
+  <h2>Экспорт в GGUF и проверка в LM Studio</h2>
+  <p class="lead">Обученный адаптер сам по себе в LM Studio не запустится. Его нужно <b>экспортировать в GGUF</b> — тот самый формат из урока 1.</p>
+
+  <div class="grid g2">
+    <div class="card"><h4>Три варианта экспорта</h4>
+      <table style="margin:0">
+        <tr><th>Тип</th><th>Что получается</th></tr>
+        <tr><td><b>Merged Model</b></td><td>Полная 16-битная модель: адаптер «вплавлен» в базовые веса. Большой файл, основа для дальнейшей конвертации</td></tr>
+        <tr><td><b>LoRA Only</b></td><td>Только адаптер, десятки МБ. <b>Не запустится без базовой модели</b></td></tr>
+        <tr><td><b>GGUF / llama.cpp</b></td><td>Готовый <code>.gguf</code> для <b>LM Studio</b>, Ollama, llama.cpp. <span class="tag g">наш выбор</span></td></tr>
+      </table>
+      <p class="small muted" style="margin-top:8px">В приложении: выбрать <b>training run</b> → выбрать <b>checkpoint</b> (обычно последний) → <b>Export</b> → <b>GGUF</b> → выбрать квантование → сохранить на диск.</p></div>
+    <div class="card"><h4>Какое квантование выбрать</h4>
+      <p class="small muted">Те же обозначения, что в уроке 1. Unsloth поддерживает полный список llama.cpp, рекомендуемые:</p>
+      <ul class="small">
+        <li><b><code>q4_k_m</code></b> — лучший баланс, наш выбор. Внутри использует Q6_K для части важных тензоров</li>
+        <li><b><code>q5_k_m</code></b> — чуть точнее, чуть тяжелее</li>
+        <li><b><code>q8_0</code></b> — быстрая конвертация, высокое качество, много памяти</li>
+        <li><b><code>f16</code></b> — 100% точность, но медленно и очень тяжело</li>
+      </ul>
+      <p class="small muted">Для модели 3B: <code>q4_k_m</code> ≈ 2 ГБ, <code>q8_0</code> ≈ 3,4 ГБ. Обе легко влезают в 8 ГБ VRAM.</p></div>
+  </div>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 5</h4>
+    <label><input type="checkbox"><span>Экспортировать последний чекпойнт в <b>GGUF q4_k_m</b></span></label>
+    <label><input type="checkbox"><span>Положить полученный <code>.gguf</code> в папку моделей LM Studio (или перетащить в окно <b>My Models</b>)</span></label>
+    <label><input type="checkbox"><span>Загрузить свою модель в чат и задать <b>те же 10 контрольных вопросов</b> из практики 1</span></label>
+    <label><input type="checkbox"><span>Заполнить колонку «Балл ПОСЛЕ» и посчитать итог</span></label>
+    <label><input type="checkbox"><span>Задать вопрос, которого <b>не было</b> в датасете → проверить, обобщает ли модель</span></label>
+    <label><input type="checkbox"><span>Проверить, <b>не сломалось ли общее</b>: «объясни, что такое фотосинтез» без требования стиля, «2+2», «напиши письмо учителю»</span></label>
+    <label><input type="checkbox"><span>Сравнить скорость (t/s) своей модели с исходной</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="note cyn"><b>Самый приятный момент курса:</b> в списке моделей LM Studio появится файл с <b>вашим</b> названием. Он умеет то, чему его научили <b>вы</b>, на <b>вашей</b> видеокарте. Его можно раздать одноклассникам на флешке, и он будет работать у них.</div>
+
+  <div class="warnbox">
+    <h4>⚠️ Если в LM Studio модель отвечает бессмыслицей</h4>
+    <p class="small" style="margin:0">Симптомы: бесконечная генерация, повторение одного и того же, каша из слов. В 9 случаях из 10 причина — <b>несовпадение chat template</b> или неверный <b>EOS-токен</b>. Модель в LM Studio разговаривает не по тому шаблону, по которому её учили. Это официально описанная проблема Unsloth, а не ваша ошибка. Лечение: экспортировать с принудительным шаблоном диалога, либо использовать conversational-ноутбук Unsloth для вашей базовой модели, либо проверить настройки шаблона чата в LM Studio.</p>
+  </div></section>
+
+<section class="slide" id="s13" data-stage="D · Кодом">
+  <div class="pbadge t">Путь C · для тех, кто хочет видеть код</div>
+  <h2>То же самое скриптом на Python</h2>
+  <p class="lead">Приложение прячет все шаги за кнопками. Скрипт показывает, что происходит на самом деле — и заодно объясняет, откуда берутся все эти параметры.</p>
+
+  <div class="grid g2">
+    <div class="card"><h4>Порядок действий в коде</h4>
+      <ol class="small">
+        <li>Установить Unsloth (ставит torch, transformers и прочее сам)</li>
+        <li>Загрузить модель в 4 битах</li>
+        <li>Навесить на неё LoRA-адаптер</li>
+        <li>Загрузить и отформатировать датасет</li>
+        <li>Настроить параметры тренировки</li>
+        <li>Обучить</li>
+        <li>Сохранить адаптер и экспортировать GGUF</li>
+      </ol></div>
+    <div class="card amb"><h4>Предупреждение</h4>
+      <p class="small muted">API библиотек меняется. Точные имена функций и параметры сверяйте с актуальной документацией Unsloth и с готовыми ноутбуками для вашей базовой модели — они есть для Llama, Qwen, Gemma, Mistral и других.</p>
+      <p class="small muted">Ниже — <b>рабочий каркас</b>: он показывает логику и все ключевые параметры. Если версия библиотеки отличается, поправятся имена, а не смысл.</p></div>
+  </div>
+
+  <pre><code># установка (в виртуальном окружении, Python 3.11-3.13):
+#   pip install unsloth
+# для Windows дополнительно понадобятся Git, CMake и Visual Studio Build Tools 2022
+
+from unsloth import FastLanguageModel
+from unsloth import is_bfloat16_supported
+from trl import SFTConfig, SFTTrainer
+import torch
+
+MAX_LEN = 1024              # 1024-2048 на 8 ГБ VRAM
+BATCH   = 1                 # 1-2, иначе не хватит памяти
+GRADACC = 8                 # компенсирует маленький батч
+
+# ---------- 1. модель в 4 битах ----------
+model, tokenizer = FastLanguageModel.from_pretrained(
+    model_name="unsloth/Llama-3.2-3B-Instruct",   # базовая модель 3B
+    max_seq_length=MAX_LEN,
+    load_in_4bit=True,                # вот это и делает её QLoRA
+    load_in_8bit=False,
+    full_fine_tuning=False,
+)
+
+# ---------- 2. LoRA-адаптер ----------
+model = FastLanguageModel.get_peft_model(
+    model,
+    r=16,                             # rank
+    lora_alpha=32,                    # обычно 2 × r
+    lora_dropout=0.05,
+    bias="none",
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
+                    "gate_proj", "up_proj", "down_proj"],
+    random_state=3407,
+)
+
+# ---------- 3. датасет ----------
+from datasets import load_dataset
+ds = load_dataset("json", data_files="dataset.jsonl", split="train")
+
+def to_prompt(ex):
+    """Собираем пример в текст с шаблоном диалога."""
+    text, _ = tokenizer.apply_chat_template(
+        [{"role": "user", "content": ex["instruction"]}],
+        tokenize=False, add_generation_prompt=True,
+    )
+    return text + ex["output"] + tokenizer.eos_token
+
+ds = ds.map(lambda ex: {"text": to_prompt(ex)}, remove_columns=ds.column_names)
+
+# ---------- 4. параметры тренировки ----------
+args = SFTConfig(
+    per_device_train_batch_size=BATCH,
+    gradient_accumulation_steps=GRADACC,
+    warmup_steps=5,
+    max_steps=0,                      # 0 = считаем по эпохам
+    num_train_epochs=3,
+    learning_rate=2e-4,
+    logging_steps=5,
+    optim="adamw_8bit",
+    weight_decay=0.01,
+    lr_scheduler_type="linear",
+    seed=3407,
+    output_dir="outputs",
+    report_to="none",
+    max_seq_length=MAX_LEN,
+)
+
+trainer = SFTTrainer(model=model, args=args, train_dataset=ds,
+                     processing_class=tokenizer)
+
+print("обучаемых параметров: %.3f%% от всех"
+      % trainer.model.print_trainable_parameters()[0])
+
+# ---------- 5. обучение ----------
+trainer.train()
+
+# ---------- 6. сохранение ----------
+model.save_pretrained("my_adapter")              # только адаптер, десятки МБ
+model.save_pretrained_gguf("my_model_gguf", tokenizer,
+                           quantization_method="q4_k_m")
+print("готово: папка my_model_gguf — её содержимое кладём в LM Studio")</code><button class="copy">копировать</button></pre>
+
+  <div class="note grn"><b>Обратите внимание на строку про обучаемые параметры:</b> скрипт напечатает что-то вроде <b>0.5–2%</b>. Столько весов модели реально меняется при LoRA. Остальные 98% заморожены — именно поэтому всё влезает в 3,5 ГБ.</div></section>
+
+<section class="slide" id="s14" data-stage="D · Кодом">
+  <div class="pbadge d">Справочник</div>
+  <h2>Диагностика: что пошло не так</h2>
+
+  <table>
+    <tr><th>Симптом</th><th>Причина</th><th>Лечение</th></tr>
+    <tr><td><code>CUDA out of memory</code> в начале тренировки</td><td>Модель слишком большая или параметры слишком щедрые</td><td>Batch → 1, Context → 1024, Gradient Accumulation → 8. Не помогло → модель 3B вместо 7B</td></tr>
+    <tr><td>OOM при сохранении / экспорте в GGUF</td><td>Слияние адаптера с базой требует пиковой памяти</td><td>Снизить <code>maximum_memory_usage</code> с 0.75 до 0.5; закрыть LM Studio и браузер</td></tr>
+    <tr><td><code>pip install unsloth</code> падает</td><td>Python не из диапазона 3.11–3.13; нет виртуального окружения</td><td>Проверить <code>python --version</code>; создать venv/uv; на Windows поставить VS Build Tools 2022 и Git</td></tr>
+    <tr><td>Не импортируется <code>unsloth</code> после установки</td><td>Конфликт версий torch/transformers</td><td>Пересоздать окружение с нуля и поставить unsloth первым — он подтянет совместимые версии сам</td></tr>
+    <tr><td>Loss не падает вообще</td><td>Датасет не подхватился или колонки перепутаны</td><td>Проверить предпросмотр датасета и Column Mapping; убедиться, что формат <code>alpaca</code>, а не <code>auto</code></td></tr>
+    <tr><td>Loss упал почти до нуля за пару шагов</td><td>В датасете дубликаты или тривиальные примеры</td><td>Почистить датасет, убрать повторы</td></tr>
+    <tr><td>Train loss падает, eval loss растёт</td><td>Переобучение</td><td>Меньше эпох (1–2), больше данных, выше dropout, смешать свой датасет с общим</td></tr>
+    <tr><td>Loss = NaN</td><td>Learning rate слишком большой или в данных мусор</td><td>Вернуть 2e-4 или ниже; проверить датасет на пустые и битые строки</td></tr>
+    <tr><td>Модель отвечает дословно примерами из датасета</td><td>Переобучение</td><td>То же, что выше; добавить разнообразия в формулировки</td></tr>
+    <tr><td>Модель «оглупела»: не может ответить на обычные вопросы</td><td>Катастрофическое забывание</td><td>Меньше эпох и learning rate; смешать датасет с общим (ShareGPT); взять ранний чекпойнт</td></tr>
+    <tr><td>Стиль не выучился</td><td>Мало примеров или они неоднородные</td><td>Больше примеров одного стиля; проверить, что все ответы в датасете действительно в нужной манере</td></tr>
+    <tr><td>В LM Studio — бессмыслица и бесконечная генерация</td><td>Неверный chat template или EOS-токен</td><td>Экспортировать с шаблоном диалога; взять conversational-ноутбук Unsloth под свою модель</td></tr>
+    <tr><td>В Studio нет кнопки обучения для модели</td><td>Выбран GGUF-файл: в Studio он только для запуска, не для тренировки</td><td>Выбрать safetensors-версию модели из Model Hub</td></tr>
+    <tr><td>Тренировка идёт, но очень медленно</td><td>Часть вычислений ушла на процессор</td><td>Проверить, что определяется CUDA; уменьшить Context Length; закрыть другие программы</td></tr>
+  </table>
+
+  <div class="note"><b>Порядок диагностики:</b> сначала смотрим на <b>loss</b> (идёт ли обучение вообще), потом на <b>ответы</b> (чему оно научило), и только потом на <b>экспорт</b> (правильно ли сохранилось). Три разных слоя проблемы, и путать их не стоит.</div></section>
+
+<section class="slide" id="s15" data-stage="E · Ответственность">
+  <div class="pbadge t">Обязательный блок</div>
+  <h2>Что может пойти не так с моделью</h2>
+
+  <div class="grid g2">
+    <div class="card red"><h4>🧠 Катастрофическое забывание</h4>
+      <p class="small muted">Обучая модель одному, вы <b>стираете другое</b>. После тренировки на пиратских репликах она может разучиться отвечать на обычные вопросы, считать или держать формат.</p>
+      <p class="small muted"><b>Почему:</b> веса общие. Меняя их под одну задачу, вы меняете поведение во всех остальных.</p>
+      <p class="small muted"><b>Лечение:</b> меньше эпох, ниже learning rate, <b>смешивание своего датасета с общим</b>, использование раннего чекпойнта.</p></div>
+    <div class="card red"><h4>📉 Переобучение</h4>
+      <p class="small muted">Модель <b>заучила примеры наизусть</b>, а не поняла задачу. На знакомых вопросах блистает, на чуть изменённых — теряется.</p>
+      <p class="small muted"><b>Как заметить:</b> eval loss растёт при падающем train loss; ответы совпадают с датасетом дословно.</p>
+      <p class="small muted"><b>Лечение:</b> больше разнообразных данных, меньше эпох, выше dropout.</p></div>
+    <div class="card red"><h4>🗑 Унаследованный мусор</h4>
+      <p class="small muted">Модель выучит <b>ошибки из датасета</b> так же уверенно, как правильные ответы. Опечатки, устаревшие факты, предвзятость — всё это переедет в веса и останется там навсегда.</p>
+      <p class="small muted"><b>Лечение:</b> только ручная проверка данных. Других способов нет.</p></div>
+    <div class="card red"><h4>🔓 Ослабление защит</h4>
+      <p class="small muted">Обучение на «свободных» данных может <b>снять ограничения безопасности</b>, заложенные разработчиком. Модель начнёт выдавать то, чего исходная не выдавала.</p>
+      <p class="small muted"><b>Лечение:</b> проверять модель после обучения не только на своей задаче, но и на базовой безопасности.</p></div>
+  </div>
+
+  <div class="note grn"><b>Главный инструмент защиты — тест «не сломалось ли общее»</b> из практики 5. После каждой тренировки прогоняйте десяток обычных вопросов: арифметика, письмо учителю, объяснение простого явления. Если модель стала отвечать хуже — откатывайтесь к раннему чекпойнту. Именно для этого <b>чекпойнты сохраняют</b>, а не только финальный результат.</div></section>
+
+<section class="slide" id="s16" data-stage="E · Ответственность">
+  <div class="pbadge t">Право и этика</div>
+  <h2>Данные и лицензии: что можно, а что нельзя</h2>
+
+  <div class="grid g2">
+    <div class="card amb"><h4>📄 Чужие данные</h4>
+      <ul class="small">
+        <li><b>Нельзя</b> без разрешения: чужие книги, платные курсы, переписки, фото, медицинские карты, персональные данные одноклассников</li>
+        <li><b>Можно:</b> свои тексты, документы с открытой лицензией, данные с Hugging Face Datasets, Википедию (с указанием атрибуции)</li>
+        <li><b>Проверяйте лицензию датасета</b> так же, как лицензию модели — мы учились этому в уроке 1</li>
+        <li>Сгенерированные моделью данные — <b>проверять обязательно</b>: вы отвечаете за то, чему научили</li>
+      </ul></div>
+    <div class="card amb"><h4>⚖️ Лицензия результата</h4>
+      <ul class="small">
+        <li>Ваша модель — <b>производная работа</b> от базовой. Она наследует её лицензию</li>
+        <li>База под <b>Apache 2.0 / MIT</b> (Qwen, Gemma 4, Mistral 3, DeepSeek V4) → свою сборку можно использовать свободно, сохраняя уведомления</li>
+        <li>База под <b>Llama Community License</b> → ограничения Meta переходят и на вашу модель</li>
+        <li>Сам <b>Unsloth</b> — двойная лицензия Apache 2.0 + AGPL-3.0: для учёбы не мешает, для коммерческого продукта читайте текст</li>
+      </ul></div>
+  </div>
+
+  <div class="note red"><b>Что обязательно проговорить:</b> выкладывая дообученную модель в открытый доступ, вы публикуете <b>всё, что в неё вложили</b>. Из весов можно достать фрагменты обучающих данных — это не теоретическая угроза, а известное свойство нейросетей. Поэтому в датасет не должно попасть ничего личного, секретного или чужого.</div>
+
+  <div class="note cyn"><b>Хорошая практика:</b> ведите «паспорт модели» — небольшой файл рядом с результатом: на чём обучена, какой датасет, сколько эпох, какие параметры, какие тесты прошла, что умеет и чего не умеет. В индустрии это называется <b>model card</b>, и без него чужую модель всерьёз не рассматривают.</div></section>
+
+<section class="slide" id="s17" data-stage="E · Ответственность" data-practice="1">
+  <div class="pbadge">Практики 6–9 · итоговые проекты</div>
+  <h2>Чему научить свою модель</h2>
+  <p class="lead">Четыре проекта на выбор. Каждый собирается из уже пройденного: датасет → тренировка → экспорт → замер «до/после».</p>
+
+  <div class="grid g2">
+    <div class="card acc"><h4>🎭 Практика 6 · «Модель с характером»</h4>
+      <p class="small muted"><b>Задача:</b> научить модель отвечать в устойчивом стиле — пират, строгий профессор, спортивный комментатор, герой книги, официальный пресс-секретарь школы.</p>
+      <p class="small muted"><b>Датасет:</b> 100–150 примеров в формате Alpaca, сгенерированных практикой 2 и проверенных вручную.</p>
+      <p class="small muted"><b>Проверяем:</b> держится ли стиль на вопросах, которых не было в датасете; не сломалась ли арифметика и обычные ответы.</p>
+      <p class="small muted"><b>Самый простой вариант — начните с него.</b></p></div>
+    <div class="card acc"><h4>📋 Практика 7 · «Модель строгого формата»</h4>
+      <p class="small muted"><b>Задача:</b> модель всегда выдаёт ответ по шаблону — карточка товара, разбор задачи по пунктам, отчёт, аннотация к книге.</p>
+      <p class="small muted"><b>Датасет:</b> 150–300 примеров «запрос → ответ ровно в нужной структуре».</p>
+      <p class="small muted"><b>Проверяем:</b> держится ли формат <b>без</b> напоминаний в промпте (в этом и смысл) и валиден ли JSON, если шаблон — JSON.</p>
+      <p class="small muted"><b>Связь с уроком 1:</b> сравните со structured output — когда что лучше.</p></div>
+    <div class="card acc"><h4>🏫 Практика 8 · «Знаток своего предмета»</h4>
+      <p class="small muted"><b>Задача:</b> модель отвечает по вашей предметной области языком, понятным вашим одноклассникам: биология 7 класса, правила шахмат, устройство велосипеда, история родного города.</p>
+      <p class="small muted"><b>Датасет:</b> 300–500 примеров, сделанных из своего конспекта или учебника (можно взять базу знаний из урока 3).</p>
+      <p class="small muted"><b>Проверяем:</b> точность фактов <b>вручную</b> — здесь модель легко начинает выдумывать.</p>
+      <p class="small muted"><b>Главный вывод:</b> для фактов RAG обычно надёжнее, чем fine-tuning.</p></div>
+    <div class="card acc"><h4>⚖️ Практика 9 · «RAG против fine-tuning»</h4>
+      <p class="small muted"><b>Задача:</b> одну и ту же задачу решить <b>двумя способами</b> — базой знаний из урока 3 и дообученной моделью. Сравнить честно.</p>
+      <p class="small muted"><b>Метрика:</b> те же 10 контрольных вопросов, оценка 0–2, плюс время ответа и объём затраченной работы.</p>
+      <p class="small muted"><b>Что обычно получается:</b> RAG точнее на фактах и обновляется за минуту; fine-tuning лучше держит стиль и формат и не тратит токены на поиск.</p>
+      <p class="small muted"><b>Самый «взрослый» проект курса.</b></p></div>
+  </div>
+
+  <div class="task" data-task>
+    <h4>🛠 Чек-лист приёмки проекта</h4>
+    <label><input type="checkbox"><span>Цель обучения сформулирована одним предложением</span></label>
+    <label><input type="checkbox"><span>Датасет собран, проверен вручную, без личных и чужих данных</span></label>
+    <label><input type="checkbox"><span>Заполнена таблица «до» — 10 контрольных вопросов с оценками</span></label>
+    <label><input type="checkbox"><span>Выбрана базовая модель и обоснован её размер под 8 ГБ VRAM</span></label>
+    <label><input type="checkbox"><span>Тренировка прошла, график loss сохранён, eval-часть была выделена</span></label>
+    <label><input type="checkbox"><span>Модель экспортирована в GGUF и запущена в LM Studio</span></label>
+    <label><input type="checkbox"><span>Заполнена таблица «после», посчитан итоговый балл и сделан вывод</span></label>
+    <label><input type="checkbox"><span>Проверено, что модель <b>не сломалась</b> на обычных вопросах</span></label>
+    <label><input type="checkbox"><span>Заполнен «паспорт модели»: база, датасет, параметры, что умеет, чего не умеет</span></label>
+    <div class="bar"><i></i></div>
+  </div></section>
+
+<section class="slide" id="s18" data-stage="F · Итоги" data-practice="1">
+  <div class="pbadge t">Итоговая проверка · 8 вопросов</div>
+  <h2>Тест по уроку</h2>
+  <p class="muted small">Нажмите на вариант — правильный подсветится, объяснение появится под вопросом.</p>
+
+  <div class="q" data-right="1">
+    <p class="qt">1. Нужно, чтобы модель отвечала по вашим документам, которые часто меняются. Что выбрать?</p>
+    <button class="opt">Fine-tuning на этих документах</button>
+    <button class="opt">RAG</button>
+    <button class="opt">Более длинный System Context</button>
+    <div class="exp">Документы меняются — значит, переобучать модель придётся постоянно, а это долго и дорого. RAG обновляется за минуту: заменили файл, перестроили индекс. Fine-tuning здесь нужен только если требуется особый стиль ответов, и тогда его применяют <b>вместе</b> с RAG.</div>
+  </div>
+
+  <div class="q" data-right="2">
+    <p class="qt">2. Что такое LoRA?</p>
+    <button class="opt">Сжатие модели до 4 бит</button>
+    <button class="opt">Ускоритель выводов модели</button>
+    <button class="opt">Обучаемая надстройка поверх замороженных весов; результат — маленький файл-адаптер</button>
+    <div class="exp">Основные веса не меняются вообще: обучается только небольшой адаптер (обычно 0,5–2% от всех параметров). Сжатие до 4 бит — это квантование, а QLoRA = LoRA <b>поверх</b> квантованной базы.</div>
+  </div>
+
+  <div class="q" data-right="0">
+    <p class="qt">3. RTX 3060 8 ГБ. Какой метод обучения выбрать?</p>
+    <button class="opt">QLoRA, модель 3–4B, batch size 1</button>
+    <button class="opt">LoRA (16 бит), модель 8B</button>
+    <button class="opt">Full fine-tuning модели 3B</button>
+    <div class="exp">LoRA в 16 битах для 8B требует ~22 ГБ, full fine-tuning — ещё больше. QLoRA для 3B — это 3,5 ГБ, остаётся запас на контекст и активации. Batch size 1 и короткий контекст — обязательные меры экономии.</div>
+  </div>
+
+  <div class="q" data-right="1">
+    <p class="qt">4. Train loss падает, а eval loss растёт. Это:</p>
+    <button class="opt">Норма — модель хорошо учится</button>
+    <button class="opt">Переобучение: модель заучила примеры вместо понимания</button>
+    <button class="opt">Ошибка экспорта</button>
+    <div class="exp">Классический признак переобучения. Лечение: меньше эпох, больше и разнообразнее данных, выше dropout, смешивание своего датасета с общим. Именно поэтому eval-часть нельзя показывать модели во время обучения.</div>
+  </div>
+
+  <div class="q" data-right="2">
+    <p class="qt">5. После обучения модель перестала нормально отвечать на обычные вопросы. Это:</p>
+    <button class="opt">Нормальный побочный эффект, так и должно быть</button>
+    <button class="opt">Проблема квантования при экспорте</button>
+    <button class="opt">Катастрофическое забывание</button>
+    <div class="exp">Обучая одному, вы меняете общие веса и можете стереть другие навыки. Лечение: меньше эпох и learning rate, примешивание общего датасета, откат к раннему чекпойнту. Поэтому после каждой тренировки обязательно прогоняют базовые вопросы.</div>
+  </div>
+
+  <div class="q" data-right="0">
+    <p class="qt">6. Какой формат датасета нужен для пар «вопрос → ответ»?</p>
+    <button class="opt">Alpaca: <code>instruction</code>, <code>input</code>, <code>output</code></button>
+    <button class="opt">Raw corpus: одно поле <code>text</code></button>
+    <button class="opt">RLHF: ответы с оценками</button>
+    <div class="exp">Alpaca — стандарт для одноходовых задач «инструкция → результат». Raw corpus нужен для continued pretraining (учим языку или фактам), RLHF — для обучения с подкреплением на предпочтениях. Для многоходовых диалогов берут ShareGPT или ChatML.</div>
+  </div>
+
+  <div class="q" data-right="1">
+    <p class="qt">7. Как запустить обученную модель в LM Studio?</p>
+    <button class="opt">Скопировать файл адаптера в папку моделей</button>
+    <button class="opt">Экспортировать в GGUF и положить полученный файл в папку моделей</button>
+    <button class="opt">Никак — LM Studio не работает с дообученными моделями</button>
+    <div class="exp">Адаптер сам по себе не запускается: ему нужна базовая модель. Экспорт в GGUF (рекомендуемый <code>q4_k_m</code>) даёт обычный файл, который LM Studio понимает так же, как любую другую модель.</div>
+  </div>
+
+  <div class="q" data-right="2">
+    <p class="qt">8. База была под Apache 2.0. Что с лицензией вашей дообученной модели?</p>
+    <button class="opt">Она моя, лицензия базы не имеет значения</button>
+    <button class="opt">Она автоматически становится закрытой</button>
+    <button class="opt">Это производная работа: условия Apache 2.0 сохраняются, уведомления об авторстве нужно оставить</button>
+    <div class="exp">Дообученная модель — производная от базовой, поэтому наследует её лицензию. Apache 2.0 при этом одна из самых свободных: коммерческое использование разрешено, нужно лишь сохранять уведомления о лицензии и авторстве.</div>
+  </div>
+
+  <div class="card center mt2">
+    <div class="score" id="score">— / 8</div>
+    <div class="small muted">Ответьте на вопросы и нажмите кнопку</div>
+    <div class="row mt" style="justify-content:center">
+      <button class="btn pri" id="btnScore">Показать результат</button>
+      <button class="btn" id="btnQuizReset">Пройти заново</button>
+    </div>
+  </div></section>
+
+<section class="slide" id="s19" data-stage="F · Итоги" data-keep="1">
+  <div class="pbadge t">Финал курса</div>
+  <h2>Курс целиком: четыре урока</h2>
+
+  <div class="grid g2">
+    <div class="card"><h4>Урок 1 · Модель <b>говорит</b></h4>
+      <p class="small muted">Установка LM Studio · Gemma 4 E4B · квантование и память · семейства и лицензии · галлюцинации · System Context · temperature, top-k/top-p · structured output · локальный API-сервер · чат-бот, веб-страница, Telegram-бот</p></div>
+    <div class="card"><h4>Урок 2 · Модель <b>действует</b></h4>
+      <p class="small muted">Tool calling и <code>tool_calls</code> · цикл агента · MCP: хост, клиент, сервер · свой MCP-сервер на Python · web-search плагин · мини-агент и агент с файлами · injection и минимальные привилегии</p></div>
+    <div class="card"><h4>Урок 3 · Модель <b>знает</b></h4>
+      <p class="small muted">Четыре вида памяти · эмбеддинги и косинусная близость · нарезка на чанки · RAG на чистом Python · настройка качества поиска · долгая память и <code>memory.json</code> · своя база знаний</p></div>
+    <div class="card acc"><h4>Урок 4 · Модель <b>становится своей</b></h4>
+      <p class="small muted">Промпт → RAG → fine-tuning · LoRA и QLoRA · датасеты Alpaca и ShareGPT · Unsloth и гиперпараметры · кривая потерь · экспорт в GGUF · забывание и переобучение · данные и лицензии</p></div>
+  </div>
+
+  <div class="note cyn"><b>Что вы прошли на самом деле:</b> полный цикл работы с локальным ИИ — от «скачал файл» до «обучил свою модель и измерил результат». Всё это работает на одном компьютере с RTX 3060, без подписок и без отправки данных наружу.</div>
+
+  <h3>Четыре способа повлиять на модель — и когда каждый применять</h3>
+  <table>
+    <tr><th>Способ</th><th>Меняет</th><th>Стоимость</th><th>Когда</th></tr>
+    <tr><td><b>Промпт / System Context</b></td><td>Поведение здесь и сейчас</td><td>Минуты, 0 ₽</td><td>Всегда первым. Стиль, ограничения, формат</td></tr>
+    <tr><td><b>Инструменты и MCP</b></td><td>Возможности модели</td><td>Часы</td><td>Нужно что-то <b>делать</b>: считать, искать, писать в файлы</td></tr>
+    <tr><td><b>RAG</b></td><td>Знания в момент ответа</td><td>Часы</td><td>Свои документы, меняющиеся данные, проверяемость</td></tr>
+    <tr><td><b>Fine-tuning</b></td><td>Саму модель</td><td>Дни, ресурсы</td><td>Устойчивый стиль и формат, экономия токенов, узкая специализация</td></tr>
+  </table>
+
+  <div class="note grn"><b>Пять правил, которые стоит унести:</b>
+    <ol class="small" style="margin-bottom:0">
+      <li><b>Начинайте с промпта.</b> Fine-tuning — последний аргумент, а не первый.</li>
+      <li><b>Датасет важнее настроек.</b> 100 чистых примеров лучше 5000 сомнительных.</li>
+      <li><b>Измеряйте до и после.</b> Без таблицы замеров вы не узнаете, стало ли лучше.</li>
+      <li><b>Проверяйте, не сломалось ли общее.</b> Катастрофическое забывание — не редкость, а норма при небрежности.</li>
+      <li><b>Чужое в датасет не кладём.</b> Из весов можно достать то, что вы в них положили.</li>
+    </ol></div></section>
+
+<section class="slide" id="s20" data-stage="F · Итоги" data-keep="1">
+  <div class="pbadge t">Одна страница · можно распечатать</div>
+  <h2>Шпаргалка по fine-tuning</h2>
+
+  <div class="grid g2">
+    <div class="card"><h4>⚙️ Гиперпараметры для RTX 3060 8 ГБ</h4>
+      <pre><code>Метод            QLoRA (4 бита)
+Модель           3B–4B (максимум 8B)
+Batch size       1
+Grad accum       8
+Context length   1024 (макс 2048)
+Learning rate    2e-4
+Rank (r)         16
+Alpha            32
+Dropout          0.05
+Epochs           1–3
+Optimizer        adamw_8bit
+Scheduler        linear, warmup 5
+Seed             3407
+
+Python           3.11 – 3.13
+Экспорт          GGUF, q4_k_m</code><button class="copy">копировать</button></pre></div>
+    <div class="card"><h4>📐 VRAM для обучения (минимум)</h4>
+      <table style="margin:0">
+        <tr><th>Модель</th><th>QLoRA</th><th>LoRA 16bit</th></tr>
+        <tr><td>3B</td><td><b>3,5 ГБ</b></td><td>8 ГБ</td></tr>
+        <tr><td>7B / 8B</td><td>5 / 6 ГБ</td><td>19 / 22 ГБ</td></tr>
+        <tr><td>11B</td><td>7,5 ГБ</td><td>29 ГБ</td></tr>
+        <tr><td>14B</td><td>8,5 ГБ</td><td>33 ГБ</td></tr>
+        <tr><td>27B</td><td>22 ГБ</td><td>64 ГБ</td></tr>
+      </table>
+      <p class="small muted" style="margin-top:8px">OOM? Снижайте по одному: batch → 1, context → 1024, grad accum → 4.</p></div>
+    <div class="card"><h4>📄 Формат Alpaca (JSONL)</h4>
+      <pre><code>{"instruction": "вопрос",
+ "input": "",
+ "output": "ответ в нужном стиле"}
+
+# по одному объекту в строке
+# файл: dataset.jsonl
+# 100–200 примеров для стиля
+# 300–500 для предметной области</code><button class="copy">копировать</button></pre></div>
+    <div class="card"><h4>📊 Читать график потерь</h4>
+      <table style="margin:0">
+        <tr><td>оба падают</td><td class="ok">✔ хорошо</td></tr>
+        <tr><td>train ↓, eval ↑</td><td class="no">переобучение</td></tr>
+        <tr><td>не двигаются</td><td>мало эпох / LR</td></tr>
+        <tr><td>до нуля сразу</td><td class="no">дубли в данных</td></tr>
+        <tr><td>NaN</td><td class="no">LR велик / мусор</td></tr>
+      </table>
+      <p class="small muted" style="margin-top:8px">Экспорт: run → checkpoint → <b>GGUF</b> → <code>q4_k_m</code> → папка моделей LM Studio.</p></div>
+  </div>
+
+  <h3>Если не работает — по порядку</h3>
+  <ol class="small">
+    <li><b>Слой 1 — обучение:</b> падает ли loss? Нет → датасет и Column Mapping. NaN → learning rate.</li>
+    <li><b>Слой 2 — качество:</b> отвечает ли модель как надо? Дословно цитирует датасет → переобучение. Оглупела → забывание, взять ранний чекпойнт.</li>
+    <li><b>Слой 3 — экспорт:</b> запускается ли GGUF в LM Studio? Бессмыслица → chat template / EOS-токен.</li>
+    <li><b>OOM на любом этапе:</b> batch 1 → context 1024 → модель 3B → при экспорте <code>maximum_memory_usage=0.5</code>.</li>
+    <li><b>Не ставится Unsloth:</b> Python 3.11–3.13, виртуальное окружение, на Windows — Git, CMake, VS Build Tools 2022. Не выходит → Colab.</li>
+  </ol>
+
+  <div class="divider"></div>
+  <p class="small muted center">Материалы актуальны на сентябрь 2026 · требования и значения по умолчанию взяты из официальной документации Unsloth (Desktop, Studio, Core) · VRAM-таблица и экспорт GGUF проверены для RTX 3060 8 ГБ · файл работает без интернета · урок 4 курса «Локальный ИИ своими руками»</p></section>
+
+</main>
+
+<div class="botbar">
+  <button class="btn" id="prev">← Назад</button>
+  <button class="btn pri" id="next">Далее →</button>
+  <div class="counter" id="counter">1 / 21</div>
+  <div class="spacer"></div>
+  <div class="hint"><kbd>←</kbd><kbd>→</kbd> листать · <kbd>O</kbd> содержание· <kbd>0</kbd>–<kbd>9</kbd> быстрый переход</div>
+  <button class="btn" id="btnPrint" title="Сохранить в PDF / распечатать">🖨 Печать</button>
+</div>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <h2 style="margin:0;font-size:26px">Содержание курса</h2>
+      <button class="btn" id="modalClose">Закрыть ✕</button>
+    </div>
+    <div id="ovlist"></div>
+    <div class="divider"></div>
+    <p class="small muted">Зелёной меткой <span class="tag g">практика</span> отмечены слайды, где класс работает руками. Домашних заданий в курсе нет — всё делается в классе.</p>
+    <p class="small muted"><b>Рекомендуемое разбиение:</b> урок 1 — слайды 1–14 (установка, модели, квантование, зрение, reasoning); урок 2 — слайды 15–25 (семейства, галлюцинации, настройки, JSON); урок 3 — слайды 26–37 (API-сервер, свои проекты, кодинг-ассистент, проверка).</p>
+  </div>
+</div>
+
+<div class="cmodal" id="codeModal">
+  <div class="cbox">
+    <div class="row" style="justify-content:space-between">
+      <b style="font-size:15px;color:#c4b5fd">Фрагмент — выделите текст и скопируйте</b>
+      <span class="row" style="gap:8px">
+        <button class="btn" id="codeSel">Выделить всё</button>
+        <button class="btn" id="codeClose">Закрыть ✕</button>
+      </span>
+    </div>
+    <pre><code id="codeView"></code></pre>
+    <p class="small muted" style="margin:0">Если кнопка «копировать» не срабатывает (ограничения встроенного просмотра) — откройте файл в обычном браузере или скопируйте текст отсюда.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0, practiceOnly = false;
+  var stageEl = document.getElementById('stage');
+
+  var stageOrder = [];
+  slides.forEach(function(s){
+    var st = s.dataset.stage;
+    if (stageOrder.indexOf(st) === -1) stageOrder.push(st);
+  });
+
+  function visibleList(){
+    if (!practiceOnly) return slides.map(function(_, k){ return k; });
+    var out = [];
+    slides.forEach(function(s, k){
+      if (s.dataset.practice === '1' || s.dataset.keep === '1') out.push(k);
+    });
+    return out;
+  }
+
+  function show(n){
+    if (n < 0) n = 0;
+    if (n > slides.length - 1) n = slides.length - 1;
+    if (practiceOnly) {
+      var vis = visibleList();
+      if (vis.indexOf(n) === -1) {
+        var best = vis[0];
+        for (var q = 0; q < vis.length; q++) { if (vis[q] >= n) { best = vis[q]; break; } best = vis[q]; }
+        n = best;
+      }
+    }
+    slides.forEach(function(s){ s.classList.remove('active'); });
+    i = n;
+    slides[i].classList.add('active');
+    stageEl.scrollTop = 0;
+    document.getElementById('counter').textContent = (i+1) + ' / ' + slides.length;
+    document.getElementById('prog').style.width = ((i+1)/slides.length*100) + '%';
+    document.getElementById('stagechip').textContent = slides[i].dataset.stage;
+    if (location.hash !== '#s'+(i+1)) history.replaceState(null,'','#s'+(i+1));
+    markOv();
+    if (window.__studyTick) window.__studyTick();
+    if (window.__studyMax !== undefined && n > window.__studyMax) n = window.__studyMax;
+  }
+  function step(dir){
+    var vis = visibleList();
+    var pos = vis.indexOf(i);
+    if (pos === -1) { show(i + dir); return; }
+    var np = pos + dir;
+    if (np < 0) np = 0;
+    if (np > vis.length - 1) np = vis.length - 1;
+    show(vis[np]);
+  }
+  function next(){ step(1); } function prev(){ step(-1); }
+
+  document.getElementById('next').onclick = next;
+  document.getElementById('prev').onclick = prev;
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target.tagName;
+    if (t === 'INPUT' || t === 'TEXTAREA') return;
+    switch(e.key){
+      /* навигация передана режиму прохождения */
+      case 'o': case 'O': case 'щ': case 'Щ': case 'm': case 'M': case 'ь': case 'Ь': toggleModal(); break;
+      /* режим «только практика» отключён в ученической версии */
+      case 'Escape': closeModal(); cmodalEl().classList.remove('open'); break;
+      default:
+        /* быстрый переход отключён: слайды открываются по порядку */
+    }
+  });
+
+  var wheelLock = false;
+  stageEl.addEventListener('wheel', function(e){
+    var atTop = stageEl.scrollTop <= 0;
+    var atBot = stageEl.scrollTop + stageEl.clientHeight >= stageEl.scrollHeight - 4;
+    if (wheelLock) return;
+    /* прокрутка не переключает слайды */
+  }, {passive:true});
+
+
+  function togglePractice(){ practiceOnly = false; return; }
+  function togglePracticeDisabled(){
+    practiceOnly = !practiceOnly;
+    document.body.classList.toggle('onlypractice', practiceOnly);
+    var b = document.getElementById('btnPractice');
+    b.classList.toggle('on2', practiceOnly);
+    b.textContent = practiceOnly ? '🛠 Практика: вкл' : '🛠 Только практика';
+    markOv();
+    /* фильтр практики в ученической версии не применяется */
+  }
+  var practiceBtnEl = document.getElementById('btnPractice');
+  if (practiceBtnEl) practiceBtnEl.onclick = function(){ practiceBtnEl.classList.remove('on2'); };
+
+  var modal = document.getElementById('modal'), ovlist = document.getElementById('ovlist');
+  (function buildOv(){
+    var n = 0;
+    stageOrder.forEach(function(st){
+      var d = document.createElement('div'); d.className = 'ovstage';
+      d.innerHTML = '<h4>' + st + '</h4>';
+      slides.forEach(function(s, idx){
+        if (s.dataset.stage !== st) return;
+        n++;
+        var b = document.createElement('button'); b.className = 'ovlink'; b.dataset.idx = idx;
+        var title = s.querySelector('h1,h2');
+        var isP = s.dataset.practice === '1';
+        b.innerHTML = '<span class="n">' + n + '</span><span>' + (title ? title.textContent.trim() : 'Слайд') + '</span>' +
+                      (isP ? '<span class="pr">практика</span>' : '');
+        b.onclick = function(){ if (window.__studyCan && !window.__studyCan(idx)) return; show(idx); closeModal(); };
+        d.appendChild(b);
+      });
+      ovlist.appendChild(d);
+    });
+  })();
+  function markOv(){
+    Array.prototype.forEach.call(ovlist.querySelectorAll('.ovlink'), function(b){
+      var k = parseInt(b.dataset.idx,10), on = (k === i);
+      b.style.borderColor = on ? '#a78bfa' : '';
+      b.style.background  = on ? '#1d1836' : '';
+      var hidden = practiceOnly && slides[k].dataset.practice !== '1' && slides[k].dataset.keep !== '1';
+      b.style.opacity = hidden ? '.35' : '1';
+    });
+  }
+  function toggleModal(){ modal.classList.contains('open') ? closeModal() : openModal(); }
+  function openModal(){ modal.classList.add('open'); markOv(); }
+  function closeModal(){ modal.classList.remove('open'); }
+  document.getElementById('btnOv').onclick = toggleModal;
+  document.getElementById('modalClose').onclick = closeModal;
+  modal.addEventListener('click', function(e){ if (e.target === modal) closeModal(); });
+
+  function esc(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function cmodalEl(){ return document.getElementById('codeModal'); }
+  function showCode(txt){
+    document.getElementById('codeView').innerHTML = esc(txt);
+    cmodalEl().classList.add('open');
+  }
+  function copyText(txt, btn){
+    var done = function(){
+      var old = btn.textContent; btn.textContent = '✓ скопировано'; btn.style.color = '#6ee7b7';
+      setTimeout(function(){ btn.textContent = old; btn.style.color = ''; }, 1400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, function(){ fallback(txt, done, btn); });
+    } else fallback(txt, done, btn);
+  }
+  function fallback(txt, done, btn){
+    var ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch(e){ ok = false; }
+    document.body.removeChild(ta);
+    if (ok) done(); else if (btn) showCode(txt);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('pre'), function(pre){
+    var btn = pre.querySelector('.copy');
+    if (btn) {
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var clone = pre.cloneNode(true);
+        var b = clone.querySelector('.copy'); if (b) b.remove();
+        copyText(clone.textContent.replace(/\n+$/,''), btn);
+      });
+    }
+    pre.addEventListener('dblclick', function(){
+      var c = pre.querySelector('code');
+      showCode(c ? c.textContent : pre.textContent);
+    });
+  });
+
+  var cmodal = cmodalEl();
+  document.getElementById('codeClose').onclick = function(){ cmodal.classList.remove('open'); };
+  document.getElementById('codeSel').onclick = function(){
+    var el = document.getElementById('codeView');
+    var r = document.createRange(); r.selectNodeContents(el);
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  };
+  cmodal.addEventListener('click', function(e){ if (e.target === cmodal) cmodal.classList.remove('open'); });
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-task]'), function(task){
+    var boxes = task.querySelectorAll('input[type=checkbox]');
+    var bar = task.querySelector('.bar i');
+    var upd = function(){
+      var done = 0;
+      Array.prototype.forEach.call(boxes, function(b){ if (b.checked) done++; });
+      if (bar) bar.style.width = (boxes.length ? done/boxes.length*100 : 0) + '%';
+    };
+    Array.prototype.forEach.call(boxes, function(b){ b.addEventListener('change', upd); });
+    upd();
+  });
+
+  var qs = Array.prototype.slice.call(document.querySelectorAll('.q'));
+  qs.forEach(function(q){
+    var right = parseInt(q.dataset.right,10);
+    var opts = q.querySelectorAll('.opt');
+    Array.prototype.forEach.call(opts, function(o, idx){
+      o.addEventListener('click', function(){
+        if (q.dataset.done) return;
+        q.dataset.done = '1'; q.classList.add('answered');
+        if (idx === right) { o.classList.add('right'); q.dataset.ok = '1'; }
+        else { o.classList.add('wrong'); opts[right].classList.add('right'); }
+      });
+    });
+  });
+  var scoreEl = document.getElementById('score');
+  var btnScoreEl = document.getElementById('btnScore');
+  if (btnScoreEl) btnScoreEl.onclick = function(){
+    var ok = 0, answered = 0;
+    qs.forEach(function(q){ if (q.dataset.done) { answered++; if (q.dataset.ok) ok++; } });
+    var el = document.getElementById('score');
+    if (answered === 0) { el.textContent = 'Сначала ответьте на вопросы'; el.style.color = '#fcd34d'; return; }
+    el.textContent = ok + ' / ' + qs.length + (answered < qs.length ? '   (отвечено ' + answered + ')' : '');
+    el.style.color = ok >= qs.length-1 ? '#34d399' : (ok >= qs.length-3 ? '#fcd34d' : '#fb7185');
+  };
+  if (document.getElementById('btnQuizReset')) document.getElementById('btnQuizReset').onclick = function(){
+    qs.forEach(function(q){
+      delete q.dataset.done; delete q.dataset.ok; q.classList.remove('answered');
+      Array.prototype.forEach.call(q.querySelectorAll('.opt'), function(o){ o.classList.remove('right','wrong'); });
+    });
+    var el = document.getElementById('score'); el.textContent = '— / ' + qs.length; el.style.color = '#34d399';
+  };
+
+  document.getElementById('btnPrint').onclick = function(){ window.print(); };
+
+  var x0 = null;
+  stageEl.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, {passive:true});
+  stageEl.addEventListener('touchend', function(e){
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0;
+    /* свайп обрабатывает режим прохождения */
+    x0 = null;
+  }, {passive:true});
+
+  var h = parseInt((location.hash||'').replace('#s',''),10);
+  var _hs = (h && h >= 1 && h <= slides.length) ? h-1 : 0;
+  if (window.__studyMax !== undefined && _hs > window.__studyMax) _hs = 0;
+  show(_hs);
+})();
+</script>
+<script>
+/* Режим обязательного прохождения (версия без ожидания).
+
+   Правила:
+   • слайды открываются строго по порядку, вперёд не перемотать;
+   • теоретический слайд: один раз нажать «Далее» — таймеров и прокрутки нет;
+     при возврате назад слайд уже помечен прочитанным и открывается сразу;
+   • слайд с практикой: нужно отметить все пункты чек-листа;
+   • тест: объяснения и переход дальше — только когда все ответы верны;
+   • прогресс хранится в браузере (ключ неочевидный, значение с контрольной суммой).
+*/
+(function(){
+  'use strict';
+  var KEYWORD = "tune";
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var stageEl = document.getElementById('stage');
+  var N = slides.length;
+
+  var cur = 0, unlocked = 0, visited = {}, seen = {}, ready = false;
+  var store = null;
+  try { store = window.localStorage; } catch(e){ store = null; }
+
+  /* ---------- хранилище ---------- */
+  function mix(str){
+    var h1 = 0x811c9dc5, h2 = 0x1000193;
+    for (var i = 0; i < str.length; i++){
+      h1 = (h1 ^ str.charCodeAt(i)) >>> 0; h1 = (h1 * 0x01000193) >>> 0;
+      h2 = (h2 + str.charCodeAt(i) * (i + 7)) >>> 0;
+    }
+    return h1.toString(36) + h2.toString(36);
+  }
+  var SKEY = 'x' + mix(KEYWORD + '|' + N);
+  function blank(){ return { u: 0, v: {}, p: 0, c: '' }; }
+  function sign(u, v, pos){ return mix(KEYWORD + ':' + u + ':' + JSON.stringify(v) + ':' + (pos | 0)); }
+  function load(){
+    if (!store) return blank();
+    try {
+      var raw = store.getItem(SKEY);
+      if (!raw) return blank();
+      var st = JSON.parse(raw);
+      if (!st || typeof st.u !== 'number') return blank();
+      st.v = st.v || {}; st.p = st.p | 0;
+      if (st.c !== sign(st.u, st.v, st.p)) return blank();
+      return st;
+    } catch(e){ return blank(); }
+  }
+  function save(){
+    if (!store) return;
+    try {
+      store.setItem(SKEY, JSON.stringify({ u: unlocked, v: visited, p: cur, c: sign(unlocked, visited, cur) }));
+    } catch(e){}
+  }
+
+  /* ---------- состояние слайда ---------- */
+  function hasTasks(s){ return s.querySelectorAll('[data-task] input[type=checkbox]').length > 0; }
+  function tasksDone(s){
+    var b = s.querySelectorAll('[data-task] input[type=checkbox]');
+    if (!b.length) return true;
+    for (var i = 0; i < b.length; i++) if (!b[i].checked) return false;
+    return true;
+  }
+  function hasQuiz(s){ return s.querySelectorAll('.q').length > 0; }
+  function quizState(s){
+    var qs = s.querySelectorAll('.q'), ok = 0, done = 0;
+    for (var i = 0; i < qs.length; i++){
+      if (qs[i].dataset.done){ done++; if (qs[i].dataset.ok) ok++; }
+    }
+    return { total: qs.length, done: done, ok: ok };
+  }
+
+  function statusOf(i){
+    var s = slides[i];
+    if (hasQuiz(s)){
+      var q = quizState(s);
+      if (q.done < q.total) return { ok:false, text:'Тест обязателен: ответьте на все вопросы (' + q.done + ' из ' + q.total + ')' };
+      if (q.ok < q.total)  return { ok:false, text:'Нужны <b>все</b> верные ответы. Сейчас верно ' + q.ok + ' из ' + q.total + ' — нажмите «Пройти заново» и вернитесь к слайдам' };
+      return { ok:true, text:'Тест сдан: ' + q.total + ' из ' + q.total + '. Объяснения открыты — прочитайте их' };
+    }
+    if (hasTasks(s)){
+      if (!tasksDone(s)) return { ok:false, text:'Отметьте все пункты чек-листа практики' };
+      return { ok:true, text:'Чек-лист практики закрыт — можно идти дальше' };
+    }
+    if (!seen[i]) return { ok:false, text:'Прочитайте слайд и нажмите «Далее»' };
+    return { ok:true, text:'Слайд изучен — можно идти дальше' };
+  }
+
+  /* ---------- элементы ---------- */
+  var lockbar  = document.createElement('div');
+  lockbar.className = 'lockbar';
+  var nextBtn  = document.getElementById('next');
+  var prevBtn  = document.getElementById('prev');
+  var counter  = document.getElementById('counter');
+  var progEl   = document.getElementById('prog');
+  var progWrap = document.querySelector('.progress');
+  var chip     = document.getElementById('stagechip');
+  stageEl.insertBefore(lockbar, stageEl.firstChild);
+
+  function blockedByTask(i){
+    var s = slides[i];
+    if (hasQuiz(s)){
+      var q = quizState(s);
+      return q.done < q.total || q.ok < q.total;
+    }
+    return hasTasks(s) && !tasksDone(s);
+  }
+
+  function studyBar(i){
+    var st = statusOf(i);
+    lockbar.innerHTML = st.ok ? '✅ <b>' + st.text + '</b>' : '🔒 <b>Дальше нельзя.</b> ' + st.text;
+    lockbar.classList.toggle('done', st.ok);
+    /* Кнопку блокируем только когда слайд действительно не сдан (чек-лист или тест):
+       на обычном слайде первый же клик помечает его прочитанным и открывает следующий.
+       Иначе получилась бы ловушка: кнопка выключена, а включить её можно только кликом. */
+    nextBtn.disabled = blockedByTask(i);
+    nextBtn.textContent = st.ok ? 'Далее →' : (nextBtn.disabled ? '🔒 Заблокировано' : 'Прочитал, далее →');
+    return st.ok;
+  }
+
+  function show(i){
+    if (i < 0) i = 0;
+    if (i > unlocked) i = unlocked;
+    if (i > N - 1) i = N - 1;
+    for (var k = 0; k < N; k++) slides[k].classList.remove('active');
+    cur = i;
+    slides[i].classList.add('active');
+    visited[i] = 1;
+    stageEl.scrollTop = 0;
+    chip.textContent = slides[i].dataset.stage || '';
+    document.body.classList.remove('quizok');
+    if (hasQuiz(slides[i])) document.body.classList.add('quizdone');
+    refresh();
+    markOv();
+    save();
+  }
+
+  /* refresh вызывается часто (в том числе из чужого кода), поэтому слайд
+     помечается прочитанным только при явном действии — see() */
+  function refresh(){
+    var ok = studyBar(cur);
+    counter.textContent = (cur + 1) + ' / ' + N + '  ·  открыто ' + (unlocked + 1);
+    progEl.style.width = ((unlocked + 1) / N * 100) + '%';
+    progWrap.classList.toggle('locked', unlocked < N - 1);
+    return ok;
+  }
+  function see(){ seen[cur] = 1; }
+
+  function unlockNext(){
+    if (cur === unlocked && unlocked < N - 1){
+      unlocked = cur + 1;
+      window.__studyMax = unlocked;
+      save();
+      markOv();
+    }
+  }
+  function next(){
+    see();
+    if (statusOf(cur).ok){
+      unlockNext();
+      if (cur < N - 1) show(cur + 1); else refresh();
+    } else {
+      refresh();
+    }
+  }
+  function prev(){ show(cur - 1); }
+
+  window.__studyMax = 0;
+  window.__studyTick = function(){ refresh(); };
+  window.__studyCan = function(idx){ return idx <= unlocked; };
+
+  function markOv(){
+    var links = document.querySelectorAll('.ovlink');
+    for (var k = 0; k < links.length; k++){
+      var idx = parseInt(links[k].dataset.idx, 10);
+      var locked = idx > unlocked;
+      links[k].classList.toggle('locked', locked);
+      var on = (idx === cur);
+      links[k].style.borderColor = on ? '#a78bfa' : '';
+      links[k].style.background  = on ? '#1d1836' : '';
+      var label = links[k].querySelector('.n');
+      if (label) label.textContent = locked ? '🔒' : String(idx + 1);
+    }
+  }
+
+  /* ---------- строка состояния в нижней панели ---------- */
+  var hint = document.querySelector('.botbar .hint');
+  if (hint){
+    hint.className = 'studyhint';
+    hint.innerHTML = '🔒 слайды открываются по порядку · <kbd>O</kbd> содержание · <kbd>🖨</kbd> печать';
+  }
+  var resetBtn = document.createElement('button');
+  resetBtn.className = 'btn';
+  resetBtn.id = 'studyReset';
+  resetBtn.title = 'Сбросить прогресс изучения (нужно подтвердить вторым щелчком)';
+  resetBtn.textContent = '↺ Прогресс';
+  var armed = 0;
+  resetBtn.addEventListener('click', function(){
+    if (!armed){
+      armed = 1; resetBtn.textContent = '↺ Точно сбросить?';
+      setTimeout(function(){ armed = 0; resetBtn.textContent = '↺ Прогресс'; }, 2500);
+      return;
+    }
+    armed = 0; resetBtn.textContent = '↺ Прогресс';
+    unlocked = 0; visited = {}; seen = {};
+    window.__studyMax = 0;
+    if (store){ try { store.removeItem(SKEY); } catch(e){} }
+    var qs = document.querySelectorAll('.q');
+    for (var i = 0; i < qs.length; i++){
+      delete qs[i].dataset.done; delete qs[i].dataset.ok; qs[i].classList.remove('answered');
+      var op = qs[i].querySelectorAll('.opt');
+      for (var j = 0; j < op.length; j++) op[j].classList.remove('right', 'wrong');
+    }
+    var boxes = document.querySelectorAll('[data-task] input[type=checkbox]');
+    for (var b = 0; b < boxes.length; b++) boxes[b].checked = false;
+    var bars = document.querySelectorAll('[data-task] .bar i');
+    for (var r = 0; r < bars.length; r++) bars[r].style.width = '0%';
+    document.body.classList.remove('quizok');
+    show(0);
+  });
+  document.querySelector('.botbar').appendChild(resetBtn);
+
+  /* ---------- перехват управления ---------- */
+  nextBtn.onclick = next;
+  prevBtn.onclick = prev;
+
+  document.addEventListener('keydown', function(e){
+    e.stopImmediatePropagation();
+    var t = e.target.tagName;
+    if (t === 'INPUT' || t === 'TEXTAREA'){ return; }
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': case ' ': next(); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   prev(); e.preventDefault(); break;
+      case 'Home': show(0); break;
+      case 'End':  show(unlocked); break;
+      case 'o': case 'O': case 'щ': case 'Щ': case 'm': case 'M': case 'ь': case 'Ь':
+        document.getElementById('modal').classList.toggle('open'); markOv(); break;
+      case 'Escape':
+        document.getElementById('modal').classList.remove('open');
+        document.getElementById('codeModal').classList.remove('open');
+        break;
+      default:
+        if (/^[0-9]$/.test(e.key)){
+          var n = parseInt(e.key, 10); if (n === 0) n = 10;
+          if (n - 1 <= unlocked) show(n - 1); else refresh();
+        }
+    }
+  }, true);
+
+  var wheelLock = false;
+  stageEl.addEventListener('wheel', function(e){
+    if (wheelLock || Math.abs(e.deltaY) < 30) return;
+    var top = stageEl.scrollTop <= 0;
+    var bot = stageEl.scrollTop + stageEl.clientHeight >= stageEl.scrollHeight - 4;
+    if (e.deltaY > 0 && bot){ wheelLock = true; next(); setTimeout(function(){ wheelLock = false; }, 500); }
+    else if (e.deltaY < 0 && top){ wheelLock = true; prev(); setTimeout(function(){ wheelLock = false; }, 500); }
+  }, { passive: true, capture: true });
+
+  var links = document.querySelectorAll('.ovlink');
+  for (var k = 0; k < links.length; k++){
+    (function(link){
+      link.addEventListener('click', function(e){
+        var idx = parseInt(link.dataset.idx, 10);
+        if (idx > unlocked){
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          document.getElementById('modal').classList.remove('open');
+          show(unlocked);
+        }
+      }, true);
+    })(links[k]);
+  }
+
+  /* ---------- пересчёт статуса ----------
+     нужен после отметки галочки в чек-листе и после ответа в тесте */
+  document.addEventListener('change', function(e){
+    if (e.target && e.target.type === 'checkbox') setTimeout(refresh, 0);
+  });
+  stageEl.addEventListener('scroll', function(){ refresh(); }, { passive: true });
+
+  /* ---------- обязательный тест: объяснения только при полном успехе ---------- */
+  var resultBox = null;
+  function quizRefresh(){
+    var s = slides[cur];
+    if (!hasQuiz(s)) return;
+    var q = quizState(s);
+    var sc = document.getElementById('score');
+    var bs = document.getElementById('btnScore');
+    if (bs) bs.style.display = 'none';
+    if (!sc) return;
+    if (!resultBox){
+      resultBox = document.createElement('div');
+      resultBox.className = 'resultbox';
+      sc.parentNode.insertBefore(resultBox, sc.nextSibling);
+    }
+    if (q.done === q.total && q.ok === q.total){
+      document.body.classList.add('quizok');
+      sc.textContent = q.total + ' / ' + q.total;
+      sc.style.color = '#34d399';
+      resultBox.className = 'resultbox ok';
+      resultBox.innerHTML = '✅ <b>Все ответы верны.</b> Открылись объяснения к вопросам — прочитайте их: '
+        + 'там разобрано, почему остальные варианты не подходят. Слайд разблокирован, можно идти дальше.';
+    } else {
+      document.body.classList.remove('quizok');
+      sc.textContent = q.ok + ' / ' + q.total;
+      sc.style.color = (q.done === q.total) ? '#fb7185' : '#fcd34d';
+      resultBox.className = 'resultbox' + ((q.done === q.total) ? ' bad' : '');
+      resultBox.innerHTML = (q.done < q.total)
+        ? '⚠️ Тест обязателен. Отвечено ' + q.done + ' из ' + q.total + '. Объяснения появятся, только когда <b>все '
+          + q.total + ' ответов будут верными</b>.'
+        : '❌ Верно ' + q.ok + ' из ' + q.total + '. Объяснения закрыты. Нажмите <b>«Пройти заново»</b>, '
+          + 'вернитесь к слайдам и ответьте правильно на все вопросы.';
+    }
+    refresh();
+  }
+  document.addEventListener('click', function(e){
+    var o = e.target.closest ? e.target.closest('.q .opt') : null;
+    if (o) setTimeout(quizRefresh, 30);
+    var r = e.target.closest ? e.target.closest('#btnQuizReset') : null;
+    if (r) setTimeout(function(){
+      document.body.classList.remove('quizok');
+      var qs = slides[cur].querySelectorAll('.q');
+      for (var i = 0; i < qs.length; i++){ delete qs[i].dataset.done; delete qs[i].dataset.ok; }
+      if (resultBox){ resultBox.remove(); resultBox = null; }
+      quizRefresh();
+    }, 30);
+  });
+
+  /* ---------- свайп ---------- */
+  var x0 = null;
+  stageEl.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, { passive: true });
+  stageEl.addEventListener('touchend', function(e){
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 70){ dx < 0 ? next() : prev(); }
+    x0 = null;
+  }, { passive: true });
+
+  /* ---------- старт ---------- */
+  var st0 = load();
+  unlocked = Math.min(Math.max(st0.u | 0, 0), N - 1);
+  visited  = st0.v || {};
+  for (var key in visited){ if (visited.hasOwnProperty(key)) seen[key] = 1; }
+  window.__studyMax = unlocked;
+
+  var startIdx = unlocked;
+  var h = parseInt((location.hash || '').replace('#s', ''), 10);
+  if (h >= 1 && h <= N && (h - 1) <= unlocked && visited[h - 1] !== undefined) startIdx = h - 1;
+  if (startIdx > 0 && visited[startIdx] === undefined){
+    for (var q0 = startIdx - 1; q0 >= 0; q0--){ if (visited[q0] !== undefined){ startIdx = q0; break; } }
+  }
+  show(startIdx);
+  requestAnimationFrame(function(){ ready = true; refresh(); });
+  if (!store){
+    lockbar.innerHTML += ' <span style="color:#fda4af">(браузер не даёт сохранять прогресс — не закрывайте вкладку)</span>';
+  }
+/* === KURS BRIDGE (вставлено build_portal.py) === */
+  var LESSON = "u4";
+
+  /* Мост портала: восстановление прогресса с сервера и отчёт о прогрессе.
+     Встроен сборщиком, работает только внутри портала (в iframe той же origin).
+     Файл по-прежнему можно открыть двойным щелчком — тогда мост просто молчит. */
+  (function(){
+    try {
+      var KEY = 'tune';
+      var SLIDES = document.querySelectorAll('.slide').length;
+      if (!KEY || !SLIDES) { return; }
+      var BASE = 'x' + mix(KEY + '|' + SLIDES);
+      var uid = 0;
+      var lastSent = 0;
+      var lastJson = '';
+
+      function skey(id){ return 'k' + id + '|' + BASE; }
+
+      function readState(key){
+        if (!store) { return null; }
+        try {
+          var raw = store.getItem(key);
+          if (!raw) { return null; }
+          var st = JSON.parse(raw);
+          if (!st || typeof st.u !== 'number') { return null; }
+          st.v = st.v || {};
+          return st;
+        } catch(e){ return null; }
+      }
+
+      function taskStats(){
+        var boxes = document.querySelectorAll('[data-task] input[type=checkbox]');
+        var done = 0;
+        for (var i = 0; i < boxes.length; i++) { if (boxes[i].checked) { done++; } }
+        return { done: done, all: boxes.length };
+      }
+
+      function report(force){
+        if (!uid || !store) { return; }
+        var now = Date.now();
+        if (!force && now - lastSent < 2500) { return; }
+        var st = readState(skey(uid));
+        if (!st) { return; }
+        var t = taskStats();
+        var keys = [];
+        for (var k in st.v) { if (st.v.hasOwnProperty(k)) { keys.push(k); } }
+        var payload = {
+          t: 'kurs-progress', lesson: LESSON, uid: uid,
+          unlocked: st.u | 0, position: st.p | 0, visited: keys,
+          tasks_done: t.done, tasks_all: t.all, updated: st.updated | 0
+        };
+        var json = JSON.stringify(payload);
+        if (!force && json === lastJson) { return; }
+        lastJson = json;
+        lastSent = now;
+        try { window.parent.postMessage(payload, window.location.origin); } catch(e){}
+      }
+
+      function restore(uidNew, st){
+        if (!store || !st) { return; }
+        uid = uidNew;
+        var key = skey(uid);
+        var cur = readState(key);
+        var v = {};
+        var keys = Object.keys(st.v || {}).map(Number).sort(function(a,b){ return a - b; });
+        for (var i = 0; i < keys.length; i++) { v[keys[i]] = 1; }
+        var u = st.u | 0;
+        var p = st.p | 0;
+        if (cur && cur.u === u && cur.p === p && JSON.stringify(cur.v) === JSON.stringify(v)) {
+          report(true);
+          return;
+        }
+        store.setItem(key, JSON.stringify({ u: u, v: v, p: p, c: sign(u, v, p), updated: Math.floor(Date.now()/1000) }));
+        /* перечитываем страницу: штатный код режима прохождения подхватит состояние сам */
+        try { history.replaceState(null, '', location.pathname + location.search); } catch(e){}
+        setTimeout(function(){ location.reload(); }, 30);
+      }
+
+      if (window.parent === window) { return; }   /* файл открыт сам по себе — мост не нужен */
+      var qs = {};
+      (location.search || '').replace(/^\?/, '').split('&').forEach(function(pair){
+        var kv = pair.split('=');
+        if (kv[0]) { qs[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || ''); }
+      });
+      uid = parseInt(qs.uid, 10) || 0;
+      if (!uid) { return; }
+
+      /* портал передаёт сохранённое состояние адресом вида #krestore=<json>;
+         если состояние уже такое же — ничего не делаем, иначе перечитываем страницу */
+      try {
+        var h = location.hash || '';
+        if (h.indexOf('#krestore=') === 0) {
+          var obj = JSON.parse(decodeURIComponent(h.slice('#krestore='.length)));
+          if (obj && obj.uid && (obj.uid | 0) === uid) {
+            restore(uid, obj.state);
+            return;
+          }
+        }
+      } catch(e){}
+
+      report(true);
+      setInterval(function(){ report(false); }, 3000);
+      document.addEventListener('visibilitychange', function(){ if (document.hidden) { report(true); } });
+      window.addEventListener('pagehide', function(){ report(true); });
+    } catch(e){ /* мост не должен мешать уроку */ }
+  })();
+/* === /KURS BRIDGE === */
+})();
+</script>
+</body>
+</html>

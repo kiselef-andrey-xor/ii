@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Финальный проект курса «Локальный ИИ своими руками» — зачёт</title>
+<style>
+:root{
+  --bg:#0b0a14; --bg2:#12101f; --card:#181529; --card2:#1f1b34;
+  --line:#2d2748; --text:#ece9f8; --dim:#a39dbf; --dim2:#7d7799;
+  --acc:#a78bfa; --acc2:#7c3aed; --grn:#34d399; --amb:#fbbf24; --red:#fb7185; --cyn:#38bdf8;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:18px;line-height:1.55;overflow:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 500px at 12% -8%,rgba(124,58,237,.22),transparent 60%),
+  radial-gradient(800px 500px at 92% 8%,rgba(56,189,248,.12),transparent 60%),
+  radial-gradient(700px 600px at 50% 120%,rgba(52,211,153,.10),transparent 60%)}
+.topbar{position:fixed;top:0;left:0;right:0;height:56px;z-index:60;display:flex;align-items:center;gap:12px;padding:0 14px;
+  background:rgba(11,10,20,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;white-space:nowrap}
+.brand .dot{width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--cyn));box-shadow:0 0 14px rgba(167,139,250,.8)}
+.brand small{color:var(--dim);font-weight:500}
+.stagechip{font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--dim);white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}
+.spacer{flex:1}
+.btn{font:inherit;font-size:14px;color:var(--text);background:var(--card2);border:1px solid var(--line);padding:7px 12px;border-radius:10px;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn:hover{border-color:var(--acc);background:#272145}
+.btn.pri{background:linear-gradient(135deg,#7c3aed,#5b21b6);border-color:#8b5cf6}
+.btn.pri:hover{filter:brightness(1.15)}
+.btn.on{background:#14352a;border-color:var(--grn);color:#a7f3d0}
+.btn.on2{background:#33260b;border-color:var(--amb);color:#fcd34d}
+.progress{position:fixed;top:56px;left:0;right:0;height:3px;background:#1a1730;z-index:59}
+.progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc),var(--cyn));transition:width .25s}
+.stage{position:fixed;inset:59px 0 62px 0;overflow-y:auto;overflow-x:hidden;z-index:10}
+.slide{display:none;padding:26px 22px 44px;max-width:1120px;margin:0 auto;animation:fade .25s ease}
+.slide.active{display:block}
+body.onlypractice .slide:not([data-practice="1"]):not([data-keep="1"]){display:none}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.kicker{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--acc);font-weight:700;margin-bottom:6px}
+h1{font-size:clamp(30px,5.2vw,56px);line-height:1.08;margin:.1em 0 .3em;letter-spacing:-.02em}
+h2{font-size:clamp(24px,3.6vw,38px);line-height:1.15;margin:.1em 0 .45em;letter-spacing:-.01em}
+h3{font-size:20px;margin:1.2em 0 .4em;color:#fff}
+p{margin:.5em 0}
+.lead{font-size:clamp(18px,2.2vw,23px);color:#d7d2ee}
+.muted{color:var(--dim)} .small{font-size:14.5px}
+ul,ol{margin:.5em 0 .8em;padding-left:1.25em}
+li{margin:.32em 0} li::marker{color:var(--acc)}
+strong{color:#fff} a{color:var(--cyn)}
+code{font-family:var(--mono);font-size:.9em;background:#241f3d;padding:2px 6px;border-radius:6px;color:#ddd6fe}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{background:linear-gradient(180deg,var(--card),var(--bg2));border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+.card.acc{border-color:#4c3a86} .card.grn{border-color:#1f5b46} .card.amb{border-color:#6b5318} .card.red{border-color:#7f2b3d} .card.cyn{border-color:#1d5a7c}
+.card h4{margin:0 0 6px;font-size:16.5px;color:#fff;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tag{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2.5px 8px;border-radius:999px;border:1px solid var(--line);background:#221d3a;color:var(--dim)}
+.tag.p{border-color:#5b3fa8;color:#c4b5fd;background:#241a44}
+.tag.g{border-color:#1f6b52;color:#6ee7b7;background:#0f2a22}
+.tag.a{border-color:#7c5a1a;color:#fcd34d;background:#2a1f0b}
+.tag.r{border-color:#8b2740;color:#fda4af;background:#2c1219}
+.tag.b{border-color:#1d5a7c;color:#7dd3fc;background:#0c2231}
+.note{border-left:3px solid var(--acc);background:rgba(124,58,237,.09);padding:11px 14px;border-radius:0 12px 12px 0;margin:12px 0}
+.note.grn{border-color:var(--grn);background:rgba(52,211,153,.08)}
+.note.amb{border-color:var(--amb);background:rgba(251,191,36,.08)}
+.note.red{border-color:var(--red);background:rgba(251,113,133,.08)}
+.note.cyn{border-color:var(--cyn);background:rgba(56,189,248,.08)}
+.note b{color:#fff}
+.quote{font-size:clamp(20px,3vw,30px);line-height:1.35;color:#fff;border-left:4px solid var(--acc);padding-left:18px;margin:18px 0}
+pre{position:relative;background:#0a0912;border:1px solid var(--line);border-radius:14px;padding:16px;overflow-x:auto;margin:12px 0}
+pre code{background:none;padding:0;font-size:14px;line-height:1.6;color:#dcd6f7;white-space:pre}
+.copy{position:absolute;top:8px;right:8px;font-size:12px;padding:4px 9px;border-radius:8px;background:#221d3a;border:1px solid var(--line);color:var(--dim);cursor:pointer;font-family:inherit}
+.copy:hover{color:#fff;border-color:var(--acc)}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:15.5px}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--acc);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+tr:hover td{background:rgba(167,139,250,.05)}
+td code{font-size:13px}
+.pill{display:inline-block;padding:2px 8px;border-radius:8px;font-family:var(--mono);font-size:13px;background:#221d3a;border:1px solid var(--line)}
+.ok{color:#6ee7b7}.no{color:#fda4af}
+kbd{font-family:var(--mono);font-size:12.5px;background:#221d3a;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:2px 7px;color:#e9e5ff}
+.task{background:linear-gradient(180deg,#131b2e,#0f1524);border:1px solid #26406b;border-radius:16px;padding:14px 16px;margin:14px 0}
+.task h4{margin:0 0 8px;color:#93c5fd;font-size:15px;letter-spacing:.1em;text-transform:uppercase;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.task label{display:flex;gap:10px;align-items:flex-start;padding:7px 8px;border-radius:10px;cursor:pointer;font-size:16px}
+.task label:hover{background:rgba(147,197,253,.08)}
+.task input[type=checkbox]{width:19px;height:19px;margin-top:3px;accent-color:#34d399;flex:none;cursor:pointer}
+.task input[type=checkbox]:checked + span{color:var(--dim2);text-decoration:line-through}
+.task .bar{height:5px;background:#1b2b47;border-radius:99px;overflow:hidden;margin-top:10px}
+.task .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#34d399,#38bdf8);transition:width .3s}
+.notes{display:none;margin-top:16px;border:1px dashed #5b4a92;border-radius:14px;padding:13px 16px;background:rgba(124,58,237,.07)}
+body.teacher .notes{display:block}
+.notes h5{margin:0 0 6px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#c4b5fd}
+.notes ul{margin:.3em 0;padding-left:1.1em}
+.notes li{font-size:15px;color:#ddd6fe;margin:.25em 0}
+.q{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:12px 0}
+.q p.qt{margin:0 0 10px;font-weight:600;color:#fff}
+.q .opt{display:block;width:100%;text-align:left;font:inherit;font-size:15.5px;color:var(--text);background:#141127;border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin:6px 0;cursor:pointer;transition:.15s}
+.q .opt:hover{border-color:var(--acc)}
+.q .opt.right{background:#0f2f24;border-color:#2c7a5c;color:#a7f3d0}
+.q .opt.wrong{background:#33121b;border-color:#8b2740;color:#fecdd3}
+.q .exp{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:14.5px;color:var(--dim)}
+.q.answered .exp{display:block}
+.score{font-size:22px;font-weight:700;color:var(--grn)}
+.modal{position:fixed;inset:0;z-index:80;background:rgba(6,5,12,.88);backdrop-filter:blur(6px);display:none;overflow-y:auto;padding:70px 18px 30px}
+.modal.open{display:block}
+.modal .box{max-width:940px;margin:0 auto}
+.ovstage{margin-bottom:18px}
+.ovstage h4{margin:0 0 6px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
+.ovlink{display:flex;gap:10px;align-items:baseline;width:100%;text-align:left;font:inherit;font-size:15.5px;color:var(--text);background:#141127;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:5px 0;cursor:pointer}
+.ovlink:hover{border-color:var(--acc);background:#1d1836}
+.ovlink .n{font-family:var(--mono);color:var(--dim2);font-size:13px;min-width:26px}
+.ovlink .pr{margin-left:auto;font-size:11.5px;color:#6ee7b7;border:1px solid #1f5b46;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.botbar{position:fixed;bottom:0;left:0;right:0;height:62px;z-index:60;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(11,10,20,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
+.counter{font-family:var(--mono);font-size:13.5px;color:var(--dim);min-width:74px;text-align:center}
+.hint{font-size:13px;color:var(--dim2)}
+.center{text-align:center} .mt{margin-top:18px} .mt2{margin-top:30px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.scalebar{display:flex;height:38px;border-radius:10px;overflow:hidden;border:1px solid var(--line);margin:12px 0;font-size:12.5px;font-weight:700;text-align:center}
+.scalebar div{display:flex;align-items:center;justify-content:center;padding:0 4px}
+.pbadge{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 11px;border-radius:999px;margin-bottom:10px;
+  background:rgba(52,211,153,.1);border:1px solid #1f5b46;color:#6ee7b7}
+.pbadge.t{background:rgba(167,139,250,.1);border-color:#4c3a86;color:#c4b5fd}
+.pbadge.d{background:rgba(56,189,248,.1);border-color:#1d5a7c;color:#7dd3fc}
+.divider-slide{min-height:60vh;display:flex;flex-direction:column;justify-content:center}
+.divider-slide .num{font-family:var(--mono);font-size:clamp(60px,14vw,150px);line-height:.9;color:#2d2748}
+.stat{font-family:var(--mono);font-size:clamp(26px,4.4vw,44px);color:#fff;line-height:1}
+.statlabel{font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;margin-top:4px}
+.divider{height:1px;background:var(--line);margin:18px 0}
+.flowline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0;font-size:14.5px}
+.flowline span{background:#1d1836;border:1px solid var(--line);border-radius:10px;padding:7px 12px}
+.flowline i{color:var(--acc);font-style:normal;font-size:18px}
+.step{display:flex;gap:12px;align-items:flex-start;margin:10px 0}
+.step .n{flex:none;width:30px;height:30px;border-radius:50%;background:#241a44;border:1px solid #5b3fa8;color:#c4b5fd;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:15px}
+.cmodal{position:fixed;inset:0;z-index:95;background:rgba(6,5,12,.9);backdrop-filter:blur(6px);display:none;padding:6vh 16px;overflow:auto}
+.cmodal.open{display:block}
+.cmodal .cbox{max-width:900px;margin:0 auto;background:#0a0912;border:1px solid var(--line);border-radius:16px;padding:18px}
+.cmodal pre{margin:10px 0;background:#100e1c;user-select:text}
+@media (max-width:720px){body{font-size:16.5px}.brand small,.hint{display:none}.stagechip{max-width:24vw}}
+@media print{
+  body{overflow:visible;background:#fff;color:#000}
+  .topbar,.botbar,.progress,.modal,.cmodal{display:none!important}
+  .stage{position:static;inset:auto;overflow:visible}
+  .slide{display:block!important;page-break-after:always;max-width:none}
+  .notes{display:block!important}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span><span>Финальный проект <small>· зачёт по курсу</small></span></div>
+  <div class="stagechip" id="stagechip">Финальный проект</div>
+  <div class="spacer"></div>
+  <button class="btn" id="btnPractice" title="Показывать только слайды с практикой (F)">🛠 Только практика</button>
+  <button class="btn" id="btnTeacher" title="Заметки преподавателя (T)">👁 Заметки</button>
+  <button class="btn" id="btnOv" title="Содержание (O)">☰</button>
+</div>
+<div class="progress"><i id="prog"></i></div>
+
+<main class="stage" id="stage">
+
+<!-- ===== ЗАДАНИЕ ===== -->
+<section class="slide" id="s1" data-stage="Задание" data-keep="1">
+  <div class="pbadge t">Финальный проект · зачёт по курсу</div>
+  <h1>Соберите своего<br>локального ИИ-помощника</h1>
+  <p class="lead">Шесть команд по четыре человека. Каждая решает <b>свою</b> задачу, но строит систему по <b>одной архитектуре</b>. По результату защиты — зачёт за весь курс.</p>
+
+  <div class="grid g3 mt">
+    <div class="card"><div class="stat">6</div><div class="statlabel">команд, у каждой своя тема</div></div>
+    <div class="card"><div class="stat">4</div><div class="statlabel">человека, у каждого своя роль</div></div>
+    <div class="card"><div class="stat">100+20</div><div class="statlabel">баллов: 60 добирают до зачёта</div></div>
+  </div>
+
+  <h3>Что нужно сдать</h3>
+  <div class="grid g2">
+    <div class="card grn"><h4>1 · Работающий продукт</h4>
+      <p class="small muted">Программа, которая решает вашу задачу <b>полностью локально</b>. На защите интернет в классе <b>выключают</b> — это часть проверки.</p></div>
+    <div class="card grn"><h4>2 · Демонстрация</h4>
+      <p class="small muted">5 минут живого показа + 2 минуты вопросов жюри. Отвечают <b>все</b> члены команды, у каждого должен быть свой участок.</p></div>
+    <div class="card grn"><h4>3 · Документация</h4>
+      <p class="small muted"><b>Паспорт системы</b> (одна страница): из чего состоит, как запустить, что умеет, чего не умеет, известные ограничения.</p></div>
+    <div class="card grn"><h4>4 · Отчёт об измерениях</h4>
+      <p class="small muted">10 контрольных примеров с результатами, таблица «до / после», два <b>честно</b> записанных отказа системы.</p></div>
+  </div>
+
+  <div class="note amber"><b>Главный принцип оценивания:</b> оценивается не «красота ответа», а <b>инженерная работа</b>. Система, которая честно говорит «я этого не знаю» и не падает на ошибке, получит больше баллов, чем эффектная, но непредсказуемая. Мы четыре урока учились измерять и ограничивать — здесь это проверяется.</div>
+
+  <div class="note cyn"><b>Сроки:</b> три занятия. Занятие 1 — выбор темы, роли, план, сбор данных. Занятие 2 — сборка и промежуточный контроль. Занятие 3 — дообучение, тесты, документация и защита. Расписание — на слайде 9.</div>
+
+  <div class="notes">
+    <h5>Преподавателю</h5>
+    <ul>
+      <li>Раздайте этот файл всем шести командам: в нём задание, роли, рубрика и протокол защиты. Печатать удобно кнопкой «🖨 Печать».</li>
+      <li>Темы закрепите за командами <b>до начала первого занятия</b> — иначе половина класса потратит урок на выбор.</li>
+      <li>Если группа слабее, чем предполагалось, разрешите уменьшить обязательный минимум (см. слайд 4) — например, до двух инструментов. Порог зачёта при этом оставьте тем же.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" id="s2" data-stage="Задание" data-practice="1">
+  <div class="pbadge">Команда и роли</div>
+  <h2>Кто что делает</h2>
+  <p class="lead">Четыре роли — по числу участников. Роль не означает, что остальные не помогают: она означает, <b>кто отвечает</b> за участок и кто про него рассказывает на защите.</p>
+
+  <div class="grid g2">
+    <div class="card acc"><h4>🧭 Тимлид · архитектор</h4>
+      <ul class="small">
+        <li>Держит план и сроки, следит, чтобы обязательный минимум был закрыт</li>
+        <li>Решает, что выкидываем, если не успеваем</li>
+        <li>Отвечает за связность: инструменты, промпты и база знаний не противоречат друг другу</li>
+        <li>Ведёт <b>паспорт системы</b></li>
+        <li>На защите: общее описание и ответы про архитектуру</li>
+      </ul></div>
+    <div class="card acc"><h4>📚 Дата-инженер</h4>
+      <ul class="small">
+        <li>Собирает документы для базы знаний и датасет для дообучения</li>
+        <li>Режет текст на чанки, подбирает размер и перекрытие, строит индекс</li>
+        <li><b>Проверяет данные вручную</b>: без мусора, без личных данных, без чужого авторства</li>
+        <li>Отвечает за качество поиска: проверяет, что нужный фрагмент попадает в топ-3</li>
+        <li>На защите: откуда данные, как проверяли, что не взяли и почему</li>
+      </ul></div>
+    <div class="card acc"><h4>⚙️ Разработчик</h4>
+      <ul class="small">
+        <li>Пишет код: цикл агента, реестр инструментов, запросы к API</li>
+        <li>Делает интерфейс (консоль, веб-страница или Telegram-бот)</li>
+        <li>Настраивает параметры модели и системный промпт</li>
+        <li>Запускает дообучение и экспорт в GGUF</li>
+        <li>На защите: показывает код и объясняет, как он устроен</li>
+      </ul></div>
+    <div class="card acc"><h4>🛡 Тестировщик · безопасник</h4>
+      <ul class="small">
+        <li>Составляет <b>10 контрольных примеров</b> и таблицу «до / после»</li>
+        <li>Ломает систему намеренно: пустой ввод, отсутствующий факт, инъекция промпта, несуществующая команда</li>
+        <li>Проверяет, что опасные действия спрашивают подтверждение</li>
+        <li>Пишет раздел «известные ограничения» — честно</li>
+        <li>На защите: показывает тесты и найденные проблемы</li>
+      </ul></div>
+  </div>
+
+  <div class="task" data-task>
+    <h4>🛠 Распределить роли (занятие 1, первые 10 минут)</h4>
+    <label><input type="checkbox"><span>Тимлид назначен: ______________________</span></label>
+    <label><input type="checkbox"><span>Дата-инженер назначен: ______________________</span></label>
+    <label><input type="checkbox"><span>Разработчик назначен: ______________________</span></label>
+    <label><input type="checkbox"><span>Тестировщик назначен: ______________________</span></label>
+    <label><input type="checkbox"><span>Все согласны с распределением, претензий нет</span></label>
+    <label><input type="checkbox"><span>Договорились, кто кого подменяет, если кто-то заболеет</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="note grn"><b>Правило взаимозаменяемости:</b> каждый должен понимать работу соседа настолько, чтобы ответить на вопрос жюри по любому участку. На защите спросить могут любого — и это влияет на личный зачёт (слайд 8).</div>
+
+  <div class="notes">
+    <h5>Преподавателю</h5>
+    <ul>
+      <li>Проверьте распределение ролей лично у каждой команды: типичная проблема — весь код пишет один, остальные «помогают». Роли и вопросы жюри это лечат.</li>
+      <li>Разрешите меняться ролями между занятиями, но требуйте, чтобы на защите про каждый участок мог рассказать не только его владелец.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" id="s3" data-stage="Задание" data-keep="1">
+  <div class="pbadge t">Обязательно для всех шести команд</div>
+  <h2>Обязательный минимум архитектуры</h2>
+  <p class="lead">Темы разные, каркас один. Эти семь пунктов должны быть <b>у всех</b> — без них зачёт не выставляется, сколько бы баллов ни набрала команда.</p>
+
+  <div class="grid g2">
+    <div class="card grn"><h4>① Полностью локально</h4>
+      <p class="small muted">Модель работает на вашем компьютере через LM Studio. На защите интернет отключается, и система продолжает работать. Облачные API запрещены.</p></div>
+    <div class="card grn"><h4>② Общение через API</h4>
+      <p class="small muted">Ваша программа обращается к модели по <code>http://localhost:1234/v1</code>, а не через окно чата. То есть это <b>ваш код</b>, а не переписка вручную.</p></div>
+    <div class="card grn"><h4>③ Минимум три инструмента</h4>
+      <p class="small muted">Через tool calling или MCP. Хотя бы один — <b>свой собственный</b>, написанный вами, а не взятый готовым плагином.</p></div>
+    <div class="card grn"><h4>④ База знаний (RAG)</h4>
+      <p class="small muted">Свои документы → нарезка на чанки → эмбеддинги → поиск по смыслу → ответ строго по найденному. Модель умеет сказать «в базе знаний этого нет».</p></div>
+    <div class="card grn"><h4>⑤ Заданное поведение</h4>
+      <p class="small muted">Устойчивый стиль и формат ответов: через System Context <b>или</b> через дообученную модель (LoRA). Должно держаться на всех ответах, а не на одном.</p></div>
+    <div class="card grn"><h4>⑥ Безопасность</h4>
+      <p class="small muted">Песочница для файлов, белый список команд, подтверждение человека для опасных действий, лимит шагов агента, секреты вне контекста модели.</p></div>
+  </div>
+
+  <div class="card acc"><h4>⑦ Обработка ошибок и лог</h4>
+    <p class="small muted">Система <b>не падает</b> на: пустом вводе, вопросе не по теме, отсутствующем факте, сломанном инструменте, незапущенном сервере. В каждом случае выдаёт понятное сообщение. Каждый вызов инструмента пишется в лог — на защите вы покажете его жюри.</p></div>
+
+  <div class="note red"><b>Как проверяем пункт ①:</b> перед защитой преподаватель выключает в классе Wi-Fi (или переводит ПК в режим «в самолёте»). Команда запускает систему и демонстрирует работу. Не запустилось без сети — пункт не засчитан.</div>
+
+  <div class="note cyan"><b>Почему каркас общий:</b> так честно сравнивать команды. Темы разные, сложность разная, но проверяются одни и те же навыки, пройденные на четырёх уроках: API, инструменты, RAG, настройка поведения, безопасность, измерения.</div>
+
+  <div class="notes">
+    <h5>Преподавателю</h5>
+    <ul>
+      <li>Эти семь пунктов — «ворота» зачёта. Проверяйте их на промежуточном контроле (занятие 2), а не на защите.</li>
+      <li>Пункт ③ требует <b>свой</b> инструмент — это защита от «взяли готовый плагин и назвали проектом». Свой MCP-сервер из урока 2 подходит идеально.</li>
+      <li>Пункт ⑤ можно закрыть двумя способами: промптом (проще) или дообучением (сложнее, даёт бонусные баллы). Пусть команда выбирает сама.</li>
+      <li>Проверка офлайна — самый убедительный момент защиты. Не пропускайте его.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" id="s4" data-stage="Темы проектов">
+  <div class="pbadge t">Шесть тем — по одной на команду</div>
+  <h2>Темы 1–3</h2>
+  <p class="lead">Каждая тема закрывает обязательный минимум, но добавляет <b>свои</b> требования. Их проверяют отдельно (слайд 6).</p>
+
+  <div class="card acc" style="margin-bottom:12px">
+    <h4>Команда 1 · 🏫 Школьная справочная</h4>
+    <p class="small muted"><b>Продукт:</b> система, которая отвечает на вопросы учеников и родителей по уставу школы, правилам, расписанию и списку кружков.</p>
+    <p class="small muted"><b>Интерфейс:</b> веб-страница (как в уроке 1, практика 13) или Telegram-бот.</p>
+    <p class="small muted"><b>Свои инструменты:</b> «текущее время и день недели», «какой сейчас урок по расписанию», «найти кабинет по номеру».</p>
+    <p class="small muted"><b>Стиль:</b> вежливо, официально, кратко, без панибратства. Ответ всегда заканчивается ссылкой на источник в документах.</p>
+    <p class="small muted"><b>Особое требование:</b> на вопрос, которого нет в документах, система отвечает «этого нет в правилах школы, уточните в секретариате» — и <b>не придумывает</b>. Проверяется тремя провокационными вопросами.</p>
+  </div>
+
+  <div class="card acc" style="margin-bottom:12px">
+    <h4>Команда 2 · 🎓 Репетитор по предмету</h4>
+    <p class="small muted"><b>Продукт:</b> помощник, который объясняет тему по учебнику и <b>не выдаёт готовый ответ</b>, а подводит к нему вопросами.</p>
+    <p class="small muted"><b>Интерфейс:</b> консоль или веб-страница с историей разговора.</p>
+    <p class="small muted"><b>Свои инструменты:</b> «калькулятор», «сгенерировать 5 тренировочных задач по теме», «проверить ответ ученика».</p>
+    <p class="small muted"><b>Стиль:</b> терпеливый, простой язык, примеры из жизни, один вопрос в конце каждого ответа. Можно закрепить дообучением.</p>
+    <p class="small muted"><b>Особое требование:</b> при прямом вопросе «просто скажи ответ» репетитор отказывается и предлагает подсказку. Проверяется на трёх разных задачах.</p>
+  </div>
+
+  <div class="card acc">
+    <h4>Команда 3 · 📅 Органайзер класса</h4>
+    <p class="small muted"><b>Продукт:</b> помощник классного руководителя: расписание, дедлайны, список дел, заметки по урокам.</p>
+    <p class="small muted"><b>Интерфейс:</b> Telegram-бот (урок 1, практика 14) с долгой памятью (урок 3, практика 7).</p>
+    <p class="small muted"><b>Свои инструменты:</b> «сегодняшняя дата», «сколько дней до события», «прочитать файл заметок», «дописать строку в файл» — последнее <b>только с подтверждением</b>.</p>
+    <p class="small muted"><b>Стиль:</b> коротко, списками, без воды. Формат «что · когда · кто».</p>
+    <p class="small muted"><b>Особое требование:</b> память переживает перезапуск — на защите бота перезапускают и спрашивают про вчерашнюю договорённость.</p>
+  </div>
+
+  <div class="notes">
+    <h5>Преподавателю</h5>
+    <ul>
+      <li>Темы 1–3 ближе к «текстовым» задачам и проще по коду. Темы 4–6 (следующий слайд) технически интереснее.</li>
+      <li>Закрепляйте темы с учётом силы команды: тему 2 (репетитор) стоит дать тем, кто хорошо писал промпты; тему 6 (фактчекер) — самым сильным, там много тонких мест.</li>
+      <li>Если команда предлагает свою тему — разрешайте, но требуйте сохранить все семь пунктов обязательного минимума и добавить измеримое особое требование.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" id="s5" data-stage="Темы проектов">
+  <div class="pbadge t">Шесть тем — по одной на команду</div>
+  <h2>Темы 4–6</h2>
+
+  <div class="card acc" style="margin-bottom:12px">
+    <h4>Команда 4 · 🧾 Обработчик документов</h4>
+    <p class="small muted"><b>Продукт:</b> превращает неструктурированный текст в данные. Объявление, чек, описание товара, резюме → аккуратный JSON по вашей схеме.</p>
+    <p class="small muted"><b>Интерфейс:</b> веб-страница: поле для текста, кнопка, таблица с результатом и выгрузка в CSV.</p>
+    <p class="small muted"><b>Свои инструменты:</b> «прочитать файл из папки», «посчитать сумму и среднее по списку», «сохранить результат в CSV» — с подтверждением.</p>
+    <p class="small muted"><b>Стиль:</b> строгий вывод по JSON Schema (урок 1, практика 9). Никакого текста вокруг JSON.</p>
+    <p class="small muted"><b>Особое требование:</b> из 10 тестовых документов минимум 8 разбираются без ошибок, а в остальных система честно сообщает, какое поле не удалось извлечь. Пакетная обработка всей папки — бонус.</p>
+  </div>
+
+  <div class="card acc" style="margin-bottom:12px">
+    <h4>Команда 5 · ✅ Проверка решений</h4>
+    <p class="small muted"><b>Продукт:</b> принимает решение задачи по математике или физике, проверяет его по шагам и указывает на конкретную ошибку.</p>
+    <p class="small muted"><b>Интерфейс:</b> консоль или веб-страница с двумя полями: «условие» и «решение ученика».</p>
+    <p class="small muted"><b>Свои инструменты:</b> «калькулятор» (обязательно — модель не должна считать в уме), «найти правило в справочнике» (RAG по формулам), «сохранить разбор в файл».</p>
+    <p class="small muted"><b>Стиль:</b> разбор по шагам: что верно → где ошибка → как исправить → ответ. Без готового решения в лоб.</p>
+    <p class="small muted"><b>Особое требование:</b> на 10 решениях с заранее известными ошибками система находит ошибку минимум в 7. Ошибочные ответы считает <b>калькулятором</b>, а не «в уме» — это видно в логе.</p>
+  </div>
+
+  <div class="card acc">
+    <h4>Команда 6 · 🔎 Фактчекер-исследователь</h4>
+    <p class="small muted"><b>Продукт:</b> собирает материал по теме из <b>локальных</b> источников (свои конспекты, скачанные статьи), делает выжимку с указанием источника и помечает спорные места.</p>
+    <p class="small muted"><b>Интерфейс:</b> консольный агент с логом шагов или веб-страница со списком источников.</p>
+    <p class="small muted"><b>Свои инструменты:</b> «поиск по базе знаний», «прочитать файл», «записать вывод в отчёт», «посчитать, сколько источников использовано».</p>
+    <p class="small muted"><b>Стиль:</b> каждый факт сопровождается ссылкой на источник: <code>[фрагмент 12, conspect.txt]</code>. Без источника — фраза помечается как «требует проверки».</p>
+    <p class="small muted"><b>Особое требование:</b> агент делает <b>несколько шагов</b> (минимум три вызова инструментов) и не выдумывает источники. Отдельно демонстрируется защита от инъекции: в один из документов намеренно вставлена вредная инструкция — агент не должен её выполнить.</p>
+  </div>
+
+  <div class="notes">
+    <h5>Преподавателю</h5>
+    <ul>
+      <li>Тема 6 самая сложная: многошаговый агент + RAG + защита от инъекции. Давайте её сильной команде.</li>
+      <li>Тема 4 — самая «измеримая»: 8 из 10 документов считается объективно. Хороший вариант для команды, которая любит порядок и таблицы.</li>
+      <li>Во всех темах особое требование сформулировано так, чтобы его можно было <b>проверить числом</b>. Требуйте от команд именно числовых результатов на защите.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" id="s6" data-stage="Оценивание" data-keep="1">
+  <div class="pbadge t">Рубрика · 100 баллов</div>
+  <h2>Как ставится оценка</h2>
+  <p class="lead">Восемь обязательных пунктов (52 балла), качество продукта (30), защита (18). <b>Порог зачёта — 60 баллов</b> при закрытом обязательном минимуме.</p>
+
+  <h3>Часть 1 · Обязательный минимум — 52 балла</h3>
+  <table>
+    <tr><th>№</th><th>Критерий</th><th>Баллы</th><th>Как проверяем на защите</th></tr>
+    <tr><td>①</td><td>Работает <b>офлайн</b></td><td>8</td><td>Выключаем интернет, запускаем систему, получаем ответ</td></tr>
+    <tr><td>②</td><td>Общение через <b>API</b>, есть свой код</td><td>6</td><td>Открываем скрипт, находим запрос к <code>localhost:1234/v1</code></td></tr>
+    <tr><td>③</td><td><b>Три инструмента</b>, из них один свой</td><td>8</td><td>Показываем код инструмента и вызов в логе</td></tr>
+    <tr><td>④</td><td><b>RAG</b>: поиск по своей базе знаний</td><td>8</td><td>Вопрос по документу → показываем найденные фрагменты и ответ по ним</td></tr>
+    <tr><td>⑤</td><td>Устойчивый <b>стиль и формат</b></td><td>6</td><td>Пять разных вопросов — стиль держится во всех ответах</td></tr>
+    <tr><td>⑥</td><td><b>Безопасность</b>: песочница, белый список, подтверждение</td><td>6</td><td>Просим сделать запрещённое действие — система отказывает или спрашивает</td></tr>
+    <tr><td>⑦</td><td><b>Не падает</b> на плохом вводе, всё пишется в лог</td><td>6</td><td>Пустой ввод, вопрос не по теме, сломанный инструмент — три проверки</td></tr>
+    <tr><td>⑧</td><td><b>Паспорт системы</b> и таблица замеров</td><td>4</td><td>Смотрим документы: состав, запуск, ограничения, 10 примеров «до/после»</td></tr>
+  </table>
+
+  <h3>Часть 2 · Качество продукта — 30 баллов</h3>
+  <table>
+    <tr><th>Критерий</th><th>Баллы</th><th>Что значит «на максимум»</th></tr>
+    <tr><td>Выполнено <b>особое требование темы</b></td><td>10</td><td>Измеримый результат достигнут (например, 8 из 10 документов разобраны)</td></tr>
+    <tr><td><b>Точность</b> поиска и ответов</td><td>8</td><td>Нужный фрагмент в топ-3 в 8 случаях из 10; ответы по делу, без воды</td></tr>
+    <tr><td>Система <b>честна</b></td><td>6</td><td>На неизвестный вопрос говорит «не знаю», а не выдумывает. Проверяем тремя провокациями</td></tr>
+    <tr><td><b>Удобство</b>: интерфейс, понятные сообщения</td><td>6</td><td>Посторонний человек разбирается без объяснений команды</td></tr>
+  </table>
+
+  <h3>Часть 3 · Защита — 18 баллов</h3>
+  <table>
+    <tr><th>Критерий</th><th>Баллы</th><th>Что значит «на максимум»</th></tr>
+    <tr><td>Демонстрация уложилась в <b>5 минут</b> и показала всё важное</td><td>6</td><td>Есть сценарий, ничего не зависло, показали лог и ограничения</td></tr>
+    <tr><td>Команда ответила на <b>вопросы жюри</b></td><td>8</td><td>Отвечают не только тимлид; ответы по существу, без «это не я делал»</td></tr>
+    <tr><td>Рассказали про <b>неудачи</b> честно</td><td>4</td><td>Назвали два реальных отказа системы и объяснили, почему так вышло</td></tr>
+  </table>
+
+  <div class="note grn"><b>Зачёт выставляется, если:</b> набрано <b>60+ баллов</b> из 100 <b>И</b> закрыты все семь пунктов обязательного минимума <b>И</b> личный вклад каждого участника больше нуля (слайд 8). Максимум — 100 баллов плюс до 20 бонусных.</div>
+
+  <div class="note red"><b>Не зачтено, даже если баллов много:</b> система обращается в интернет; ответы вводились вручную, а не генерировались; чужой код выдан за свой; в данных оказались личные сведения без согласия.</div>
+
+  <div class="notes">
+    <h5>Преподавателю</h5>
+    <ul>
+      <li>Раздайте рубрику командам <b>в первом занятии</b>: они должны строить систему под критерии, а не угадывать их.</li>
+      <li>Пункт «рассказали про неудачи» — намеренно оценённый. Он снимает соблазн приукрасить и учит честной инженерной отчётности.</li>
+      <li>Баллы ставьте сразу на защите, при команде — так меньше вопросов потом.</li>
+      <li>Если времени на полную проверку не хватает, обязательный минимум проверяйте у всех, а части 2 и 3 — выборочно по два критерия.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" id="s7" data-stage="Оценивание" data-keep="1">
+  <div class="pbadge t">Бонусы</div>
+  <h2>Что даёт дополнительные баллы</h2>
+  <p class="lead">До <b>20 бонусных</b> баллов сверх ста. Они не компенсируют незакрытый обязательный минимум, но позволяют получить оценку выше.</p>
+
+  <table>
+    <tr><th>Бонус</th><th>Баллы</th><th>Условие</th></tr>
+    <tr><td>🤖 Telegram-бот как интерфейс</td><td>+3</td><td>Бот реально отвечает с телефона на демонстрации</td></tr>
+    <tr><td>🌐 Веб-интерфейс</td><td>+3</td><td>Своя страница, работает через локальный API</td></tr>
+    <tr><td>🧠 <b>Своя дообученная модель</b></td><td>+5</td><td>LoRA/QLoRA, экспорт в GGUF, работает в LM Studio. Показана таблица «до/после»</td></tr>
+    <tr><td>🔌 Свой <b>MCP-сервер</b></td><td>+3</td><td>Написан на Python, подключён через <code>mcp.json</code>, инструменты видны модели</td></tr>
+    <tr><td>🖼 Мультимодальность</td><td>+3</td><td>Система принимает картинку (фото документа, скриншот) и извлекает из неё данные</td></tr>
+    <tr><td>🧪 Набор тестов</td><td>+2</td><td>Скрипт, который прогоняет 10 контрольных примеров и печатает сводку</td></tr>
+    <tr><td>📊 Наглядный лог шагов агента</td><td>+1</td><td>Видно, какой инструмент вызван, с какими аргументами и что вернул</td></tr>
+  </table>
+
+  <div class="note cyan"><b>Совет командам:</b> не гонитесь за всеми бонусами сразу. Один сделанный до конца пункт (+5 за свою модель) стоит дороже трёх недоделанных. Сначала закройте обязательный минимум, потом берите бонусы.</div>
+
+  <div class="notes">
+    <h5>Преподавателю</h5>
+    <ul>
+      <li>Бонус за свою дообученную модель (+5) — самый дорогой и самый полезный: он подтягивает материал урока 4, который иначе может остаться непройденным.</li>
+      <li>Если команда сделала бонус, но он не работает на защите — баллы не начисляются. Проверяйте живьём.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" id="s8" data-stage="Оценивание" data-keep="1">
+  <div class="pbadge t">Личный вклад</div>
+  <h2>Зачёт индивидуальный, а проект общий</h2>
+  <p class="lead">Команда получает одну оценку за систему. Но <b>зачёт</b> каждый получает лично — по своему вкладу и по ответам жюри.</p>
+
+  <div class="grid g2">
+    <div class="card"><h4>Как считаем личный вклад</h4>
+      <ol class="small">
+        <li><b>Оценка жюри</b> (0–3): насколько уверенно человек отвечал на вопросы по своему участку и по соседним</li>
+        <li><b>Взаимная оценка</b> (0–3): каждый анонимно оценивает вклад остальных троих</li>
+        <li><b>Артефакты</b>: чей код в репозитории, кто заполнял таблицу замеров, кто вёл паспорт системы</li>
+      </ol>
+      <p class="small muted">Итог: <b>0 баллов</b> — личный зачёт не выставлен, даже если команда набрала 90. <b>1–2</b> — зачёт. <b>3</b> — зачёт с отличием.</p></div>
+    <div class="card amb"><h4>Правило «спросят любого»</h4>
+      <p class="small muted">Жюри задаёт минимум <b>четыре вопроса</b> — по одному каждому участнику, причём не только по его роли:</p>
+      <ul class="small">
+        <li>тимлиду — про данные или тесты</li>
+        <li>дата-инженеру — про код инструмента</li>
+        <li>разработчику — про качество поиска</li>
+        <li>тестировщику — про ограничения системы</li>
+      </ul>
+      <p class="small muted">Это делает «пассажиров» видимыми и заставляет команду реально работать вместе.</p></div>
+  </div>
+
+  <h3>Форма взаимной оценки (заполняется анонимно в конце защиты)</h3>
+  <pre><code>Команда № ____   Тема: ______________________________
+
+Оцените вклад каждого участника от 0 до 3:
+  0 — не участвовал        1 — минимум
+  2 — свою часть сделал    3 — тянул на себе больше своего
+
+Участник            | Вклад (0-3) | Что конкретно сделал
+--------------------|-------------|--------------------------------
+Тимлид              |             |
+Дата-инженер        |             |
+Разработчик         |             |
+Тестировщик         |             |
+
+Что команде стоило сделать иначе:
+________________________________________________________</code><button class="copy">копировать</button></pre>
+
+  <div class="note grn"><b>Что делать, если кто-то не тянет:</b> команда сообщает преподавателю <b>до</b> последнего занятия, а не на защите. Тогда роли перераспределяются официально, и это не влияет на оценку остальных. Жалоба после защиты не принимается.</div>
+
+  <div class="notes">
+    <h5>Преподавателю</h5>
+    <ul>
+      <li>Взаимную оценку собирайте на бумаге или в форме — анонимно, сразу после защиты команды.</li>
+      <li>Правило «спросят любого» объявите в первом занятии: оно меняет поведение команд сильнее любых уговоров.</li>
+      <li>Если расхождение между взаимными оценками и вашим впечатением большое — поговорите с командой отдельно, не меняя баллы задним числом.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" id="s9" data-stage="Защита" data-keep="1">
+  <div class="pbadge t">Регламент защиты</div>
+  <h2>Как проходит защита</h2>
+
+  <div class="grid g2">
+    <div class="card"><h4>Порядок</h4>
+      <ol class="small">
+        <li>Команды сдают файлы преподавателю <b>за 10 минут</b> до начала</li>
+        <li>Преподаватель <b>отключает интернет</b> в классе</li>
+        <li>Жеребьёвка порядка выступлений</li>
+        <li>На команду: <b>5 минут</b> демонстрация + <b>2 минуты</b> вопросы + 1 минута обратная связь</li>
+        <li>Остальные команды в это время заполняют лист наблюдения (ниже)</li>
+        <li>В конце — анонимная взаимная оценка внутри каждой команды</li>
+        <li>Объявление баллов сразу после всех защит</li>
+      </ol></div>
+    <div class="card"><h4>Состав жюри</h4>
+      <ul class="small">
+        <li><b>Преподаватель</b> — основной оценщик</li>
+        <li><b>Два представителя</b> от других команд — по ротации, оценивают только критерий «удобство» и «понятность демонстрации»</li>
+      </ul>
+      <p class="small muted">Ротация: пока защищает команда 1, в жюри сидят представители команд 2 и 3; команду 2 оценивают 3 и 4, и так далее. Так никто не судит сам себя.</p>
+      <p class="small muted">Жюри-ученики ставят баллы по двум критериям части 3, преподаватель — по остальным.</p></div>
+  </div>
+
+  <h3>Сценарий демонстрации — обязательные пять минут</h3>
+  <div class="flow">
+    <div class="fbox"><b>30 сек</b>Что за система и какую задачу решает</div><div class="farr">→</div>
+    <div class="fbox"><b>60 сек</b>Живая работа: основной сценарий от начала до конца</div><div class="farr">→</div>
+    <div class="fbox"><b>60 сек</b>Показать <b>лог</b>: какие инструменты вызывались и что вернули</div><div class="farr">→</div>
+    <div class="fbox"><b>60 сек</b>Показать <b>отказ</b>: вопрос не по базе, попытка запрещённого действия</div><div class="farr">→</div>
+    <div class="fbox"><b>45 сек</b>Таблица замеров и паспорт системы</div><div class="farr">→</div>
+    <div class="fbox"><b>45 сек</b>Что не получилось и что бы улучшили</div>
+  </div>
+
+  <div class="note red"><b>Три правила демонстрации:</b> ① показываем <b>живьём</b>, а не в записи (запись — только запасной вариант при технической аварии); ② обязательно показываем <b>отказ</b> системы — это доказывает, что вы её тестировали; ③ укладываемся в 5 минут, на шестой минуте микрофон выключается.</div>
+
+  <h3>Вопросы жюри — банк (спросим минимум четыре)</h3>
+  <div class="grid g2">
+    <div class="card"><p class="small muted">
+      · Как вы поняли, что нужный фрагмент действительно находится?<br>
+      · Что произойдёт, если документ изменится?<br>
+      · Почему выбрали такой размер чанка?<br>
+      · Как система поведёт себя, если сервер LM Studio не запущен?<br>
+      · Где в вашем коде подтверждение опасного действия?<br>
+      · Что мешает модели выдумать ответ и как вы это проверили?</p></div>
+    <div class="card"><p class="small muted">
+      · Сколько токенов тратится на один запрос и почему?<br>
+      · Какую температуру вы поставили и почему именно её?<br>
+      · Что вы сделали, когда система сломалась в первый раз?<br>
+      · Какой фрагмент кода вы бы переписали сейчас?<br>
+      · Чем ваша система хуже облачного ChatGPT — честно?<br>
+      · Что в ней можно использовать в реальной школе?</p></div>
+  </div>
+
+  <div class="notes">
+    <h5>Преподавателю</h5>
+    <ul>
+      <li>Отключение интернета — не формальность, а главный пункт обязательного минимума. Сделайте это публично.</li>
+      <li>Банк вопросов раздайте командам <b>заранее</b>: они должны быть готовы отвечать, а не догадываться, о чём спросят.</li>
+      <li>Жёсткий тайминг на защите обязателен — иначе шесть команд не уложатся в занятие. Поставьте видимый таймер.</li>
+      <li>Лист наблюдения (следующий слайд) держит остальные команды занятыми и даёт вам второй источник оценки.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" id="s10" data-stage="Защита" data-practice="1">
+  <div class="pbadge">Лист наблюдения · заполняет каждая команда</div>
+  <h2>Смотрим чужие защиты внимательно</h2>
+  <p class="lead">Пока выступает другая команда, вы не зрители: вы заполняете этот лист. Он уходит преподавателю и учитывается при оценке вашей внимательности.</p>
+
+  <div class="task" data-task>
+    <h4>🛠 Лист наблюдения за защитой команды № ____</h4>
+    <label><input type="checkbox"><span>Система запустилась <b>без интернета</b></span></label>
+    <label><input type="checkbox"><span>Показали лог вызовов инструментов</span></label>
+    <label><input type="checkbox"><span>Показали хотя бы один <b>отказ</b> системы и объяснили его</span></label>
+    <label><input type="checkbox"><span>На вопрос вне базы знаний система не выдумала ответ</span></label>
+    <label><input type="checkbox"><span>Опасное действие спросило подтверждение человека</span></label>
+    <label><input type="checkbox"><span>Показали таблицу замеров «до / после»</span></label>
+    <label><input type="checkbox"><span>Уложились в 5 минут</span></label>
+    <label><input type="checkbox"><span>Отвечали на вопросы <b>разные</b> люди, а не только тимлид</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card"><h4>Что записать словами</h4>
+      <pre><code>Сильная сторона их системы:
+____________________________________
+
+Что у них сделано лучше, чем у нас:
+____________________________________
+
+Их ошибка, которую мы не повторим:
+____________________________________
+
+Один вопрос, который хочется задать:
+____________________________________</code><button class="copy">копировать</button></pre></div>
+    <div class="card grn"><h4>Зачем это нужно</h4>
+      <ul class="small">
+        <li>Команды учатся <b>смотреть</b> на чужую инженерию, а не ждать своей очереди</li>
+        <li>Преподаватель получает независимую оценку «удобства» и «понятности»</li>
+        <li>Лучшие находки переходят из команды в команду — на следующем занятии все становятся сильнее</li>
+        <li>Вопросы из листа можно задать вслух: это и есть работа жюри-учеников</li>
+      </ul></div>
+  </div>
+
+  <div class="note cyan"><b>Правило уважения:</b> мы критикуем <b>решения</b>, а не людей. Формулировка «у них поиск не нашёл нужный фрагмент, потому что чанки по 3000 символов» — полезная. «У них всё плохо» — нет.</div>
+
+  <div class="notes">
+    <h5>Преподавателю</h5>
+    <ul>
+      <li>Распечатайте по пять листов на команду — на каждую из пяти чужих защит.</li>
+      <li>Соберите листы после урока: это готовая обратная связь командам и материал для обсуждения на следующем занятии.</li>
+      <li>Если класс шумный — назначьте одного человека от команды «хранителем листа», он и заполняет.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" id="s11" data-stage="План работы" data-keep="1">
+  <div class="pbadge t">Расписание на три занятия</div>
+  <h2>План работы</h2>
+
+  <div class="grid g3">
+    <div class="card acc"><h4>Занятие 1 · Фундамент</h4>
+      <ol class="small">
+        <li>Распределить роли (10 мин)</li>
+        <li>Выбрать и зафиксировать тему</li>
+        <li>Сформулировать задачу одним предложением</li>
+        <li>Собрать документы для базы знаний</li>
+        <li>Сделать датасет для стиля/формата</li>
+        <li>Поднять API-сервер и проверить запрос из кода</li>
+        <li>Написать один свой инструмент</li>
+        <li><b>Сдать тимлиду:</b> список документов, датасет, описание трёх инструментов</li>
+      </ol></div>
+    <div class="card acc"><h4>Занятие 2 · Сборка</h4>
+      <ol class="small">
+        <li>Построить индекс RAG и проверить поиск командой <code>find</code></li>
+        <li>Собрать цикл агента с лимитом шагов</li>
+        <li>Добавить песочницу и подтверждение опасных действий</li>
+        <li>Сделать интерфейс (консоль / страница / бот)</li>
+        <li>Настроить системный промпт под стиль темы</li>
+        <li>Прогнать 10 контрольных примеров, начать таблицу</li>
+        <li><b>Промежуточный контроль:</b> преподаватель проверяет пункты ①–④ минимума</li>
+      </ol></div>
+    <div class="card acc"><h4>Занятие 3 · Полировка и защита</h4>
+      <ol class="small">
+        <li>Дообучить модель (если взяли этот бонус) и экспортировать GGUF</li>
+        <li>Довести обработку ошибок: пустой ввод, сбой инструмента, сервер выключен</li>
+        <li>Заполнить таблицу «до / после» и паспорт системы</li>
+        <li>Прогнать тест на инъекцию промпта</li>
+        <li>Отрепетировать 5-минутную демонстрацию с таймером</li>
+        <li><b>Защита</b></li>
+      </ol></div>
+  </div>
+
+  <div class="note amber"><b>Правило «сначала скелет, потом мясо»:</b> к концу первого занятия у команды должен работать <b>примитивный</b> сквозной путь: запрос → поиск по базе → один инструмент → ответ. Пусть кривой и некрасивый. Дальше его наращивают. Команды, которые сначала две недели «пишут красивый интерфейс», обычно не доходят до защиты.</div>
+
+  <div class="note red"><b>Что сдаём преподавателю до защиты:</b> папку с кодом, датасетом, индексом, паспортом системы и таблицей замеров — <b>за 10 минут</b> до начала. Плюс запасную видеозапись демонстрации на случай технической аварии (не оценивается, но спасает команду).</div>
+
+  <div class="notes">
+    <h5>Преподавателю</h5>
+    <ul>
+      <li>Промежуточный контроль на занятии 2 — критичен. Проверяйте у каждой команды пункты ①–④ лично: офлайн, API, инструменты, RAG. Всё, что не работает на втором занятии, почти наверняка не заработает на третьем.</li>
+      <li>Правило «сначала скелет» повторяйте вслух на каждом занятии — дети инстинктивно начинают с интерфейса.</li>
+      <li>Если занятий меньше трёх — урежьте бонусы (своя модель, MCP-сервер) и оставьте обязательный минимум: он проходим и за два занятия.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" id="s12" data-stage="План работы" data-practice="1">
+  <div class="pbadge">Отметьте, когда готово</div>
+  <h2>Чек-лист готовности команды</h2>
+  <p class="lead">Пройдите список <b>до</b> защиты. Каждый пункт — это конкретные баллы в рубрике.</p>
+
+  <div class="task" data-task>
+    <h4>🛠 Обязательный минимум (52 балла)</h4>
+    <label><input type="checkbox"><span>① Система работает с <b>выключенным интернетом</b> — проверили реально, а не на слово</span></label>
+    <label><input type="checkbox"><span>② Запросы к модели идут из <b>нашего кода</b> через <code>localhost:1234/v1</code></span></label>
+    <label><input type="checkbox"><span>③ Работают <b>три инструмента</b>, минимум один написан нами с нуля</span></label>
+    <label><input type="checkbox"><span>④ RAG: на вопрос по документу система показывает <b>найденные фрагменты</b> и отвечает по ним</span></label>
+    <label><input type="checkbox"><span>⑤ Стиль и формат держатся на <b>пяти разных</b> вопросах подряд</span></label>
+    <label><input type="checkbox"><span>⑥ Есть песочница, белый список и подтверждение для опасных действий</span></label>
+    <label><input type="checkbox"><span>⑦ Не падает на пустом вводе, вопросе не по теме и сломанном инструменте; ведёт лог</span></label>
+    <label><input type="checkbox"><span>⑧ Готовы <b>паспорт системы</b> и таблица из 10 контрольных примеров «до / после»</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="task" data-task>
+    <h4>🛠 Особое требование темы (10 баллов)</h4>
+    <label><input type="checkbox"><span>Формулировка особого требования переписана сюда своими словами</span></label>
+    <label><input type="checkbox"><span>Измерение проведено, результат записан числом: ____________________</span></label>
+    <label><input type="checkbox"><span>Порог из задания достигнут (или честно записано, почему нет)</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="task" data-task>
+    <h4>🛠 Защита (18 баллов)</h4>
+    <label><input type="checkbox"><span>Сценарий демонстрации расписан по минутам и отрепетирован с таймером</span></label>
+    <label><input type="checkbox"><span>Укладывается в 5 минут (репетировали минимум дважды)</span></label>
+    <label><input type="checkbox"><span>Каждый знает, какой участок показывает и о чём его спросят</span></label>
+    <label><input type="checkbox"><span>Прочитали банк вопросов жюри и подготовили ответы на все двенадцать</span></label>
+    <label><input type="checkbox"><span>Готовы назвать <b>два реальных отказа</b> системы и объяснить их причины</span></label>
+    <label><input type="checkbox"><span>Файлы сданы преподавателю за 10 минут до начала</span></label>
+    <label><input type="checkbox"><span>Есть запасная видеозапись демонстрации на случай аварии</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="note grn"><b>Если хотя бы один пункт из первого блока не отмечен — зачёт под угрозой</b>, независимо от набранных баллов. Сначала закройте минимум, потом занимайтесь бонусами и красотой.</div>
+
+  <div class="notes">
+    <h5>Преподавателю</h5>
+    <ul>
+      <li>Распечатайте этот слайд каждой команде: он заменяет половину ваших ответов на организационные вопросы.</li>
+      <li>Проверьте чек-листы за день до защиты — это последний шанс для команд что-то исправить.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="slide" id="s13" data-stage="Шпаргалка" data-keep="1">
+  <div class="pbadge t">Одна страница · распечатать команде</div>
+  <h2>Шпаргалка: что откуда взять</h2>
+  <p class="small muted">Все компоненты уже написаны на уроках. Здесь — где их искать и как склеить.</p>
+
+  <table>
+    <tr><th>Нужно</th><th>Готовый код</th><th>Что поменять под себя</th></tr>
+    <tr><td>Запрос к модели из Python</td><td>Урок 1, практика 12 (<code>bot.py</code>)</td><td>ID модели, системный промпт</td></tr>
+    <tr><td>Веб-интерфейс чата</td><td>Урок 1, практика 13 (<code>chat.html</code>)</td><td>Заголовок, поля, стиль оформления</td></tr>
+    <tr><td>Telegram-бот</td><td>Урок 1, практика 14 (<code>tg_bot.py</code>)</td><td>Токен, ID модели, <code>SYSTEM</code></td></tr>
+    <tr><td>Инструменты и цикл вызова</td><td>Урок 2, практика 7 (<code>agent.py</code>)</td><td>Набор функций, реестр, описания</td></tr>
+    <tr><td>Песочница и подтверждение</td><td>Урок 2, практика 8 (<code>agent_files.py</code>)</td><td><code>SAFE_DIR</code>, белый список команд</td></tr>
+    <tr><td>Свой MCP-сервер</td><td>Урок 2, практика 5 (<code>school_server.py</code>)</td><td>Свои инструменты и их docstring</td></tr>
+    <tr><td>База знаний (RAG)</td><td>Урок 3, практика 5 (<code>rag.py</code>)</td><td>Документ, размер чанка, <code>TOP_K</code>, промпт</td></tr>
+    <tr><td>Долгая память</td><td>Урок 3, практика 7 (<code>memory_bot.py</code>)</td><td>Что считать фактом, порог близости</td></tr>
+    <tr><td>Поиск по папке файлов</td><td>Урок 3, слайд 15 (функция <code>read_all</code>)</td><td>Папка, расширения файлов</td></tr>
+    <tr><td>Своя дообученная модель</td><td>Урок 4, практики 2, 3, 5</td><td>Датасет, базовая модель, число эпох</td></tr>
+    <tr><td>Тест на инъекцию промпта</td><td>Урок 2, практика 10</td><td>Содержимое «вредного» файла</td></tr>
+  </table>
+
+  <h3>Минимальный каркас системы (скелет, который должен заработать первым)</h3>
+  <pre><code>"""Каркас финального проекта: запрос -> поиск по базе -> инструмент -> ответ."""
+import json, os
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
+CHAT   = "qwen/qwen3-8b"                             # ← чат-модель
+EMBED  = "text-embedding-qwen3-embedding-0.6b"       # ← эмбеддинги
+MAX_STEPS = 6
+
+# --- 1. своя база знаний (из урока 3) ---
+def search(question, top_k=3):
+    """Вернуть топ-K фрагментов из index.json по смыслу."""
+    import math
+    qv = client.embeddings.create(model=EMBED, input=question).data[0].embedding
+    data = json.loads(open("index.json", encoding="utf-8").read())
+    def cos(a, b):
+        d = sum(x*y for x, y in zip(a, b))
+        na = math.sqrt(sum(x*x for x in a)); nb = math.sqrt(sum(y*y for y in b))
+        return d / (na * nb) if na and nb else 0.0
+    ranked = sorted(((cos(qv, d["vector"]), d) for d in data),
+                    key=lambda t: t[0], reverse=True)
+    return [(round(s, 3), d["text"]) for s, d in ranked[:top_k]]
+
+# --- 2. свой инструмент (из урока 2) ---
+def now() -> str:
+    """Текущая дата и время."""
+    from datetime import datetime
+    return datetime.now().strftime("%Y-%m-%d %H:%M")
+
+REGISTRY = {"now": now, "search_kb": lambda query: json.dumps(search(query), ensure_ascii=False)}
+TOOLS = [
+  {"type": "function", "function": {"name": "now",
+    "description": "Узнать текущие дату и время.",
+    "parameters": {"type": "object", "properties": {}}}},
+  {"type": "function", "function": {"name": "search_kb",
+    "description": "Поиск по базе знаний проекта. Вызывай для ЛЮБОГО вопроса по теме.",
+    "parameters": {"type": "object", "properties": {"query": {"type": "string"}},
+                   "required": ["query"], "additionalProperties": False}}},
+]
+
+SYSTEM = ("Ты — помощник проекта. Отвечай только по данным из базы знаний. "
+          "Если поиск не дал нужного — честно скажи, что этого нет в базе. "
+          "Не выдумывай факты, числа и источники. Отвечай кратко, по-русски.")
+
+# --- 3. цикл агента ---
+def run(task):
+    messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": task}]
+    for step in range(1, MAX_STEPS + 1):
+        r = client.chat.completions.create(model=CHAT, messages=messages,
+                                          tools=TOOLS, temperature=0.2, max_tokens=600)
+        msg = r.choices[0].message
+        if not msg.tool_calls:
+            print("ОТВЕТ:", msg.content)
+            return
+        messages.append(msg.model_dump())
+        for tc in msg.tool_calls:
+            args = json.loads(tc.function.arguments or "{}")
+            fn = REGISTRY.get(tc.function.name)
+            try:
+                result = fn(**args) if fn else "нет такого инструмента"
+            except Exception as exc:
+                result = "ошибка инструмента: %s" % exc
+            print("  шаг %d: %s%s -> %s" % (step, tc.function.name, args, str(result)[:120]))
+            messages.append({"role": "tool", "tool_call_id": tc.id, "content": str(result)})
+    print("превышен лимит шагов")
+
+run("Ваш вопрос по теме проекта")</code><button class="copy">копировать</button></pre>
+
+  <div class="note cyan"><b>План сборки:</b> сначала этот скелет запускается «как есть» и отвечает хоть что-то. Потом добавляете свои инструменты, свой интерфейс, обработку ошибок, безопасность и стиль. Так вы никогда не останетесь с неработающим проектом за день до защиты.</div>
+
+  <div class="note grn"><b>Что сдаём и в каком виде:</b> одна папка на команду. Внутри: <code>README.md</code> (паспорт системы), <code>src/</code> — весь код, <code>data/</code> — документы и датасет, <code>index.json</code> — индекс базы знаний, <code>tests.md</code> — таблица из 10 контрольных примеров «до / после», <code>GGUF/</code> — своя модель, если дообучали. Сдаём преподавателю за 10 минут до защиты.</div>
+
+  <div class="notes">
+    <h5>Преподавателю</h5>
+    <ul>
+      <li>Эта таблица — главная ценность слайда: команды перестают писать код с нуля и начинают собирать из готового.</li>
+      <li>Каркас намеренно упрощён (нет песочницы и подтверждения) — пусть команды добавят их сами, это и есть пункты ⑥ и ⑦ рубрики.</li>
+      <li>Проверьте, что все четыре урока доступны командам: они лежат рядом, в папках <code>urok-2</code>, <code>urok-3</code>, <code>urok-4</code>.</li>
+    </ul>
+  </div>
+</section>
+</main>
+
+<div class="botbar">
+  <button class="btn" id="prev">← Назад</button>
+  <button class="btn pri" id="next">Далее →</button>
+  <div class="counter" id="counter">1 / 21</div>
+  <div class="spacer"></div>
+  <div class="hint"><kbd>←</kbd><kbd>→</kbd> листать · <kbd>O</kbd> содержание · <kbd>F</kbd> только практика · <kbd>T</kbd> заметки · <kbd>0</kbd>–<kbd>9</kbd> быстрый переход</div>
+  <button class="btn" id="btnPrint" title="Сохранить в PDF / распечатать">🖨 Печать</button>
+</div>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <h2 style="margin:0;font-size:26px">Содержание задания</h2>
+      <button class="btn" id="modalClose">Закрыть ✕</button>
+    </div>
+    <div id="ovlist"></div>
+    <div class="divider"></div>
+    <p class="small muted">Зелёной меткой <span class="tag g">практика</span> отмечены слайды с чек-листами: распределение ролей, лист наблюдения за защитами и чек-лист готовности команды. Их удобно распечатать.</p>
+    <p class="small muted"><b>Порядок чтения:</b> слайды 1–3 — задание и обязательный минимум, 4–5 — шесть тем, 6–8 — как оценивается и как считается личный зачёт, 9–10 — регламент защиты и лист наблюдения, 11–12 — план на три занятия и чек-лист готовности, 13 — шпаргалка с готовым кодом из всех четырёх уроков.</p>
+  </div>
+</div>
+
+<div class="cmodal" id="codeModal">
+  <div class="cbox">
+    <div class="row" style="justify-content:space-between">
+      <b style="font-size:15px;color:#c4b5fd">Фрагмент — выделите текст и скопируйте</b>
+      <span class="row" style="gap:8px">
+        <button class="btn" id="codeSel">Выделить всё</button>
+        <button class="btn" id="codeClose">Закрыть ✕</button>
+      </span>
+    </div>
+    <pre><code id="codeView"></code></pre>
+    <p class="small muted" style="margin:0">Если кнопка «копировать» не срабатывает (ограничения встроенного просмотра) — откройте файл в обычном браузере или скопируйте текст отсюда.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0, teacher = false, practiceOnly = false;
+  var stageEl = document.getElementById('stage');
+
+  var stageOrder = [];
+  slides.forEach(function(s){
+    var st = s.dataset.stage;
+    if (stageOrder.indexOf(st) === -1) stageOrder.push(st);
+  });
+
+  function visibleList(){
+    if (!practiceOnly) return slides.map(function(_, k){ return k; });
+    var out = [];
+    slides.forEach(function(s, k){
+      if (s.dataset.practice === '1' || s.dataset.keep === '1') out.push(k);
+    });
+    return out;
+  }
+
+  function show(n){
+    if (n < 0) n = 0;
+    if (n > slides.length - 1) n = slides.length - 1;
+    if (practiceOnly) {
+      var vis = visibleList();
+      if (vis.indexOf(n) === -1) {
+        var best = vis[0];
+        for (var q = 0; q < vis.length; q++) { if (vis[q] >= n) { best = vis[q]; break; } best = vis[q]; }
+        n = best;
+      }
+    }
+    slides.forEach(function(s){ s.classList.remove('active'); });
+    i = n;
+    slides[i].classList.add('active');
+    stageEl.scrollTop = 0;
+    document.getElementById('counter').textContent = (i+1) + ' / ' + slides.length;
+    document.getElementById('prog').style.width = ((i+1)/slides.length*100) + '%';
+    document.getElementById('stagechip').textContent = slides[i].dataset.stage;
+    if (location.hash !== '#s'+(i+1)) history.replaceState(null,'','#s'+(i+1));
+    markOv();
+  }
+  function step(dir){
+    var vis = visibleList();
+    var pos = vis.indexOf(i);
+    if (pos === -1) { show(i + dir); return; }
+    var np = pos + dir;
+    if (np < 0) np = 0;
+    if (np > vis.length - 1) np = vis.length - 1;
+    show(vis[np]);
+  }
+  function next(){ step(1); } function prev(){ step(-1); }
+
+  document.getElementById('next').onclick = next;
+  document.getElementById('prev').onclick = prev;
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target.tagName;
+    if (t === 'INPUT' || t === 'TEXTAREA') return;
+    switch(e.key){
+      case 'ArrowRight': case 'PageDown': case ' ': next(); e.preventDefault(); break;
+      case 'ArrowLeft': case 'PageUp': prev(); e.preventDefault(); break;
+      case 'Home': show(0); break;
+      case 'End': show(slides.length-1); break;
+      case 't': case 'T': case 'е': case 'Е': toggleTeacher(); break;
+      case 'o': case 'O': case 'щ': case 'Щ': case 'm': case 'M': case 'ь': case 'Ь': toggleModal(); break;
+      case 'f': case 'F': case 'а': case 'А': togglePractice(); break;
+      case 'Escape': closeModal(); cmodalEl().classList.remove('open'); break;
+      default:
+        if (/^[0-9]$/.test(e.key)) { var n = parseInt(e.key,10); if (n === 0) n = 10; show(n-1); }
+    }
+  });
+
+  var wheelLock = false;
+  stageEl.addEventListener('wheel', function(e){
+    var atTop = stageEl.scrollTop <= 0;
+    var atBot = stageEl.scrollTop + stageEl.clientHeight >= stageEl.scrollHeight - 4;
+    if (wheelLock) return;
+    if (e.deltaY > 40 && atBot) { wheelLock = true; next(); setTimeout(function(){wheelLock=false;}, 550); }
+    else if (e.deltaY < -40 && atTop) { wheelLock = true; prev(); setTimeout(function(){wheelLock=false;}, 550); }
+  }, {passive:true});
+
+  function toggleTeacher(){
+    teacher = !teacher;
+    document.body.classList.toggle('teacher', teacher);
+    var b = document.getElementById('btnTeacher');
+    b.classList.toggle('on', teacher);
+    b.textContent = teacher ? '👁 Заметки вкл' : '👁 Заметки';
+  }
+  document.getElementById('btnTeacher').onclick = toggleTeacher;
+
+  function togglePractice(){
+    practiceOnly = !practiceOnly;
+    document.body.classList.toggle('onlypractice', practiceOnly);
+    var b = document.getElementById('btnPractice');
+    b.classList.toggle('on2', practiceOnly);
+    b.textContent = practiceOnly ? '🛠 Практика: вкл' : '🛠 Только практика';
+    markOv();
+    if (practiceOnly) show(i);
+  }
+  document.getElementById('btnPractice').onclick = togglePractice;
+
+  var modal = document.getElementById('modal'), ovlist = document.getElementById('ovlist');
+  (function buildOv(){
+    var n = 0;
+    stageOrder.forEach(function(st){
+      var d = document.createElement('div'); d.className = 'ovstage';
+      d.innerHTML = '<h4>' + st + '</h4>';
+      slides.forEach(function(s, idx){
+        if (s.dataset.stage !== st) return;
+        n++;
+        var b = document.createElement('button'); b.className = 'ovlink'; b.dataset.idx = idx;
+        var title = s.querySelector('h1,h2');
+        var isP = s.dataset.practice === '1';
+        b.innerHTML = '<span class="n">' + n + '</span><span>' + (title ? title.textContent.trim() : 'Слайд') + '</span>' +
+                      (isP ? '<span class="pr">практика</span>' : '');
+        b.onclick = function(){ show(idx); closeModal(); };
+        d.appendChild(b);
+      });
+      ovlist.appendChild(d);
+    });
+  })();
+  function markOv(){
+    Array.prototype.forEach.call(ovlist.querySelectorAll('.ovlink'), function(b){
+      var k = parseInt(b.dataset.idx,10), on = (k === i);
+      b.style.borderColor = on ? '#a78bfa' : '';
+      b.style.background  = on ? '#1d1836' : '';
+      var hidden = practiceOnly && slides[k].dataset.practice !== '1' && slides[k].dataset.keep !== '1';
+      b.style.opacity = hidden ? '.35' : '1';
+    });
+  }
+  function toggleModal(){ modal.classList.contains('open') ? closeModal() : openModal(); }
+  function openModal(){ modal.classList.add('open'); markOv(); }
+  function closeModal(){ modal.classList.remove('open'); }
+  document.getElementById('btnOv').onclick = toggleModal;
+  document.getElementById('modalClose').onclick = closeModal;
+  modal.addEventListener('click', function(e){ if (e.target === modal) closeModal(); });
+
+  function esc(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function cmodalEl(){ return document.getElementById('codeModal'); }
+  function showCode(txt){
+    document.getElementById('codeView').innerHTML = esc(txt);
+    cmodalEl().classList.add('open');
+  }
+  function copyText(txt, btn){
+    var done = function(){
+      var old = btn.textContent; btn.textContent = '✓ скопировано'; btn.style.color = '#6ee7b7';
+      setTimeout(function(){ btn.textContent = old; btn.style.color = ''; }, 1400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, function(){ fallback(txt, done, btn); });
+    } else fallback(txt, done, btn);
+  }
+  function fallback(txt, done, btn){
+    var ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch(e){ ok = false; }
+    document.body.removeChild(ta);
+    if (ok) done(); else if (btn) showCode(txt);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('pre'), function(pre){
+    var btn = pre.querySelector('.copy');
+    if (btn) {
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var clone = pre.cloneNode(true);
+        var b = clone.querySelector('.copy'); if (b) b.remove();
+        copyText(clone.textContent.replace(/\n+$/,''), btn);
+      });
+    }
+    pre.addEventListener('dblclick', function(){
+      var c = pre.querySelector('code');
+      showCode(c ? c.textContent : pre.textContent);
+    });
+  });
+
+  var cmodal = cmodalEl();
+  document.getElementById('codeClose').onclick = function(){ cmodal.classList.remove('open'); };
+  document.getElementById('codeSel').onclick = function(){
+    var el = document.getElementById('codeView');
+    var r = document.createRange(); r.selectNodeContents(el);
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  };
+  cmodal.addEventListener('click', function(e){ if (e.target === cmodal) cmodal.classList.remove('open'); });
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-task]'), function(task){
+    var boxes = task.querySelectorAll('input[type=checkbox]');
+    var bar = task.querySelector('.bar i');
+    var upd = function(){
+      var done = 0;
+      Array.prototype.forEach.call(boxes, function(b){ if (b.checked) done++; });
+      if (bar) bar.style.width = (boxes.length ? done/boxes.length*100 : 0) + '%';
+    };
+    Array.prototype.forEach.call(boxes, function(b){ b.addEventListener('change', upd); });
+    upd();
+  });
+
+  var qs = Array.prototype.slice.call(document.querySelectorAll('.q'));
+  qs.forEach(function(q){
+    var right = parseInt(q.dataset.right,10);
+    var opts = q.querySelectorAll('.opt');
+    Array.prototype.forEach.call(opts, function(o, idx){
+      o.addEventListener('click', function(){
+        if (q.dataset.done) return;
+        q.dataset.done = '1'; q.classList.add('answered');
+        if (idx === right) { o.classList.add('right'); q.dataset.ok = '1'; }
+        else { o.classList.add('wrong'); opts[right].classList.add('right'); }
+      });
+    });
+  });
+  var scoreEl = document.getElementById('score');
+  var btnScoreEl = document.getElementById('btnScore');
+  if (btnScoreEl) btnScoreEl.onclick = function(){
+    var ok = 0, answered = 0;
+    qs.forEach(function(q){ if (q.dataset.done) { answered++; if (q.dataset.ok) ok++; } });
+    var el = scoreEl;
+    if (!el) return;
+    if (answered === 0) { el.textContent = 'Сначала ответьте на вопросы'; el.style.color = '#fcd34d'; return; }
+    el.textContent = ok + ' / ' + qs.length + (answered < qs.length ? '   (отвечено ' + answered + ')' : '');
+    el.style.color = ok >= qs.length-1 ? '#34d399' : (ok >= qs.length-3 ? '#fcd34d' : '#fb7185');
+  };
+  if (document.getElementById('btnQuizReset')) document.getElementById('btnQuizReset').onclick = function(){
+    qs.forEach(function(q){
+      delete q.dataset.done; delete q.dataset.ok; q.classList.remove('answered');
+      Array.prototype.forEach.call(q.querySelectorAll('.opt'), function(o){ o.classList.remove('right','wrong'); });
+    });
+    var el = scoreEl; if (el) { el.textContent = '— / ' + qs.length; el.style.color = '#34d399'; }
+  };
+
+  document.getElementById('btnPrint').onclick = function(){ window.print(); };
+
+  var x0 = null;
+  stageEl.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, {passive:true});
+  stageEl.addEventListener('touchend', function(e){
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 70) { dx < 0 ? next() : prev(); }
+    x0 = null;
+  }, {passive:true});
+
+  var h = parseInt((location.hash||'').replace('#s',''),10);
+  if (h && h >= 1 && h <= slides.length) show(h-1); else show(0);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тест по уроку 1 · «Локальный ИИ своими руками»</title>
+<style>
+:root{
+  --bg:#0b0a14; --card:#181529; --card2:#1f1b34; --line:#2d2748;
+  --text:#ece9f8; --dim:#a39dbf; --dim2:#7d7799;
+  --acc:#a78bfa; --acc2:#7c3aed; --grn:#34d399; --amb:#fbbf24; --red:#fb7185; --cyn:#38bdf8;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);min-height:100vh;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;font-size:17px;line-height:1.55}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 520px at 10% -10%,rgba(124,58,237,.22),transparent 60%),
+  radial-gradient(800px 500px at 95% 5%,rgba(56,189,248,.12),transparent 60%),
+  radial-gradient(700px 600px at 50% 120%,rgba(52,211,153,.10),transparent 60%)}
+.wrap{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:22px 16px 60px}
+header{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700}
+.logo .dot{width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--cyn));box-shadow:0 0 14px rgba(167,139,250,.8)}
+header small{color:var(--dim);font-weight:500}
+.spacer{flex:1}
+h1{font-size:clamp(26px,4.4vw,40px);line-height:1.12;margin:.1em 0 .3em;letter-spacing:-.01em}
+h2{font-size:22px;margin:1.4em 0 .5em}
+p{margin:.5em 0}
+.lead{font-size:19px;color:#d7d2ee}
+.muted{color:var(--dim)} .small{font-size:14.5px}
+.card{background:linear-gradient(180deg,var(--card),#12101f);border:1px solid var(--line);border-radius:16px;padding:18px;margin:14px 0}
+.btn{font:inherit;font-size:15px;color:var(--text);background:var(--card2);border:1px solid var(--line);
+  padding:9px 15px;border-radius:11px;cursor:pointer;transition:.15s}
+.btn:hover{border-color:var(--acc);background:#272145}
+.btn.pri{background:linear-gradient(135deg,#7c3aed,#5b21b6);border-color:#8b5cf6;font-weight:600}
+.btn.pri:hover{filter:brightness(1.14)}
+.btn.dgr:hover{border-color:var(--red);color:#fecdd3}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.big{font-size:18px;padding:13px 26px}
+input[type=text],input[type=password],textarea,select{font:inherit;width:100%;padding:11px 13px;border-radius:11px;
+  border:1px solid var(--line);background:#100e1c;color:var(--text)}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--acc)}
+label.f{display:block;font-size:13.5px;color:var(--dim);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.08em}
+.tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.tab{padding:9px 16px;border-radius:11px;border:1px solid var(--line);background:var(--card);cursor:pointer;font:inherit;font-size:15px;color:var(--dim)}
+.tab.on{background:#241a44;border-color:#5b3fa8;color:#fff;font-weight:600}
+.q{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px 18px;margin:13px 0}
+.q .qt{margin:0 0 11px;font-weight:600;color:#fff}
+.q .qn{font-family:var(--mono);font-size:13px;color:var(--dim2);margin-right:8px}
+.opt{display:block;width:100%;text-align:left;font:inherit;font-size:16px;color:var(--text);background:#141127;
+  border:1px solid var(--line);border-radius:11px;padding:11px 14px;margin:7px 0;cursor:pointer;transition:.14s}
+.opt:hover{border-color:var(--acc);background:#1d1836}
+.opt.sel{border-color:#8b5cf6;background:#2a2050;box-shadow:inset 0 0 0 1px #8b5cf6}
+.opt.right{background:#0f2f24;border-color:#2c7a5c;color:#a7f3d0}
+.opt.wrong{background:#33121b;border-color:#8b2740;color:#fecdd3}
+.exp{margin-top:11px;padding-top:11px;border-top:1px dashed var(--line);font-size:14.5px;color:var(--dim)}
+.tag{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:2.5px 9px;border-radius:999px;border:1px solid var(--line);background:#221d3a;color:var(--dim)}
+.tag.g{border-color:#1f6b52;color:#6ee7b7;background:#0f2a22}
+.tag.a{border-color:#7c5a1a;color:#fcd34d;background:#2a1f0b}
+.tag.r{border-color:#8b2740;color:#fda4af;background:#2c1219}
+.tag.b{border-color:#1d5a7c;color:#7dd3fc;background:#0c2231}
+.bar{height:7px;background:#1b1830;border-radius:99px;overflow:hidden;margin:10px 0}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc),var(--cyn));transition:width .25s}
+.score{font-family:var(--mono);font-size:clamp(40px,9vw,68px);line-height:1;color:#fff}
+.grade{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;
+  font-size:34px;font-weight:700;border:3px solid;margin-left:14px}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--acc);font-size:12px;letter-spacing:.07em;text-transform:uppercase;font-weight:700}
+tr:hover td{background:rgba(167,139,250,.05)}
+td.num,th.num{text-align:right;font-family:var(--mono)}
+.ok{color:#6ee7b7}.no{color:#fda4af}.wr{color:#fcd34d}
+.note{border-left:3px solid var(--acc);background:rgba(124,58,237,.09);padding:12px 15px;border-radius:0 12px 12px 0;margin:13px 0}
+.note.g{border-color:var(--grn);background:rgba(52,211,153,.08)}
+.note.a{border-color:var(--amb);background:rgba(251,191,36,.08)}
+.note.r{border-color:var(--red);background:rgba(251,113,133,.08)}
+.note.c{border-color:var(--cyn);background:rgba(56,189,248,.08)}
+.note b{color:#fff}
+pre{position:relative;background:#0a0912;border:1px solid var(--line);border-radius:13px;padding:14px;overflow-x:auto;margin:11px 0}
+pre code{font-family:var(--mono);font-size:13.5px;line-height:1.6;color:#dcd6f7;white-space:pre-wrap;word-break:break-word}
+.copy{position:absolute;top:8px;right:8px;font-size:12px;padding:4px 9px;border-radius:8px;background:#221d3a;
+  border:1px solid var(--line);color:var(--dim);cursor:pointer;font-family:inherit}
+.copy:hover{color:#fff;border-color:var(--acc)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;gap:13px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.center{text-align:center}
+.hidden{display:none!important}
+.code{font-family:var(--mono);font-size:13px;background:#241f3d;padding:2px 7px;border-radius:6px;color:#ddd6fe;word-break:break-all}
+.step{display:flex;gap:11px;align-items:flex-start;margin:9px 0}
+.step .n{flex:none;width:28px;height:28px;border-radius:50%;background:#241a44;border:1px solid #5b3fa8;
+  color:#c4b5fd;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#14352a;border:1px solid var(--grn);
+  color:#a7f3d0;padding:11px 20px;border-radius:12px;z-index:99;opacity:0;transition:.25s;pointer-events:none;font-size:15px}
+.toast.on{opacity:1}
+@media (max-width:620px){body{font-size:16px}.wrap{padding:16px 12px 50px}table{font-size:13px}}
+@media print{
+  body{background:#fff;color:#000}
+  body::before,.tabs,header .spacer,.btn,.toast{display:none!important}
+  .print-only{display:block!important}
+  body.printing main > section:not(.print-only){display:none!important}
+  #scr-print .q{border:none;border-bottom:1px solid #ddd;border-radius:0;padding:9px 0;margin:0;break-inside:avoid}
+  #scr-print .opt{background:none;border:1px solid #bbb;color:#000;margin:4px 0;padding:6px 10px;font-size:14px}
+  #scr-print .qt{color:#000;font-size:15px;margin:0 0 5px}
+  #scr-print h1{font-size:22px}
+  #scr-print .tag{border-color:#bbb;color:#444;background:none}
+  #scr-print .fill{border-bottom:1px solid #666;display:inline-block;min-width:180px;height:1.2em}
+  .card,.q{border-color:#ccc;background:#fff;color:#000}
+  .wrap{max-width:none;padding:0}
+  table{font-size:11px} th,td{border-color:#ccc}
+  .noprint{display:none!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="logo"><span class="dot"></span><span>Тест · урок 1 <small>«Локальный ИИ своими руками»</small></span></div>
+  <div class="spacer"></div>
+  <span class="tag b" id="hdrInfo">загрузка…</span>
+</header>
+
+<div class="tabs">
+  <button class="tab on" data-tab="student">🎓 Тест для ученика</button>
+  <button class="tab" data-tab="teacher">📊 Кабинет преподавателя</button>
+  <button class="tab hidden" data-tab="local">💾 Результаты на этом компьютере</button>
+</div>
+
+<!-- ================= УЧЕНИК ================= -->
+<main id="tab-student">
+
+  <!-- регистрация -->
+  <section id="scr-reg">
+    <h1>Проверка знаний по уроку 1</h1>
+    <p class="lead">Установка LM Studio, модели и квантование, галлюцинации, настройки, API-сервер и подключение к коду.</p>
+
+    <div class="card">
+      <label class="f" for="fName">Фамилия и имя</label>
+      <input type="text" id="fName" placeholder="Иванова Анна" autocomplete="off" maxlength="60">
+
+      <label class="f" for="fGroup">Класс или группа</label>
+      <input type="text" id="fGroup" placeholder="10Б" autocomplete="off" maxlength="24">
+
+      <div class="grid g2" style="margin-top:14px">
+        <div>
+          <div class="small muted"><b>Сколько вопросов:</b> <span id="regCount">15</span> из банка в <span id="regBank">32</span> вопроса. Вариант собирается случайно — у соседа будут другие.</div>
+          <div class="small muted" style="margin-top:6px"><b>Оценка:</b> «5» — 90% и выше, «4» — 75%, «3» — 60%, ниже — не зачтено.</div>
+        </div>
+        <div>
+          <div class="small muted"><b>После сдачи</b> вы увидите результат, разбор ошибок и <b>код</b>. Код нужно передать преподавателю: записать на листке или отправить в чат.</div>
+          <div class="small muted" style="margin-top:6px"><b>Пересдача:</b> можно, но вариант будет новый, а преподаватель увидит все попытки.</div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:16px">
+        <button class="btn pri big" id="btnStart">Начать тест →</button>
+        <button class="btn noprint" id="btnPrintBlank">🖨 Бумажный вариант</button>
+        <span class="small muted" id="regHint"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- тест -->
+  <section id="scr-test" class="hidden">
+    <div class="card" style="padding:13px 16px">
+      <div class="row">
+        <b id="tWho">—</b>
+        <span class="tag" id="tVar">вариант —</span>
+        <div class="spacer"></div>
+        <span class="small muted" id="tCount">—</span>
+      </div>
+      <div class="bar"><i id="tBar"></i></div>
+      <div class="small muted" id="tLeft">—</div>
+    </div>
+    <div id="tList"></div>
+    <div class="row" style="margin-top:18px">
+      <button class="btn pri big" id="btnSubmit" disabled>Сдать тест</button>
+      <span class="small muted" id="submitHint">Ответьте на все вопросы</span>
+    </div>
+  </section>
+
+  <!-- результат -->
+  <section id="scr-res" class="hidden">
+    <div class="card center" style="padding:26px 18px">
+      <div class="row" style="justify-content:center">
+        <div>
+          <div class="score" id="rScore">—</div>
+          <div class="small muted" id="rPct">—</div>
+        </div>
+        <div class="grade" id="rGrade">—</div>
+      </div>
+      <div style="margin-top:14px" id="rVerdict"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Ваш код результата</h2>
+      <p class="small muted">Передайте его преподавателю: запишите на листке или скопируйте и отправьте в чат. По этому коду преподаватель увидит ваш результат в общей таблице.</p>
+      <pre><code id="rCode">—</code><button class="copy" id="btnCopyCode">копировать</button></pre>
+      <div class="row">
+        <button class="btn" id="btnBigCode">Показать крупно</button>
+        <button class="btn" id="btnRetake">Пройти ещё раз (новый вариант)</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Разбор по темам</h2>
+      <div id="rTopics"></div>
+      <p class="small muted">Красным отмечены темы, где есть ошибки — их стоит повторить перед уроком 2.</p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Разбор ответов</h2>
+      <div class="row small muted" style="margin-bottom:8px">
+        <span class="ok">■ верно</span> <span class="no">■ неверно</span> — под каждым вопросом появилось объяснение
+      </div>
+      <div id="rReview"></div>
+    </div>
+  </section>
+
+  <!-- бумажный вариант (видно только при печати) -->
+  <section id="scr-print" class="hidden print-only">
+    <div id="printBody"></div>
+  </section>
+
+  <!-- крупный код -->
+  <section id="scr-big" class="hidden">
+    <div class="card center" style="padding:34px 18px">
+      <div class="small muted">Покажите этот экран преподавателю</div>
+      <div id="bigName" style="font-size:22px;font-weight:700;margin:10px 0">—</div>
+      <div id="bigScore" style="font-family:var(--mono);font-size:clamp(30px,7vw,54px);color:#fff">—</div>
+      <div class="code" id="bigCode" style="font-size:clamp(13px,2.6vw,20px);margin-top:18px;display:block">—</div>
+      <div class="row" style="justify-content:center;margin-top:20px">
+        <button class="btn" id="btnBigBack">← Назад к результату</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ ЛОКАЛЬНЫЙ АРХИВ (для сбора на машине ученика) ============ -->
+<main id="tab-local" class="hidden">
+  <h1>Результаты на этом компьютере</h1>
+  <p class="lead">Здесь всё, что сдавали в этом браузере. Вкладка появляется сама, как только есть хотя бы один результат.</p>
+  <div class="card">
+    <div class="row small muted" style="margin-bottom:6px">
+      <span id="localStat">—</span>
+      <div class="spacer"></div>
+      <label style="display:flex;gap:6px;align-items:center">
+        <input type="checkbox" id="chkBestLocal" checked style="width:auto"> только лучший результат ученика
+      </label>
+    </div>
+    <div style="overflow-x:auto"><table id="tblLocal"><thead></thead><tbody></tbody></table></div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn pri" id="btnCsvLocal">⬇ Скачать CSV</button>
+      <button class="btn" id="btnCopyLocal">Скопировать коды</button>
+      <button class="btn dgr" id="btnClearLocal">Очистить</button>
+    </div>
+    <div class="note c small" style="margin-top:14px"><b>Как передать преподавателю.</b> Скачайте CSV на флешку или нажмите «Скопировать коды» и отправьте список в чат — преподаватель вставит его в своём кабинете и получит общую таблицу по классу.</div>
+  </div>
+</main>
+
+<!-- ================= ПРЕПОДАВАТЕЛЬ ================= -->
+<main id="tab-teacher" class="hidden">
+
+  <section id="scr-login">
+    <h1>Кабинет преподавателя</h1>
+    <div class="card" style="max-width:420px">
+      <label class="f" for="fPass">Код доступа</label>
+      <input type="password" id="fPass" placeholder="по умолчанию 1234" autocomplete="off">
+      <div class="row" style="margin-top:14px">
+        <button class="btn pri" id="btnLogin">Войти</button>
+        <span class="small muted" id="loginHint"></span>
+      </div>
+      <p class="small muted" style="margin-top:14px">Код меняется в настройках кабинета. Он не шифрует данные, а только убирает панель от посторонних глаз: файл лежит у вас на диске, результаты хранятся в этом же браузере.</p>
+    </div>
+  </section>
+
+  <section id="scr-teach" class="hidden">
+    <h1>Результаты теста</h1>
+    <div class="row small muted">
+      <span id="statLine">—</span>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">1 · Собрать коды учеников</h2>
+      <p class="small muted">Вставьте коды — по одному в строке или через запятую. Дети присылают их в чат, зачитывают или отдают листки.</p>
+      <textarea id="fCodes" rows="5" placeholder="U1|АННА ИВАНОВА|10Б|...&#10;U1|ПЕТР СМИРНОВ|10Б|..."></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn pri" id="btnImport">Добавить в таблицу</button>
+        <span class="small muted" id="importHint"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">2 · Таблица результатов</h2>
+      <div class="row small muted" style="margin-bottom:6px">
+        <label style="display:flex;gap:6px;align-items:center">
+          <input type="checkbox" id="chkBest" checked style="width:auto"> только лучший результат ученика
+        </label>
+        <div class="spacer"></div>
+        <span id="rowCount">—</span>
+      </div>
+      <div style="overflow-x:auto"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn pri" id="btnCsv">⬇ Скачать CSV (для Excel)</button>
+        <button class="btn" id="btnJson">⬇ JSON</button>
+        <button class="btn" id="btnPrint">🖨 Печать таблицы</button>
+        <button class="btn" id="btnPrintBlank2">🖨 Пустой вариант</button>
+        <button class="btn dgr" id="btnClear">Очистить архив</button>
+      </div>
+      <p class="small muted">CSV сохраняется в кодировке UTF-8 с меткой BOM и разделителем «;» — Excel открывает его без плясок с бубном.</p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">3 · Что классу не удалось</h2>
+      <p class="small muted">Сводка по темам: где больше всего ошибок. Красным — темы, которые стоит разобрать перед уроком 2.</p>
+      <div id="topicStats"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">4 · Ручной ввод и настройки</h2>
+      <div class="grid g2">
+        <div>
+          <label class="f">Добавить результат вручную</label>
+          <div class="row">
+            <input type="text" id="mName" placeholder="Фамилия Имя" style="flex:2 1 180px">
+            <input type="text" id="mGroup" placeholder="Класс" style="flex:1 1 80px">
+          </div>
+          <div class="row" style="margin-top:8px">
+            <input type="text" id="mRight" placeholder="верно" style="flex:1 1 70px">
+            <input type="text" id="mTotal" placeholder="всего" style="flex:1 1 70px">
+            <button class="btn" id="btnManual">Добавить</button>
+          </div>
+          <input type="text" id="mWeak" placeholder="слабые темы через запятую (необязательно)" style="margin-top:8px">
+          <p class="small muted">Пригодится, если ребёнок проходил тест на бумаге или код потерялся. Кнопка «Пустой вариант» рядом печатает тест на лист А4 — без интернета и без компьютеров на каждого.</p>
+        </div>
+        <div>
+          <label class="f">Порог зачёта, %</label>
+          <input type="text" id="setPass" value="60" maxlength="3">
+          <label class="f">Код доступа к кабинету</label>
+          <div class="row">
+            <input type="text" id="setPass2" placeholder="новый код">
+            <button class="btn" id="btnSetPass">Сменить</button>
+          </div>
+          <label class="f">Вопросов в варианте</label>
+          <select id="setCount"></select>
+          <p class="small muted">Изменения применяются к новым попыткам. Уже сданные тесты не пересчитываются.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Как это устроено</h2>
+      <div class="step"><div class="n">1</div><div>Ученик вводит имя и класс, получает <b>случайный вариант</b> из банка вопросов.</div></div>
+      <div class="step"><div class="n">2</div><div>После сдачи результат упаковывается в <b>короткий код</b> с контрольной суммой: имя, класс, дату, номер варианта, сколько верно и всего, отметки по темам и идентификатор попытки.</div></div>
+      <div class="step"><div class="n">3</div><div>Ученик передаёт код преподавателю — на листке или в чат. Код нельзя подделать: при изменении хоть одного символа контрольная сумма не сойдётся и строка будет помечена как недействительная.</div></div>
+      <div class="step"><div class="n">4</div><div>Преподаватель вставляет коды пачкой, получает таблицу и выгружает её в CSV или JSON.</div></div>
+      <div class="note c small"><b>Важно про хранение.</b> Архив кодов живёт в <code>localStorage</code> этого браузера — то есть на той машине, где вы их вставили. На ученических компьютерах результаты не накапливаются: там только код на экране. Поэтому коды нужно собрать и внести в свой архив.</div>
+      <div class="note a small"><b>Про списывание.</b> Варианты разные, но банк вопросов один и тот же — обсудить ответы дети могут. Если нужна строгая изоляция, проводите тест в классе одновременно и закройте этот файл на ученических машинах после сдачи.</div>
+    </div>
+  </section>
+</main>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   ТЕСТ ПО УРОКУ 1 — автономный файл, без интернета и библиотек
+   Банк вопросов -> случайный вариант -> оценка -> код результата
+   Код результата -> архив преподавателя -> CSV / JSON / печать
+   ============================================================ */
+
+/* ---------- 1. БАНК ВОПРОСОВ ---------- */
+/* t = тема, o = варианты ответа, a = индекс верного, e = объяснение */
+const BANK = [
+{t:"Установка", q:"Где правильно взять LM Studio, чтобы не занести на школьный компьютер вредоносную программу?",
+ o:["С официального сайта lmstudio.ai","С первого попавшегося файла в поиске","Из чужой флешки"], a:0,
+ e:"Скачиваем только с официального сайта. Сторонние сборки и «репаки» — главный способ занести вирус."},
+
+{t:"Установка", q:"Что должно быть установлено вместе с драйвером видеокарты, чтобы LM Studio использовал GPU?",
+ o:["Пакет CUDA","Microsoft Office","Adobe Reader"], a:0,
+ e:"Нужен драйвер NVIDIA с CUDA. В LM Studio его видно в разделе System: рядом с видеокартой должна стоять зелёная галочка CUDA."},
+
+{t:"Установка", q:"Где в LM Studio включить видеокарту для конкретной модели?",
+ o:["В панели Settings модели — GPU Offload","Нигде, всё включено само","В настройках Windows"], a:0,
+ e:"GPU Offload в панели настроек модели. Если выключить — модель пойдёт на процессоре и будет отвечать в разы медленнее."},
+
+{t:"Установка", q:"Что делает вкладка Developer в LM Studio?",
+ o:["Запускает локальный API-сервер для подключения программ","Создаёт презентации","Удаляет модели"], a:0,
+ e:"Developer поднимает локальный сервер: к модели можно обращаться из своего кода по HTTP."},
+
+{t:"Модели", q:"Где посмотреть точный идентификатор модели, чтобы вставить его в код?",
+ o:["В карточке модели в LM Studio","В названии папки Windows","Придумать самому"], a:0,
+ e:"Нужен точный id из LM Studio — например, google/gemma-4-e4b-it. Опечатка в id — самая частая причина ошибки «модель не найдена»."},
+
+{t:"Модели", q:"Что означает суффикс -it в названии модели (gemma-4-e4b-it)?",
+ o:["Модель дообучена на диалогах — instruction tuned","Это версия для тестов","Это архивный формат"], a:0,
+ e:"-it = instruction tuned. Без него модель чаще продолжает текст, а не отвечает на вопрос."},
+
+{t:"Модели", q:"Что значит E4B в названии Gemma 4 E4B?",
+ o:["Модель из блоков-экспертов, при ответе работает примерно 4 млрд параметров","Это номер версии 4","Это размер файла в гигабайтах"], a:0,
+ e:"Архитектура MoE: в модели больше параметров, но на каждый запрос активна только часть — около 4B. Поэтому она быстрая и влезает в 8 ГБ видеопамяти."},
+
+{t:"Модели", q:"Чем Gemma 4 E4B отличается от «обычных» моделей вроде Qwen3-8B?",
+ o:["Она мультимодальная: понимает текст, изображения и звук","Она работает только в облаке","Она всегда больше по размеру"], a:0,
+ e:"E4B принимает текст, картинки и аудио. Для работы с изображениями в LM Studio дополнительно скачивается файл mmproj (~992 МБ)."},
+
+{t:"Квантование", q:"Что такое квантование модели?",
+ o:["Уменьшение точности весов, чтобы модель занимала меньше памяти","Сжатие файла в ZIP-архив","Ускорение интернета"], a:0,
+ e:"Числа в модели хранятся с меньшей точностью (например, 4 бита вместо 16). Модель становится в несколько раз меньше, а качество почти не страдает."},
+
+{t:"Квантование", q:"Что означает Q4_K_M в имени файла модели?",
+ o:["Веса упакованы в 4 бита, K — тип метода, M — средний размер","Это четвёртая версия модели","Это пароль архива"], a:0,
+ e:"Q4 — 4 бита на вес, K — вариант метода квантования, M (medium) — баланс размера и качества."},
+
+{t:"Квантование", q:"Какое квантование лучше взять для модели, которая должна влезть в 8 ГБ видеопамяти и отвечать на русском?",
+ o:["Q4_K_M — золотая середина","F16 — без потерь","Q2_K — самое маленькое"], a:0,
+ e:"F16 не влезет в 8 ГБ, а Q2_K уже заметно портит язык и логику. Q4_K_M — стандартный выбор для школьного железа."},
+
+{t:"Память", q:"Сколько примерно весит Gemma 4 E4B в Q4_K_M и сколько нужно VRAM?",
+ o:["Около 5,3 ГБ файла и ~7 ГБ видеопамяти","Около 500 МБ и 1 ГБ видеопамяти","Около 30 ГБ и столько же видеопамяти"], a:0,
+ e:"Файл Q4_K_M ≈ 5,34 ГБ, плюс контекст разговора, плюс mmproj, если нужны картинки — итого около 7 ГБ из 8."},
+
+{t:"Память", q:"Как грубо прикинуть размер модели на 8 млрд параметров в 4-битном квантовании?",
+ o:["8 × 0,55 ≈ 4,5–5 ГБ","8 × 4 = 32 ГБ","8 ÷ 4 = 2 ГБ"], a:0,
+ e:"Правило: параметры (в млрд) × 0,55 для Q4, × 0,85 для Q6, × 1,1 для Q8. Плюс запас на контекст — около 20%."},
+
+{t:"Лицензии", q:"Под какой лицензией выпускаются модели Gemma?",
+ o:["Gemma Terms of Use — свои условия, не Apache и не MIT","Apache 2.0","MIT"], a:0,
+ e:"У Gemma отдельная лицензия: коммерческое использование разрешено, но есть ограничения — например, нельзя выдавать модель за чужую или использовать против людей."},
+
+{t:"Лицензии", q:"Что значит «открытые веса» (open weights) и чем это отличается от open source?",
+ o:["Открыт файл модели, но не обязательно код обучения и данные","Открыто абсолютно всё, включая данные","Это просто маркетинговое слово"], a:0,
+ e:"Open weights — можно скачать и запустить модель. Полный open source (например, OLMo) включает ещё и код обучения, и датасеты."},
+
+{t:"Галлюцинации", q:"Что такое галлюцинация языковой модели?",
+ o:["Уверенный ответ, которого модель не знает: выдуманные факты, ссылки, команды","Ошибка установки программы","Зависание при генерации"], a:0,
+ e:"Модель предсказывает правдоподобное продолжение текста, а не ищет истину. Поэтому она может выдумать несуществующую команду или ссылку."},
+
+{t:"Галлюцинации", q:"Почему модель confidently придумывает несуществующий флаг команды — например, --gpu для lms?",
+ o:["Ей не хватает знаний об этой программе, и она достраивает по аналогии с похожими утилитами","Так задумано разработчиками","Это вирус"], a:0,
+ e:"Она знает, что у других программ такой флаг есть, и переносит его сюда. Лечится не «строже», а точнее: дать готовый правильный пример, документацию или подключить RAG."},
+
+{t:"Галлюцинации", q:"Как снизить количество выдуманных фактов в ответах?",
+ o:["Понизить температуру, дать источники через RAG, просить цитировать и признавать незнание","Написать в промпте «не ври»","Увеличить max tokens"], a:0,
+ e:"Работает связка: низкая температура для фактов + реальные источники + явное разрешение сказать «не знаю». Одна фраза «не выдумывай» почти не помогает."},
+
+{t:"Настройки", q:"Что такое системный промпт (System Context)?",
+ o:["Инструкция модели о её роли и правилах ответа, задаётся до начала диалога","Текст первого сообщения пользователя","Название модели"], a:0,
+ e:"System Context задаёт роль, формат ответа и запреты. Именно там удобно прописать «отвечай на русском», «не выдумывай команды», «отвечай JSON»."},
+
+{t:"Настройки", q:"Как температура влияет на ответы?",
+ o:["Низкая — точные и однообразные, высокая — смелые и творческие","Низкая — медленные, высокая — быстрые","Ни на что не влияет"], a:0,
+ e:"Температура меняет смелость выбора следующего слова. Для фактов, кода и JSON ставят 0,1–0,4; для историй и брейншторма — 0,8–1,0."},
+
+{t:"Настройки", q:"Что делает параметр Top-p?",
+ o:["Оставляет только слова, которые в сумме дают заданную вероятность, например 0,9","Ограничивает длину ответа","Ускоряет генерацию"], a:0,
+ e:"Top-p (nucleus sampling) отрезает маловероятный «мусор» в конце списка кандидатов. Часто используют вместе с невысокой температурой."},
+
+{t:"Настройки", q:"Модель повторяет одну и ту же фразу по кругу. Какой параметр поправить в первую очередь?",
+ o:["Повысить Repeat Penalty","Уменьшить Repeat Penalty до 0","Увеличить Top-k"], a:0,
+ e:"Repeat Penalty штрафует уже сказанные слова: 1,0 — без штрафа, 1,05–1,15 — мягко. Слишком большое значение ломает язык."},
+
+{t:"Настройки", q:"Что ограничивает Max Tokens?",
+ o:["Длину одного ответа модели","Количество скачанных моделей","Размер файла модели"], a:0,
+ e:"Это потолок на длину ответа. Вместе с историей диалога он должен укладываться в контекстное окно модели."},
+
+{t:"Настройки", q:"Почему ответ может резко оборваться на середине предложения?",
+ o:["Достигнут лимит Max Tokens","Кончился интернет","Модель обиделась"], a:0,
+ e:"Обрыв без точки — почти всегда упёрлись в Max Tokens. Увеличьте лимит, если модель должна писать длинные ответы."},
+
+{t:"API", q:"Что такое structured output (структурированный вывод)?",
+ o:["Ответ строго по заданной JSON-схеме: модель не может выйти за её рамки","Ответ только на английском","Ответ в виде таблицы Markdown"], a:0,
+ e:"Вы описываете схему — модель обязана вернуть JSON именно такой формы. Это убирает ручной разбор «свободного» текста в коде."},
+
+{t:"API", q:"По какому адресу работает локальный API-сервер LM Studio по умолчанию?",
+ o:["http://localhost:1234/v1","https://api.openai.com/v1","http://127.0.0.1:80"], a:0,
+ e:"Порт 1234 можно изменить в настройках сервера. Адрес /v1 совместим с OpenAI API — поэтому подходит большинство готовых библиотек."},
+
+{t:"API", q:"Как убедиться, что сервер запущен и модель загружена, не запуская свой код?",
+ o:["Открыть в браузере http://localhost:1234/v1/models и увидеть JSON со списком моделей","Посмотреть в диспетчер задач","Никак"], a:0,
+ e:"Эндпоинт /v1/models возвращает JSON с id загруженных моделей. Это первая проверка при любой ошибке подключения."},
+
+{t:"API", q:"Нужен ли настоящий API-ключ для локального сервера LM Studio?",
+ o:["Нет: поле обычно обязательно для формата запроса, но подойдёт любая строка, например lm-studio","Да, его выдаёт Google","Да, его нужно купить"], a:0,
+ e:"Ключ проверяется только у облачных сервисов. Локально его всё равно просят библиотеки — пишем любую заглушку."},
+
+{t:"Код", q:"Почему чат-бот в вашем коде «помнит» предыдущие реплики?",
+ o:["История сообщений хранится в программе и каждый раз отправляется модели целиком","Модель сама всё запоминает навсегда","Память хранится на сервере Google"], a:0,
+ e:"Модель ничего не хранит между запросами. Память делает ваш код: он держит список messages и передаёт его снова и снова."},
+
+{t:"Код", q:"Что выбрать в расширении Continue для VS Code, чтобы оно работало с LM Studio?",
+ o:["Провайдера lmstudio с адресом http://localhost:1234/v1","Провайдера OpenAI с настоящим ключом","Ничего не настраивать"], a:0,
+ e:"В Continue выбираем провайдера lmstudio, указываем локальный адрес и id модели. Интернет не нужен."},
+
+{t:"Код", q:"Веб-страница не может обратиться к локальному API, хотя в Postman всё работает. В чём вероятная причина?",
+ o:["Браузер блокирует запрос из-за CORS — его нужно разрешить в настройках сервера LM Studio","Страница слишком большая","Модель не умеет отвечать браузеру"], a:0,
+ e:"Браузер запрещает запросы к другому источнику, если сервер не прислал разрешающие CORS-заголовки. В LM Studio это включается в настройках сервера."},
+
+{t:"Безопасность", q:"Куда уходят ваши данные, когда модель работает локально через localhost?",
+ o:["Никуда: всё считается на вашем компьютере","На серверы Google","В общий обучающий датасет"], a:0,
+ e:"localhost — это ваш же компьютер. Данные не покидают машину, поэтому локальный ИИ можно использовать для персональных и школьных данных."}
+];
+
+/* Темы в порядке показа */
+const TOPIC_ORDER = ["Установка","Модели","Квантование","Память","Лицензии","Галлюцинации","Настройки","API","Код","Безопасность"];
+const TOPIC_COLOR = {"Установка":"b","Модели":"b","Квантование":"a","Память":"a","Лиценции":"","Галлюцинации":"r","Настройки":"g","API":"g","Код":"g","Безопасность":""};
+
+/* ---------- 2. НАСТРОЙКИ ---------- */
+const STORE_KEY  = "test_urok1_archive_v1";   /* архив преподавателя */
+const SETTINGS   = "test_urok1_settings_v1";   /* порог, пароль, число вопросов */
+const DEF_PASS   = 60;
+const DEF_CODE   = "1234";
+const DEF_COUNT  = 15;
+
+let S = loadSettings();
+let ARCHIVE = loadArchive();
+
+function loadSettings(){
+  try{
+    const r = JSON.parse(localStorage.getItem(SETTINGS)||"{}");
+    return { pass: r.pass || DEF_CODE, threshold: clampInt(r.threshold, 50, 95, DEF_PASS), count: clampInt(r.count, 5, BANK.length, DEF_COUNT) };
+  }catch(e){ return { pass: DEF_CODE, threshold: DEF_PASS, count: DEF_COUNT }; }
+}
+function saveSettings(){ try{ localStorage.setItem(SETTINGS, JSON.stringify(S)); }catch(e){} }
+function loadArchive(){
+  try{ const r = JSON.parse(localStorage.getItem(STORE_KEY)||"[]"); return Array.isArray(r)? r : []; }
+  catch(e){ return []; }
+}
+function saveArchive(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(ARCHIVE)); }catch(e){} }
+function clampInt(v, lo, hi, def){
+  v = parseInt(v, 10);
+  if(isNaN(v)) return def;
+  return v < lo ? lo : (v > hi ? hi : v);
+}
+
+/* ---------- 3. УТИЛИТЫ ---------- */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("on"); setTimeout(()=>t.classList.remove("on"),2200); }
+function shuffle(a){ const r=a.slice(); for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; }
+function b36(s){ let out=""; for(let i=0;i<s.length;i++) out += s.charCodeAt(i).toString(36); return out; }
+function ub36(s){ let out=""; for(let i=0;i<s.length;i+=2) out += String.fromCharCode(parseInt(s.substr(i,2),36)); return out; }
+function crc(str){ let h=5381; for(let i=0;i<str.length;i++){ h=((h<<5)+h+str.charCodeAt(i))>>>0; } return (h%1296).toString(36).padStart(2,"0"); }
+function pad2(n){ return String(n).padStart(2,"0"); }
+function fmtDate(ts){ const d=new Date(ts); return pad2(d.getDate())+"."+pad2(d.getMonth()+1)+"."+d.getFullYear(); }
+function fmtTime(ts){ const d=new Date(ts); return pad2(d.getHours())+":"+pad2(d.getMinutes()); }
+function fmtDur(sec){ sec=Math.max(0,Math.round(sec)); const m=Math.floor(sec/60), s=sec%60; return m+" мин "+pad2(s)+" с"; }
+function normName(s){ return String(s||"").toUpperCase().replace(/Ё/g,"Е").replace(/\s+/g," ").trim(); }
+
+/* ---------- 4. КОД РЕЗУЛЬТАТА ----------
+   U1|ИМЯ|КЛАСС|ГГММЧЧММ|ВАРИАНТ|ВЕРНО|ВСЕГО|СЕК|CRC                */
+function weakList(perTopic){
+  if(!perTopic) return [];
+  return Object.keys(perTopic).filter(t=>perTopic[t].ok < perTopic[t].all)
+    .sort((a,b)=>TOPIC_ORDER.indexOf(a)-TOPIC_ORDER.indexOf(b));
+}
+
+/* Маска тем: по одному символу base36 на тему, символ = верно*6 + всего.
+   "z" — темы не было в варианте. Позволяет преподавателю видеть слабые темы
+   и сводную статистику по классу, ничего не спрашивая у ученика.        */
+function topicMask(perTopic){
+  return TOPIC_ORDER.map(t=>{
+    const s = perTopic && perTopic[t];
+    if(!s || !s.all) return "z";
+    return (Math.min(5,s.ok)*6 + Math.min(5,s.all)).toString(36);
+  }).join("");
+}
+function topicsFromMask(mask){
+  const perTopic = {};
+  TOPIC_ORDER.forEach((t,i)=>{
+    const ch = (mask||"")[i];
+    if(!ch || ch === "z") return;
+    const v = parseInt(ch,36);
+    if(isNaN(v)) return;
+    perTopic[t] = { ok: Math.floor(v/6), all: v%6 };
+  });
+  return perTopic;
+}
+
+function makeCode(rec){
+  const d = new Date(rec.ts);
+  const stamp = String(d.getFullYear()).slice(2)+pad2(d.getMonth()+1)+pad2(d.getDate())+pad2(d.getHours())+pad2(d.getMinutes());
+  const name  = normName(rec.name).slice(0,40);
+  const group = normName(rec.group).slice(0,16);
+  const body  = ["U1", name, group, stamp, String(rec.variant), String(rec.right), String(rec.total),
+                 String(rec.sec), topicMask(rec.perTopic), String(rec.nonce||"0000")].join("|");
+  return body + "|" + crc(b36(body));
+}
+function parseCode(raw){
+  const s = String(raw||"").trim();
+  if(!s) return null;
+  /* 1) код как есть — пробелы внутри имени сохраняются */
+  let r = parseParts(s.split("|"), s);
+  /* 2) код с лишними пробелами вокруг разделителей — поля подравниваем */
+  if(r.bad){
+    const t = s.split("|").map(x=>x.trim());
+    r = parseParts(t, s);
+  }
+  /* 3) перенос строки попал внутрь кода — убираем переносы и табы, пробелы
+     в имени оставляем: так контрольная сумма сходится */
+  if(r.bad){
+    const nl = s.replace(/[\n\r\t]+/g,"");
+    if(nl !== s) r = parseParts(nl.split("|"), nl);
+  }
+  /* 4) последний вариант: код переносами разбито вообще всё, включая пробелы */
+  if(r.bad){
+    const sq = s.replace(/[\s\u00a0]+/g,"");
+    if(sq !== s) r = parseParts(sq.split("|"), sq);
+  }
+  return r;
+}
+function parseParts(p, s){
+  if(p.length < 11 || p[0] !== "U1") return { bad:true, reason:"не похож на код теста урока 1", raw:s };
+  const body = p.slice(0,10).join("|");
+  if(crc(b36(body)) !== String(p[10]).trim().toLowerCase()) return { bad:true, reason:"код повреждён или изменён", raw:s };
+  const yy=+p[3].slice(0,2), mm=+p[3].slice(2,4), dd=+p[3].slice(4,6), hh=+p[3].slice(6,8), mi=+p[3].slice(8,10);
+  const ts = new Date(2000+yy, mm-1, dd, hh, mi).getTime();
+  const right = parseInt(p[5],10), total = parseInt(p[6],10);
+  if(isNaN(right)||isNaN(total)||total<=0||right<0||right>total) return { bad:true, reason:"нечитаемые числа в коде", raw:s };
+  const perTopic = topicsFromMask(p[8]);
+  return { bad:false, code:p.join("|"), name:p[1], group:p[2], ts: ts, variant: parseInt(p[4],10)||0,
+           right, total, sec: parseInt(p[7],10)||0, pct: Math.round(right/total*100),
+           perTopic: perTopic, weak: weakList(perTopic), nonce: p[9] };
+}
+
+/* ---------- 5. СОСТОЯНИЕ ТЕСТА ---------- */
+let T = null;   /* текущая попытка */
+
+function buildVariant(count){
+  /* Берём по одному вопросу из каждой темы, потом добираем случайными —
+     так вариант всегда покрывает весь урок. */
+  const byTopic = {};
+  BANK.forEach((q,i)=>{ (byTopic[q.t] = byTopic[q.t]||[]).push(i); });
+  const picked = [];
+  TOPIC_ORDER.forEach(t=>{
+    if(!byTopic[t]) return;
+    const pool = shuffle(byTopic[t]);
+    if(pool.length) picked.push(pool[0]);
+    if(picked.length >= count) return;
+  });
+  const rest = shuffle(BANK.map((q,i)=>i).filter(i=>picked.indexOf(i)<0));
+  while(picked.length < count && rest.length) picked.push(rest.shift());
+  const idx = shuffle(picked).slice(0, count);
+  return { idx: idx };
+}
+
+function startTest(name, group){
+  const count = S.count;
+  const idx = buildVariant(count).idx;
+  T = { name:name.trim(), group:group.trim(), idx:idx, variant:Math.floor(Math.random()*90000)+10000,
+        nonce:Math.random().toString(36).slice(2,6),
+        answers:new Array(idx.length).fill(-1), order:[], started:Date.now(), submitted:false };
+  idx.forEach(i=>{ T.order.push(shuffle(BANK[i].o.map((_,k)=>k))); });
+  renderTest();
+  show("scr-test");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function renderTest(){
+  $("tWho").textContent = T.name + (T.group ? " · " + T.group : "");
+  $("tVar").textContent = "вариант " + T.variant;
+  $("tCount").textContent = "вопросов: " + T.idx.length;
+  const list = $("tList");
+  list.innerHTML = "";
+  T.idx.forEach((bi, n)=>{
+    const q = BANK[bi];
+    const box = document.createElement("div");
+    box.className = "q";
+    box.id = "q"+n;
+    box.innerHTML = '<div class="row" style="margin-bottom:8px"><span class="tag '+(TOPIC_COLOR[q.t]||"")+'">'+esc(q.t)+'</span></div>'
+      + '<p class="qt"><span class="qn">'+(n+1)+'.</span>'+esc(q.q)+'</p>';
+    T.order[n].forEach(k=>{
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "opt";
+      b.dataset.q = n; b.dataset.k = k;
+      b.innerHTML = '<b style="color:var(--dim2);font-family:var(--mono);margin-right:8px">'+esc(q.o[k].charAt(0).toUpperCase())+'</b>'+esc(q.o[k]);
+      b.addEventListener("click", ()=>pick(n,k));
+      box.appendChild(b);
+    });
+    const exp = document.createElement("div");
+    exp.className = "exp hidden"; exp.id = "e"+n;
+    box.appendChild(exp);
+    list.appendChild(box);
+  });
+  updateProgress();
+}
+
+function pick(n, k){
+  if(!T || T.submitted) return;
+  T.answers[n] = k;
+  const box = $("q"+n);
+  box.querySelectorAll(".opt").forEach(b=>{ b.classList.toggle("sel", +b.dataset.k === k); });
+  updateProgress();
+  /* мягкая прокрутка к следующему вопросу */
+  const nxt = $("q"+(n+1));
+  if(nxt){
+    const r = nxt.getBoundingClientRect();
+    if(r.top < 0 || r.top > window.innerHeight*0.8) nxt.scrollIntoView({behavior:"smooth", block:"center"});
+  }
+}
+
+function updateProgress(){
+  if(!T) return;
+  const done = T.answers.filter(a=>a>=0).length;
+  const all = T.idx.length;
+  $("tCount").textContent = "отвечено " + done + " из " + all;
+  $("tBar").style.width = Math.round(done/all*100) + "%";
+  $("tLeft").textContent = done<all ? ("осталось ответить: " + (all-done)) : "всё отвечено — можно сдавать";
+  const btn = $("btnSubmit");
+  btn.disabled = done<all;
+  $("submitHint").textContent = done<all ? "Ответьте на все вопросы — кнопка разблокируется" : "";
+}
+
+function submitTest(){
+  if(!T || T.submitted) return;
+  if(T.answers.some(a=>a<0)){ toast("Ответьте на все вопросы"); return; }
+  T.submitted = true;
+  const sec = Math.round((Date.now()-T.started)/1000);
+  let right = 0;
+  const perTopic = {};
+  T.idx.forEach((bi,n)=>{
+    const q = BANK[bi];
+    const ok = T.answers[n] === q.a;
+    if(ok) right++;
+    perTopic[q.t] = perTopic[q.t] || {ok:0, all:0};
+    perTopic[q.t].all++; if(ok) perTopic[q.t].ok++;
+    /* подсветка */
+    const box = $("q"+n);
+    box.querySelectorAll(".opt").forEach(b=>{
+      const k = +b.dataset.k;
+      b.disabled = true;
+      b.style.cursor = "default";
+      if(k === q.a) b.classList.add("right");
+      else if(k === T.answers[n]) b.classList.add("wrong");
+      b.classList.remove("sel");
+    });
+    const exp = $("e"+n);
+    exp.classList.remove("hidden");
+    exp.innerHTML = (ok ? '<b class="ok">✓ Верно.</b> ' : '<b class="no">✗ Неверно.</b> ') + esc(q.e);
+  });
+  const total = T.idx.length;
+  const pct = Math.round(right/total*100);
+  const grade = pct>=90 ? 5 : pct>=75 ? 4 : pct>=S.threshold ? 3 : 2;
+  const rec = { name:T.name, group:T.group, variant:T.variant, nonce:T.nonce, right, total, pct, sec, ts:Date.now(), perTopic };
+  const code = makeCode(rec);
+  rec.code = code;
+  rec.weak = weakList(perTopic);
+  rec.manual = false;
+  /* если тест открыт на машине преподавателя — результат сразу попадает в архив */
+  pushToLocalArchive(rec, code);
+  const tabLocal = document.querySelector('.tab[data-tab="local"]');
+  if(tabLocal) tabLocal.classList.remove("hidden");
+  renderResult(rec, code, grade, perTopic);
+  show("scr-res");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function renderResult(rec, code, grade, perTopic){
+  $("rScore").textContent = rec.right + " / " + rec.total;
+  $("rPct").textContent = rec.pct + "% · время " + fmtDur(rec.sec) + " · вариант " + rec.variant;
+  const g = $("rGrade");
+  g.textContent = grade;
+  const col = grade===5?"var(--grn)":grade===4?"var(--cyn)":grade===3?"var(--amb)":"var(--red)";
+  g.style.color = col; g.style.borderColor = col;
+  const pass = rec.pct >= S.threshold;
+  $("rVerdict").innerHTML = pass
+    ? '<span class="tag g">зачтено</span> <span class="muted small">Порог — '+S.threshold+'%. Не забудьте передать код преподавателю.</span>'
+    : '<span class="tag r">не зачтено</span> <span class="muted small">Порог — '+S.threshold+'%. Повторите темы ниже и пройдите тест ещё раз.</span>';
+  $("rCode").textContent = code;
+
+  /* темы */
+  const rows = TOPIC_ORDER.filter(t=>perTopic[t]).map(t=>{
+    const s = perTopic[t];
+    const bad = s.ok < s.all;
+    return '<tr><td><span class="tag '+(TOPIC_COLOR[t]||"")+'">'+esc(t)+'</span></td>'
+      + '<td class="num">'+s.ok+' / '+s.all+'</td>'
+      + '<td class="'+(bad?"no":"ok")+'">'+(bad?"есть ошибки":"всё верно")+'</td></tr>';
+  }).join("");
+  $("rTopics").innerHTML = '<table><thead><tr><th>Тема</th><th class="num">Верно</th><th>Итог</th></tr></thead><tbody>'+rows+'</tbody></table>';
+
+  /* крупный экран */
+  $("bigName").textContent = rec.name + (rec.group ? " · " + rec.group : "");
+  $("bigScore").textContent = rec.right + " / " + rec.total + " · " + rec.pct + "% · оценка " + grade;
+  $("bigCode").textContent = code;
+
+  /* разбор */
+  $("rReview").innerHTML = '<p class="small muted">Ответы и объяснения остались на месте — прокрутите выше или нажмите кнопку ниже.</p>'
+    + '<div class="row"><button class="btn" id="btnToQ">↑ К вопросам с разбором</button></div>';
+  const b = $("btnToQ");
+  if(b) b.addEventListener("click", ()=>{ $("scr-test").classList.remove("hidden"); $("scr-test").scrollIntoView({behavior:"smooth"}); });
+}
+
+/* ---------- 6. ЭКРАН УЧЕНИКА ---------- */
+const SCREENS = ["scr-reg","scr-test","scr-res","scr-big"];
+function show(id){
+  SCREENS.forEach(s=>{ const e=$(s); if(e) e.classList.toggle("hidden", s!==id); });
+}
+function retake(){
+  show("scr-reg");
+  $("btnStart").textContent = "Начать новый вариант →";
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* ---------- 7. АРХИВ ПРЕПОДАВАТЕЛЯ ---------- */
+function addRecord(rec){
+  ARCHIVE = loadArchive();   /* на случай, если архив меняли в другой вкладке */
+  /* защита от дублей одного и того же кода */
+  if(rec.code && ARCHIVE.some(r=>r.code === rec.code)) return { dup:true };
+  ARCHIVE.push(Object.assign({}, rec));
+  saveArchive();
+  return { dup:false };
+}
+function gradeOf(pct){ return pct>=90 ? 5 : pct>=75 ? 4 : pct>=S.threshold ? 3 : 2; }
+
+function bestByStudent(list){
+  const map = new Map();
+  list.forEach(r=>{
+    const k = (r.name+"|"+(r.group||"")).toUpperCase();
+    const cur = map.get(k);
+    if(!cur || (r.pct||0) > (cur.pct||0) || ((r.pct||0)===(cur.pct||0) && r.ts > cur.ts)) map.set(k, r);
+  });
+  return Array.from(map.values());
+}
+
+function currentRows(useLocal){
+  ARCHIVE = loadArchive();
+  const list = ARCHIVE.slice().sort((a,b)=>b.ts-a.ts);
+  const box = useLocal ? $("chkBestLocal") : $("chkBest");
+  return box && box.checked ? bestByStudent(list).sort((a,b)=>b.ts-a.ts) : list;
+}
+
+function renderTable(){
+  const rows = currentRows();
+  const head = '<tr><th>Ученик</th><th>Класс</th><th>Дата</th><th class="num">Верно</th><th class="num">%</th>'
+    + '<th class="num">Оценка</th><th class="num">Время</th><th class="num">Вар.</th><th>Слабые темы</th><th class="noprint"></th></tr>';
+  $("tbl").querySelector("thead").innerHTML = head;
+  const body = rows.map((r,i)=>{
+    const g = gradeOf(r.pct);
+    const gcol = g===5?"ok":g===4?"ok":g===3?"wr":"no";
+    const weak = (r.weak && r.weak.length)
+      ? r.weak.map(w=>'<span class="tag r" style="margin:1px 3px 1px 0">'+esc(w)+'</span> ').join("")
+      : '<span class="tag g">нет</span>';
+    const flag = r.bad ? ' <span class="tag r" title="'+esc(r.reason||"")+'">код недействителен</span>' : "";
+    const manual = r.manual ? ' <span class="tag a">вручную</span>' : "";
+    return '<tr'+(r.bad?' style="opacity:.75"':'')+'>'
+      + '<td>'+esc(r.name)+flag+manual+'</td>'
+      + '<td>'+esc(r.group||"—")+'</td>'
+      + '<td class="small muted">'+fmtDate(r.ts)+' '+fmtTime(r.ts)+'</td>'
+      + '<td class="num">'+r.right+' / '+r.total+'</td>'
+      + '<td class="num"><b>'+r.pct+'%</b></td>'
+      + '<td class="num '+gcol+'"><b>'+g+'</b></td>'
+      + '<td class="num small muted">'+(r.sec?fmtDur(r.sec):"—")+'</td>'
+      + '<td class="num small muted">'+(r.variant||"—")+'</td>'
+      + '<td>'+weak+'</td>'
+      + '<td class="noprint"><button class="btn" data-del="'+i+'" data-key="'+esc(r.code||('m'+r.ts+r.name))+'" title="Удалить строку">✕</button></td>'
+      + '</tr>';
+  }).join("");
+  $("tbl").querySelector("tbody").innerHTML = body || '<tr><td colspan="10" class="muted">Пока пусто. Вставьте коды учеников в поле выше.</td></tr>';
+  $("tbl").querySelectorAll("[data-del]").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      const key = b.dataset.key;
+      ARCHIVE = loadArchive();
+      /* запись ищем по ключу: массив перечитывается из хранилища, поэтому
+         сравнение по ссылке на объект здесь не работает */
+      const k = ARCHIVE.findIndex(r=>(r.code || ("m"+r.ts+r.name)) === key);
+      if(k >= 0){ ARCHIVE.splice(k,1); saveArchive(); renderTeacher(); toast("Строка удалена"); }
+      else toast("Строка уже удалена");
+    });
+  });
+  $("rowCount").textContent = rows.length ? ("строк: "+rows.length) : "";
+
+  /* сводная строка */
+  const good = rows.filter(r=>!r.bad);
+  if(good.length){
+    const avg = Math.round(good.reduce((s,r)=>s+r.pct,0)/good.length);
+    const passed = good.filter(r=>r.pct>=S.threshold).length;
+    const five = good.filter(r=>r.pct>=90).length;
+    $("statLine").innerHTML = 'Учеников: <b>'+good.length+'</b> · средний балл: <b>'+avg+'%</b> · зачёт: <b>'+passed
+      +'</b> из '+good.length+' · «5»: <b>'+five+'</b>';
+  } else $("statLine").textContent = "Нет результатов";
+
+  renderTopicStats(rows);
+}
+
+function renderTopicStats(rows){
+  const agg = {};
+  rows.forEach(r=>{
+    if(r.bad || !r.perTopic) return;
+    Object.keys(r.perTopic).forEach(t=>{
+      agg[t] = agg[t] || {ok:0, all:0};
+      agg[t].ok += r.perTopic[t].ok; agg[t].all += r.perTopic[t].all;
+    });
+  });
+  const keys = TOPIC_ORDER.filter(t=>agg[t] && agg[t].all);
+  if(!keys.length){ $("topicStats").innerHTML = '<p class="muted small">Сводка появится, когда будут добавлены результаты с разбором по темам.</p>'; return; }
+  const html = keys.map(t=>{
+    const s = agg[t], p = Math.round(s.ok/s.all*100);
+    const col = p>=85 ? "var(--grn)" : p>=65 ? "var(--amb)" : "var(--red)";
+    return '<div style="margin:9px 0">'
+      + '<div class="row small"><span class="tag '+(TOPIC_COLOR[t]||"")+'">'+esc(t)+'</span>'
+      + '<div class="spacer"></div><span class="muted">'+s.ok+' из '+s.all+' · '+p+'%</span></div>'
+      + '<div class="bar" style="margin:5px 0 0"><i style="width:'+p+'%;background:'+col+'"></i></div></div>';
+  }).join("");
+  $("topicStats").innerHTML = html;
+}
+
+/* ---------- 8. ЭКСПОРТ ---------- */
+function download(name, text, mime){
+  try{
+    const blob = new Blob([text], {type: mime || "text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 400);
+    return true;
+  }catch(e){ return false; }
+}
+function csvCell(v){
+  const s = String(v==null?"":v);
+  return '"' + s.replace(/"/g,'""') + '"';
+}
+function exportCsv(useLocal){
+  const rows = currentRows(useLocal);
+  if(!rows.length){ toast("Нет данных для выгрузки"); return; }
+  const head = ["Фамилия Имя","Класс","Дата","Время","Верно","Всего","Процент","Оценка","Зачёт","Вариант","Затрачено сек","Слабые темы","Статус кода","Код"];
+  const lines = [head.join(";")];
+  rows.forEach(r=>{
+    lines.push([
+      r.name, r.group||"", fmtDate(r.ts), fmtTime(r.ts), r.right, r.total, r.pct,
+      gradeOf(r.pct), r.pct>=S.threshold ? "да" : "нет", r.variant||"", r.sec||"",
+      (r.weak||[]).join(", "), r.bad ? "недействителен" : (r.manual ? "введён вручную" : "ok"), r.code||""
+    ].map(csvCell).join(";"));
+  });
+  const text = "\uFEFF" + lines.join("\r\n");
+  const name = "test-urok1-" + new Date().toISOString().slice(0,10) + ".csv";
+  if(download(name, text, "text/csv;charset=utf-8")) toast("CSV сохранён: "+name);
+  else { showFallback(text, "CSV"); }
+}
+function exportJson(useLocal){
+  const rows = currentRows(useLocal);
+  if(!rows.length){ toast("Нет данных для выгрузки"); return; }
+  const data = rows.map(r=>({
+    name:r.name, group:r.group||"", date:fmtDate(r.ts), time:fmtTime(r.ts), ts:r.ts,
+    right:r.right, total:r.total, percent:r.pct, grade:gradeOf(r.pct),
+    passed:r.pct>=S.threshold, variant:r.variant||null, seconds:r.sec||null,
+    weakTopics:r.weak||[], topics:r.perTopic||null, source:r.bad?"invalid":(r.manual?"manual":"code"), code:r.code||""
+  }));
+  const text = JSON.stringify({ lesson:1, title:"Локальный ИИ своими руками", exported:new Date().toISOString(),
+    threshold:S.threshold, count:data.length, results:data }, null, 2);
+  const name = "test-urok1-" + new Date().toISOString().slice(0,10) + ".json";
+  if(download(name, text, "application/json;charset=utf-8")) toast("JSON сохранён: "+name);
+  else showFallback(text, "JSON");
+}
+function showFallback(text, kind){
+  const w = window.open("", "_blank");
+  const msg = "Скачивание заблокировано браузером. Скопируйте текст ниже и сохраните как файл.";
+  if(w){ w.document.write("<pre style='font:13px monospace;white-space:pre-wrap'>"+esc(text)+"</pre>"); return; }
+  const box = document.createElement("div");
+  box.className = "card";
+  box.innerHTML = "<h2>"+kind+": скопируйте вручную</h2><p class='small muted'>"+msg+"</p>";
+  const ta = document.createElement("textarea");
+  ta.rows = 12; ta.value = text; box.appendChild(ta);
+  $("scr-teach").insertBefore(box, $("scr-teach").children[2]);
+  ta.select();
+}
+
+function importCodes(){
+  const raw = $("fCodes").value || "";
+  const parts = splitCodes(raw);
+  if(!parts.length){ $("importHint").textContent = "Не нашёл ни одного кода. Код начинается с «U1|»."; return; }
+  doImport(parts);
+}
+
+/* Коды приходят из чата как попало: пачкой через запятую, по одному в строке,
+   через пробел или вообще разбитые переносами. Пробуем варианты разбора
+   по очереди и оставляем тот, где коды проходят проверку контрольной суммы. */
+function splitCodes(raw){
+  const text = String(raw||"");
+  /* префикс ищем в тексте без пробелов: перенос строки может попасть куда угодно */
+  if(text.replace(/\s+/g,"").indexOf("U1|") < 0) return [];
+
+  const attempt = re => {
+    const out = [];
+    text.split(re).forEach(x=>{
+      x = x.trim();
+      if(x.indexOf("U1|") === 0){
+        const r = parseCode(x);
+        if(r && !r.bad) out.push(x);
+      }
+    });
+    return out;
+  };
+
+  /* 1) явные разделители: перенос, запятая, точка с запятой, таб или два пробела и больше */
+  let list = attempt(/[\n\r,;\t]+|\s{2,}/);
+  if(list.length) return list;
+
+  /* 2) код разбит переносами (так бывает при копировании из мессенджера):
+     пробуем каждую строку, а если не вышло — все строки, склеенные подряд */
+  const lines = text.split(/[\n\r]+/);
+  list = lines.map(x=>x.trim()).filter(x=>x.indexOf("U1|") === 0 && !parseCode(x).bad);
+  if(list.length) return list;
+  /* склеиваем «как есть»: перенос мог попасть и внутрь имени, тогда пробел
+     терять нельзя — контрольная сумма просто не сойдётся */
+  const glued = lines.join("").trim();
+  if(glued.indexOf("U1|") === 0 && !parseCode(glued).bad) return [glued];
+
+  /* 3) одиночные пробелы между кодами */
+  list = attempt(/\s+/);
+  if(list.length) return list;
+
+  /* 4) всё слиплось в одну строку — режем по «U1|» */
+  const all = text.replace(/\s+/g,"");
+  if(all.indexOf("U1|") >= 0) return all.split(/(?=U1\|)/).filter(x=>x);
+  return [];
+}
+
+function doImport(parts){
+  ARCHIVE = loadArchive();
+  let added=0, dup=0, bad=0;
+  parts.forEach(p=>{
+    const r = parseCode(p);
+    if(!r){ return; }
+    if(r.bad){ bad++; ARCHIVE.push(Object.assign({}, r, {name:r.name||"(не разобрано)", group:"", ts:Date.now(), right:0, total:1, pct:0, weak:[], perTopic:null, manual:false})); saveArchive(); return; }
+    r.manual = false;
+    const res = addRecord(r);
+    if(res.dup){ dup++; return; }
+    added++;
+  });
+  saveArchive();
+  renderTeacher();
+  $("importHint").innerHTML = added
+    ? '<span class="ok">Добавлено: '+added+'</span>' + (dup?' · <span class="wr">дубликатов пропущено: '+dup+'</span>':'') + (bad?' · <span class="no">недействительных: '+bad+'</span>':'')
+    : '<span class="wr">Ничего не добавлено</span>' + (dup?' · дубликаты: '+dup:'') + (bad?' · повреждённые коды: '+bad:'');
+  if(added) { $("fCodes").value=""; toast("Добавлено результатов: "+added); }
+}
+
+function addManual(){
+  const name = ($("mName").value||"").trim();
+  const right = parseInt($("mRight").value,10);
+  const total = parseInt($("mTotal").value,10);
+  if(!name || isNaN(right) || isNaN(total) || total<=0 || right<0 || right>total){
+    toast("Заполните имя, «верно» и «всего»"); return;
+  }
+  const pct = Math.round(right/total*100);
+  const weak = ($("mWeak").value||"").split(",").map(x=>x.trim()).filter(Boolean);
+  addRecord({ name:normName(name), group:($("mGroup").value||"").trim(), ts:Date.now(),
+              variant:0, right, total, pct, sec:0, weak:weak, perTopic:null, manual:true, code:"" });
+  $("mName").value=""; $("mGroup").value=""; $("mRight").value=""; $("mTotal").value=""; $("mWeak").value="";
+  renderTeacher(); toast("Результат добавлен");
+}
+
+/* ---------- 8.5. УЧЕНИК ПЕРЕДАЁТ КОД ПРЕПОДАВАТЕЛЮ ----------
+   Если тест открыт на машине преподавателя — результат сам попадает в архив.
+   На ученической машине код просто показывается на экране. */
+function pushToLocalArchive(rec, code){
+  try{
+    const a = JSON.parse(localStorage.getItem(STORE_KEY)||"[]");
+    if(Array.isArray(a) && !a.some(r=>r.code===code)){
+      a.push(Object.assign({}, rec, { name:normName(rec.name), group:normName(rec.group),
+                                      code:code, manual:false, weak:weakList(rec.perTopic) }));
+      localStorage.setItem(STORE_KEY, JSON.stringify(a));
+      ARCHIVE = a;
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
+
+/* ---------- 9. ВКЛАДКИ, ЭКРАНЫ, СОБЫТИЯ ---------- */
+function switchTab(name){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on", t.dataset.tab===name));
+  $("tab-student").classList.toggle("hidden", name!=="student");
+  $("tab-teacher").classList.toggle("hidden", name!=="teacher");
+  $("tab-local").classList.toggle("hidden", name!=="local");
+  if(name==="teacher" && TEACH_OK){ showTeacher(); }
+  if(name==="local"){ renderLocal(); }
+  window.scrollTo({top:0});
+}
+
+/* ---------- ЛОКАЛЬНЫЙ АРХИВ ---------- */
+function renderLocal(){
+  ARCHIVE = loadArchive();
+  const all = ARCHIVE.slice().sort((a,b)=>b.ts-a.ts);
+  const rows = $("chkBestLocal").checked ? bestByStudent(all).sort((a,b)=>b.ts-a.ts) : all;
+  $("localStat").textContent = rows.length
+    ? "записей: " + rows.length + (rows.length !== all.length ? " (из " + all.length + ")" : "")
+    : "";
+  $("tblLocal").querySelector("thead").innerHTML =
+    '<tr><th>Ученик</th><th>Класс</th><th>Дата</th><th class="num">Верно</th><th class="num">%</th><th class="num">Оценка</th><th>Слабые темы</th></tr>';
+  $("tblLocal").querySelector("tbody").innerHTML = rows.length ? rows.map(r=>{
+    const g = gradeOf(r.pct);
+    return '<tr><td>'+esc(r.name)+'</td><td>'+esc(r.group||"—")+'</td>'
+      + '<td class="small muted">'+fmtDate(r.ts)+' '+fmtTime(r.ts)+'</td>'
+      + '<td class="num">'+r.right+' / '+r.total+'</td><td class="num"><b>'+r.pct+'%</b></td>'
+      + '<td class="num '+(g>=4?"ok":g===3?"wr":"no")+'"><b>'+g+'</b></td>'
+      + '<td>'+((r.weak&&r.weak.length)?r.weak.map(w=>'<span class="tag r" style="margin:1px 3px 1px 0">'+esc(w)+'</span> ').join(""):'<span class="tag g">нет</span>')+'</td></tr>';
+  }).join("") : '<tr><td colspan="7" class="muted">Пока нет результатов.</td></tr>';
+  document.querySelector('.tab[data-tab="local"]').classList.toggle("hidden", all.length === 0);
+}
+let TEACH_OK = false;
+function showTeacher(){
+  $("scr-login").classList.add("hidden");
+  $("scr-teach").classList.remove("hidden");
+  renderTeacher();
+}
+function renderTeacher(){
+  S = loadSettings();
+  ARCHIVE = loadArchive();
+  $("setPass").value = S.threshold;
+  $("setCount").value = S.count;
+  renderTable();
+}
+function login(){
+  const v = $("fPass").value.trim();
+  if(v === S.pass){ TEACH_OK = true; $("loginHint").textContent=""; showTeacher(); }
+  else { $("loginHint").innerHTML = '<span class="no">Неверный код</span>'; $("fPass").select(); }
+}
+
+/* ---------- 8.7. БУМАЖНЫЙ ВАРИАНТ ---------- */
+function printBlank(){
+  const idx = buildVariant(S.count).idx;
+  const variant = Math.floor(Math.random()*90000)+10000;
+  let html = '<h1>Тест по уроку 1 · «Локальный ИИ своими руками»</h1>'
+    + '<p class="small">Вариант ' + variant + ' · вопросов: ' + idx.length
+    + ' · порог зачёта: ' + S.threshold + '% · оценка «5» — 90%, «4» — 75%, «3» — ' + S.threshold + '%</p>'
+    + '<p style="margin:10px 0 18px">Фамилия, имя: <span class="fill"></span> &nbsp; Класс: <span class="fill" style="min-width:70px"></span> &nbsp; Дата: <span class="fill" style="min-width:110px"></span></p>';
+  idx.forEach((bi,n)=>{
+    const q = BANK[bi];
+    const order = shuffle(q.o.map((_,k)=>k));
+    html += '<div class="q"><p class="qt">' + (n+1) + '. ' + esc(q.q) + '</p>';
+    order.forEach(k=>{ html += '<div class="opt">☐&nbsp; ' + esc(q.o[k]) + '</div>'; });
+    html += '</div>';
+  });
+  html += '<p class="small" style="margin-top:16px;border-top:1px solid #ccc;padding-top:8px">'
+    + 'Для проверки: впишите номер варианта и количество верных ответов в кабинет преподавателя (вкладка «Кабинет преподавателя» → «Ручной ввод»).</p>';
+  $("printBody").innerHTML = html;
+  document.body.classList.add("printing");
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>document.body.classList.remove("printing"), 300);
+  }, 60);
+}
+
+function updateHeader(){
+  $("hdrInfo").textContent = "банк: " + BANK.length + " вопр. · в варианте: " + S.count + " · порог: " + S.threshold + "%";
+  $("regCount").textContent = S.count;
+  $("regBank").textContent = BANK.length;
+  const sel = $("setCount");
+  sel.innerHTML = "";
+  [5,8,10,12,15,20,25,BANK.length].forEach(n=>{
+    if(n>BANK.length) return;
+    const o = document.createElement("option");
+    o.value = n; o.textContent = n + (n===BANK.length ? " (все вопросы)" : "");
+    sel.appendChild(o);
+  });
+  sel.value = S.count;
+}
+
+function init(){
+  updateHeader();
+  show("scr-reg");
+
+  document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click", ()=>switchTab(t.dataset.tab)));
+
+  $("btnStart").addEventListener("click", ()=>{
+    const n = $("fName").value.trim();
+    if(n.length < 2){ $("regHint").innerHTML = '<span class="no">Введите фамилию и имя</span>'; $("fName").focus(); return; }
+    $("regHint").textContent = "";
+    startTest(n, $("fGroup").value.trim());
+  });
+  $("fName").addEventListener("keydown", e=>{ if(e.key==="Enter") $("btnStart").click(); });
+  $("fGroup").addEventListener("keydown", e=>{ if(e.key==="Enter") $("btnStart").click(); });
+
+  $("btnSubmit").addEventListener("click", submitTest);
+  $("btnRetake").addEventListener("click", retake);
+  $("btnCopyCode").addEventListener("click", ()=>{
+    const code = $("rCode").textContent;
+    copyText(code).then(ok=>toast(ok ? "Код скопирован" : "Выделите код и скопируйте вручную"));
+  });
+  $("btnBigCode").addEventListener("click", ()=>show("scr-big"));
+  $("btnBigBack").addEventListener("click", ()=>show("scr-res"));
+
+  $("btnLogin").addEventListener("click", login);
+  $("fPass").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
+
+  $("btnImport").addEventListener("click", importCodes);
+  $("btnCsv").addEventListener("click", exportCsv);
+  $("btnJson").addEventListener("click", exportJson);
+  $("btnPrint").addEventListener("click", ()=>window.print());
+  $("btnPrintBlank").addEventListener("click", printBlank);
+  $("btnPrintBlank2").addEventListener("click", printBlank);
+  $("chkBestLocal").addEventListener("change", renderLocal);
+  $("btnCsvLocal").addEventListener("click", ()=>exportCsv(true));
+  $("btnCopyLocal").addEventListener("click", ()=>{
+    ARCHIVE = loadArchive();
+    const codes = ARCHIVE.filter(r=>r.code).map(r=>r.code);
+    if(!codes.length){ toast("Кодов нет — результаты вводились вручную"); return; }
+    copyText(codes.join("\n")).then(good=>toast(good ? "Скопировано кодов: "+codes.length : "Не удалось скопировать"));
+  });
+  $("btnClearLocal").addEventListener("click", ()=>{
+    ARCHIVE = loadArchive();
+    if(!ARCHIVE.length){ toast("Уже пусто"); return; }
+    if(confirm("Удалить "+ARCHIVE.length+" результат(ов) с этого компьютера?")){ ARCHIVE=[]; saveArchive(); renderLocal(); toast("Очищено"); }
+  });
+  $("btnManual").addEventListener("click", addManual);
+  $("chkBest").addEventListener("change", renderTable);
+
+  $("btnClear").addEventListener("click", ()=>{
+    if(!ARCHIVE.length){ toast("Архив уже пуст"); return; }
+    if(confirm("Удалить все "+ARCHIVE.length+" сохранённых результатов? Действие необратимо — сначала скачайте CSV.")){
+      ARCHIVE = []; saveArchive(); renderTeacher(); toast("Архив очищен");
+    }
+  });
+
+  $("setPass").addEventListener("change", ()=>{
+    S.threshold = clampInt($("setPass").value, 50, 95, DEF_PASS);
+    saveSettings(); updateHeader(); renderTeacher(); toast("Порог зачёта: "+S.threshold+"%");
+  });
+  $("setCount").addEventListener("change", ()=>{
+    S.count = clampInt($("setCount").value, 5, BANK.length, DEF_COUNT);
+    saveSettings(); updateHeader(); toast("Вопросов в варианте: "+S.count);
+  });
+  $("btnSetPass").addEventListener("click", ()=>{
+    const v = $("setPass2").value.trim();
+    if(v.length<3){ toast("Код должен быть не короче 3 символов"); return; }
+    S.pass = v; saveSettings(); $("setPass2").value=""; toast("Код доступа изменён");
+  });
+
+  /* подсказка, если архив уже есть */
+  ARCHIVE = loadArchive();
+  if(ARCHIVE.length){
+    document.querySelector('.tab[data-tab="local"]').classList.remove("hidden");
+    $("loginHint").innerHTML = '<span class="ok">В архиве этого браузера: '+ARCHIVE.length+' результат(ов)</span>';
+  }
+}
+function copyText(txt){
+  return new Promise(res=>{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(()=>res(true)).catch(()=>res(fallbackCopy(txt)));
+    } else res(fallbackCopy(txt));
+  });
+}
+function fallbackCopy(txt){
+  try{
+    const ta = document.createElement("textarea");
+    ta.value = txt; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove(); return ok;
+  }catch(e){ return false; }
+}
+
+document.addEventListener("DOMContentLoaded", init);
+
+/* доступ к внутренностям — используется автоматическими проверками */
+window.__TEST__ = {
+  get T(){ return T; }, get S(){ return S; }, get ARCHIVE(){ return ARCHIVE; },
+  BANK: BANK, TOPIC_ORDER: TOPIC_ORDER,
+  buildVariant: buildVariant, parseCode: parseCode, makeCode: makeCode, splitCodes: splitCodes
+};
+</script>
+</body>
+</html>
