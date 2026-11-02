@@ -1,0 +1,2133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Локальный ИИ своими руками — практический курс (Gemma 4 E4B + LM Studio)</title>
+<style>
+:root{
+  --bg:#0b0a14; --bg2:#12101f; --card:#181529; --card2:#1f1b34;
+  --line:#2d2748; --text:#ece9f8; --dim:#a39dbf; --dim2:#7d7799;
+  --acc:#a78bfa; --acc2:#7c3aed; --grn:#34d399; --amb:#fbbf24; --red:#fb7185; --cyn:#38bdf8;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:18px;line-height:1.55;overflow:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 500px at 12% -8%,rgba(124,58,237,.22),transparent 60%),
+  radial-gradient(800px 500px at 92% 8%,rgba(56,189,248,.12),transparent 60%),
+  radial-gradient(700px 600px at 50% 120%,rgba(52,211,153,.10),transparent 60%)}
+.topbar{position:fixed;top:0;left:0;right:0;height:56px;z-index:60;display:flex;align-items:center;gap:12px;padding:0 14px;
+  background:rgba(11,10,20,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;white-space:nowrap}
+.brand .dot{width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--cyn));box-shadow:0 0 14px rgba(167,139,250,.8)}
+.brand small{color:var(--dim);font-weight:500}
+.stagechip{font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--dim);white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}
+.spacer{flex:1}
+.btn{font:inherit;font-size:14px;color:var(--text);background:var(--card2);border:1px solid var(--line);padding:7px 12px;border-radius:10px;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn:hover{border-color:var(--acc);background:#272145}
+.btn.pri{background:linear-gradient(135deg,#7c3aed,#5b21b6);border-color:#8b5cf6}
+.btn.pri:hover{filter:brightness(1.15)}
+.btn.on{background:#14352a;border-color:var(--grn);color:#a7f3d0}
+.btn.on2{background:#33260b;border-color:var(--amb);color:#fcd34d}
+.progress{position:fixed;top:56px;left:0;right:0;height:3px;background:#1a1730;z-index:59}
+.progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc),var(--cyn));transition:width .25s}
+.stage{position:fixed;inset:59px 0 62px 0;overflow-y:auto;overflow-x:hidden;z-index:10}
+.slide{display:none;padding:26px 22px 44px;max-width:1120px;margin:0 auto;animation:fade .25s ease}
+.slide.active{display:block}
+body.onlypractice .slide:not([data-practice="1"]):not([data-keep="1"]){display:none}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.kicker{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--acc);font-weight:700;margin-bottom:6px}
+h1{font-size:clamp(30px,5.2vw,56px);line-height:1.08;margin:.1em 0 .3em;letter-spacing:-.02em}
+h2{font-size:clamp(24px,3.6vw,38px);line-height:1.15;margin:.1em 0 .45em;letter-spacing:-.01em}
+h3{font-size:20px;margin:1.2em 0 .4em;color:#fff}
+p{margin:.5em 0}
+.lead{font-size:clamp(18px,2.2vw,23px);color:#d7d2ee}
+.muted{color:var(--dim)} .small{font-size:14.5px}
+ul,ol{margin:.5em 0 .8em;padding-left:1.25em}
+li{margin:.32em 0} li::marker{color:var(--acc)}
+strong{color:#fff} a{color:var(--cyn)}
+code{font-family:var(--mono);font-size:.9em;background:#241f3d;padding:2px 6px;border-radius:6px;color:#ddd6fe}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{background:linear-gradient(180deg,var(--card),var(--bg2));border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+.card.acc{border-color:#4c3a86} .card.grn{border-color:#1f5b46} .card.amb{border-color:#6b5318} .card.red{border-color:#7f2b3d} .card.cyn{border-color:#1d5a7c}
+.card h4{margin:0 0 6px;font-size:16.5px;color:#fff;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tag{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2.5px 8px;border-radius:999px;border:1px solid var(--line);background:#221d3a;color:var(--dim)}
+.tag.p{border-color:#5b3fa8;color:#c4b5fd;background:#241a44}
+.tag.g{border-color:#1f6b52;color:#6ee7b7;background:#0f2a22}
+.tag.a{border-color:#7c5a1a;color:#fcd34d;background:#2a1f0b}
+.tag.r{border-color:#8b2740;color:#fda4af;background:#2c1219}
+.tag.b{border-color:#1d5a7c;color:#7dd3fc;background:#0c2231}
+.note{border-left:3px solid var(--acc);background:rgba(124,58,237,.09);padding:11px 14px;border-radius:0 12px 12px 0;margin:12px 0}
+.note.grn{border-color:var(--grn);background:rgba(52,211,153,.08)}
+.note.amb{border-color:var(--amb);background:rgba(251,191,36,.08)}
+.note.red{border-color:var(--red);background:rgba(251,113,133,.08)}
+.note.cyn{border-color:var(--cyn);background:rgba(56,189,248,.08)}
+.note b{color:#fff}
+.quote{font-size:clamp(20px,3vw,30px);line-height:1.35;color:#fff;border-left:4px solid var(--acc);padding-left:18px;margin:18px 0}
+pre{position:relative;background:#0a0912;border:1px solid var(--line);border-radius:14px;padding:16px;overflow-x:auto;margin:12px 0}
+pre code{background:none;padding:0;font-size:14px;line-height:1.6;color:#dcd6f7;white-space:pre}
+.copy{position:absolute;top:8px;right:8px;font-size:12px;padding:4px 9px;border-radius:8px;background:#221d3a;border:1px solid var(--line);color:var(--dim);cursor:pointer;font-family:inherit}
+.copy:hover{color:#fff;border-color:var(--acc)}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:15.5px}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--acc);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+tr:hover td{background:rgba(167,139,250,.05)}
+td code{font-size:13px}
+.pill{display:inline-block;padding:2px 8px;border-radius:8px;font-family:var(--mono);font-size:13px;background:#221d3a;border:1px solid var(--line)}
+.ok{color:#6ee7b7}.no{color:#fda4af}
+kbd{font-family:var(--mono);font-size:12.5px;background:#221d3a;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:2px 7px;color:#e9e5ff}
+.task{background:linear-gradient(180deg,#131b2e,#0f1524);border:1px solid #26406b;border-radius:16px;padding:14px 16px;margin:14px 0}
+.task h4{margin:0 0 8px;color:#93c5fd;font-size:15px;letter-spacing:.1em;text-transform:uppercase;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.task label{display:flex;gap:10px;align-items:flex-start;padding:7px 8px;border-radius:10px;cursor:pointer;font-size:16px}
+.task label:hover{background:rgba(147,197,253,.08)}
+.task input[type=checkbox]{width:19px;height:19px;margin-top:3px;accent-color:#34d399;flex:none;cursor:pointer}
+.task input[type=checkbox]:checked + span{color:var(--dim2);text-decoration:line-through}
+.task .bar{height:5px;background:#1b2b47;border-radius:99px;overflow:hidden;margin-top:10px}
+.task .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#34d399,#38bdf8);transition:width .3s}
+.notes{display:none;margin-top:16px;border:1px dashed #5b4a92;border-radius:14px;padding:13px 16px;background:rgba(124,58,237,.07)}
+.notes{display:none!important}
+.notes h5{margin:0 0 6px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#c4b5fd}
+.notes ul{margin:.3em 0;padding-left:1.1em}
+.notes li{font-size:15px;color:#ddd6fe;margin:.25em 0}
+.q{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:12px 0}
+.q p.qt{margin:0 0 10px;font-weight:600;color:#fff}
+.q .opt{display:block;width:100%;text-align:left;font:inherit;font-size:15.5px;color:var(--text);background:#141127;border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin:6px 0;cursor:pointer;transition:.15s}
+.q .opt:hover{border-color:var(--acc)}
+.q .opt.right{background:#0f2f24;border-color:#2c7a5c;color:#a7f3d0}
+.q .opt.wrong{background:#33121b;border-color:#8b2740;color:#fecdd3}
+.q .exp{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:14.5px;color:var(--dim)}
+.q.answered .exp{display:block}
+.score{font-size:22px;font-weight:700;color:var(--grn)}
+.modal{position:fixed;inset:0;z-index:80;background:rgba(6,5,12,.88);backdrop-filter:blur(6px);display:none;overflow-y:auto;padding:70px 18px 30px}
+.modal.open{display:block}
+.modal .box{max-width:940px;margin:0 auto}
+.ovstage{margin-bottom:18px}
+.ovstage h4{margin:0 0 6px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
+.ovlink{display:flex;gap:10px;align-items:baseline;width:100%;text-align:left;font:inherit;font-size:15.5px;color:var(--text);background:#141127;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:5px 0;cursor:pointer}
+.ovlink:hover{border-color:var(--acc);background:#1d1836}
+.ovlink .n{font-family:var(--mono);color:var(--dim2);font-size:13px;min-width:26px}
+.ovlink .pr{margin-left:auto;font-size:11.5px;color:#6ee7b7;border:1px solid #1f5b46;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.botbar{position:fixed;bottom:0;left:0;right:0;height:62px;z-index:60;display:flex;align-items:center;gap:10px;padding:0 14px;background:rgba(11,10,20,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
+.counter{font-family:var(--mono);font-size:13.5px;color:var(--dim);min-width:74px;text-align:center}
+.hint{font-size:13px;color:var(--dim2)}
+.center{text-align:center} .mt{margin-top:18px} .mt2{margin-top:30px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.scalebar{display:flex;height:38px;border-radius:10px;overflow:hidden;border:1px solid var(--line);margin:12px 0;font-size:12.5px;font-weight:700;text-align:center}
+.scalebar div{display:flex;align-items:center;justify-content:center;padding:0 4px}
+.pbadge{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 11px;border-radius:999px;margin-bottom:10px;
+  background:rgba(52,211,153,.1);border:1px solid #1f5b46;color:#6ee7b7}
+.pbadge.t{background:rgba(167,139,250,.1);border-color:#4c3a86;color:#c4b5fd}
+.pbadge.d{background:rgba(56,189,248,.1);border-color:#1d5a7c;color:#7dd3fc}
+.divider-slide{min-height:60vh;display:flex;flex-direction:column;justify-content:center}
+.divider-slide .num{font-family:var(--mono);font-size:clamp(60px,14vw,150px);line-height:.9;color:#2d2748}
+.stat{font-family:var(--mono);font-size:clamp(26px,4.4vw,44px);color:#fff;line-height:1}
+.statlabel{font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;margin-top:4px}
+.divider{height:1px;background:var(--line);margin:18px 0}
+.flowline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0;font-size:14.5px}
+.flowline span{background:#1d1836;border:1px solid var(--line);border-radius:10px;padding:7px 12px}
+.flowline i{color:var(--acc);font-style:normal;font-size:18px}
+.step{display:flex;gap:12px;align-items:flex-start;margin:10px 0}
+.step .n{flex:none;width:30px;height:30px;border-radius:50%;background:#241a44;border:1px solid #5b3fa8;color:#c4b5fd;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:15px}
+.cmodal{position:fixed;inset:0;z-index:95;background:rgba(6,5,12,.9);backdrop-filter:blur(6px);display:none;padding:6vh 16px;overflow:auto}
+.cmodal.open{display:block}
+.cmodal .cbox{max-width:900px;margin:0 auto;background:#0a0912;border:1px solid var(--line);border-radius:16px;padding:18px}
+.cmodal pre{margin:10px 0;background:#100e1c;user-select:text}
+@media (max-width:720px){body{font-size:16.5px}.brand small,.hint{display:none}.stagechip{max-width:24vw}}
+@media print{
+  body{overflow:visible;background:#fff;color:#000}
+  .topbar,.botbar,.progress,.modal,.cmodal{display:none!important}
+  .stage{position:static;inset:auto;overflow:visible}
+  .slide{display:block!important;page-break-after:always;max-width:none}
+  .notes{display:none!important}
+}
+
+/* ===== режим обязательного прохождения ===== */
+.lockbar{position:sticky;top:0;z-index:25;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  font-size:13.5px;color:#fcd34d;background:#2a2210;border:1px solid #5c4a1a;border-radius:12px;
+  padding:8px 12px;margin:0 0 16px;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.lockbar.done{color:#6ee7b7;background:rgba(52,211,153,.08);border-color:#1f5b46}
+.lockbar b{color:#fff;font-weight:600}
+.botbar .btn:disabled{opacity:.4;cursor:not-allowed;border-color:var(--line);background:var(--card2)}
+.botbar .btn:disabled:hover{border-color:var(--line);background:var(--card2)}
+.ovlink.locked{opacity:.4;cursor:not-allowed}
+.ovlink.locked:hover{border-color:var(--line);background:#141127}
+.q .exp{display:none!important}
+body.quizok .q .exp{display:block!important}
+.q .opt{pointer-events:none}
+body.quizdone .q .opt{pointer-events:auto}
+.resultbox{border-radius:14px;padding:14px 16px;margin:12px 0;border:1px solid var(--line);background:var(--card)}
+.resultbox.ok{border-color:#1f5b46;background:rgba(52,211,153,.09);color:#a7f3d0}
+.resultbox.bad{border-color:#7f2b3d;background:rgba(251,113,133,.08);color:#fecdd3}
+.studyhint{font-size:13px;color:var(--dim2)}
+.progress.locked i{background:linear-gradient(90deg,#7c5a1a,#fcd34d)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span><span>Локальный ИИ <small>· изучение по шагам</small></span></div>
+  <div class="stagechip" id="stagechip">Введение</div>
+  <div class="spacer"></div>
+  <button class="btn" id="btnOv" title="Содержание (O)">☰</button>
+</div>
+<div class="progress"><i id="prog"></i></div>
+
+<main class="stage" id="stage">
+
+<section class="slide" id="s1" data-stage="Введение" data-keep="1">
+  <div class="pbadge t">Курс · 5 блоков · 37 слайдов · 15 практик · версия для учеников</div>
+  <h1>Свой собственный ИИ<br>на своём компьютере</h1>
+  <p class="lead">Установим нейросеть, научимся выбирать модели, поймаем ИИ на выдумке, настроим ему характер — а потом поднимем собственный API-сервер и напишем бота, сайт и кодинг-ассистента. Всё руками, всё в классе.</p>
+
+  <div class="grid g3 mt">
+    <div class="card"><div class="stat">0 ₽</div><div class="statlabel">стоимость запросов</div></div>
+    <div class="card"><div class="stat">0</div><div class="statlabel">данных ушло в интернет</div></div>
+    <div class="card"><div class="stat">Gemma 4 E4B</div><div class="statlabel">наша основная модель</div></div>
+  </div>
+
+  <div class="card acc mt">
+    <h4>🖥 Наше железо</h4>
+    <p class="small muted">16 ГБ оперативной памяти · видеокарта <b>GeForce RTX 3060 с 8 ГБ VRAM</b> · Windows/Linux · LM Studio 0.4.x. Под эту конфигурацию подобраны все модели и все настройки в курсе — ничего додумывать не нужно.</p>
+  </div>
+
+  <div class="note amb"><b>Как устроен курс:</b> домашних заданий нет. Каждая практика делается <b>в классе</b>, своими руками. Материала больше, чем влезает в один урок, — идём в своём темпе, блоки можно разнести на 2–3 занятия. Ориентиры: «Часть 1» — слайды 1–20, «Часть 2» — слайды 21–37.</div></section>
+
+<section class="slide" id="s2" data-stage="Введение" data-keep="1">
+  <div class="kicker">Навигация</div>
+  <h2>Из чего состоит курс</h2>
+
+  <div class="grid g2">
+    <div class="card"><h4><span class="tag p">Часть 1</span> A · Первый запуск</h4>
+      <p class="small muted">Установка LM Studio → скачивание Gemma 4 E4B → первый чат → карта интерфейса. <b>Практика 1.</b></p></div>
+    <div class="card"><h4><span class="tag p">Часть 1</span> B · Модели и квантование</h4>
+      <p class="small muted">Как читать названия моделей, что такое квантование, сколько памяти нужно, что влезает в наши 8 ГБ VRAM. <b>Практики 2–4</b> (сравнение Q4/Q6, картинки, «режим размышлений»).</p></div>
+    <div class="card"><h4><span class="tag p">Часть 1</span> C · Семейства моделей и галлюцинации</h4>
+      <p class="small muted">Кто делает открытые модели, что такое лицензии, почему ИИ уверенно врёт. <b>Практика 5</b> — живой эксперимент с выдуманными фактами.</p></div>
+    <div class="card"><h4><span class="tag p">Часть 2</span> D · Настройки и API</h4>
+      <p class="small muted">System Context, temperature, top-k/top-p, JSON. Затем — <b>свой API-сервер</b> и три своих проекта: консольный чат-бот, веб-страница с чатом, Telegram-бот. <b>Практики 6–11.</b></p></div>
+    <div class="card"><h4><span class="tag p">Часть 2</span> E · Кодинг-ассистент</h4>
+      <p class="small muted">Подключение локальной модели к VS Code через плагин Continue (<b>практика 12</b>) и итоговый тест из 8 вопросов с самопроверкой.</p></div>
+    <div class="card"><h4><span class="tag g">Финал</span> Проверка и шпаргалка</h4>
+      <p class="small muted">Тест из 8 вопросов с самопроверкой, итоги и одна страница-шпаргалка со всеми командами.</p></div>
+  </div>
+
+  <div class="flowline mt">
+    <span>Установить</span><i>→</i><span>Скачать модель</span><i>→</i><span>Понять, что скачал</span><i>→</i><span>Настроить поведение</span><i>→</i><span>Поднять сервер</span><i>→</i><span>Написать свою программу</span>
+  </div>
+
+  <div class="note cyn"><b>Как пользоваться файлом:</b> стрелки <kbd>←</kbd><kbd>→</kbd> — навигация, <kbd>O</kbd> — содержание с поиском по блокам, <kbd>T</kbd> — заметки преподавателю, <kbd>🖨</kbd> — печать в PDF. Файл работает без интернета: его можно открыть с флешки или разослать ученикам.</div></section>
+
+<section class="slide" id="s3" data-stage="A · Первый запуск">
+  <div class="pbadge t">Теория · 5 минут разговора</div>
+  <h2>Зачем вообще запускать ИИ у себя</h2>
+  <div class="quote">Облачный ИИ — это аренда. Локальный — собственность.</div>
+
+  <div class="grid g2">
+    <div class="card grn"><h4>Что вы получаете</h4>
+      <ul class="small muted">
+        <li><b>Приватность.</b> Переписка, документы, код не покидают ваш компьютер. Физически.</li>
+        <li><b>Ноль счетов.</b> Хоть миллион запросов — платите только за электричество.</li>
+        <li><b>Работа без интернета.</b> В самолёте, на даче, при отключённой сети.</li>
+        <li><b>Полный контроль.</b> Своя модель, свои настройки, свой системный промпт, своя версия — ничего не изменится «само» за ночь.</li>
+        <li><b>Скорость разработки.</b> Локальный API идеален для прототипов: нет лимитов, нет ключей, нет страха «потратить бюджет».</li>
+      </ul></div>
+    <div class="card red"><h4>За что платите</h4>
+      <ul class="small muted">
+        <li><b>Качество ниже флагманов.</b> Модель на 8 ГБ VRAM не спорит с GPT-5 или Claude в сложных задачах.</li>
+        <li><b>Знания «заморожены».</b> Дата обучения фиксирована — свежих событий модель не знает.</li>
+        <li><b>Ваше железо греется и шумит.</b> Видеокарта будет занята.</li>
+        <li><b>Настройка — на вас.</b> Никто не подберёт параметры за вас.</li>
+      </ul></div>
+  </div>
+
+  <div class="note"><b>Главный вывод:</b> локальная модель — не замена ChatGPT, а <b>инструмент для задач, где важны приватность, цена или полный контроль</b>. И отличный тренажёр: всё, что вы здесь освоите, один в один переносится на облачные API.</div></section>
+
+<section class="slide" id="s4" data-stage="A · Первый запуск">
+  <div class="pbadge t">Подготовка · проверяем вместе</div>
+  <h2>Что должно быть на компьютере</h2>
+
+  <div class="grid g2">
+    <div class="card cyn"><h4>✅ Наш стандартный класс</h4>
+      <table style="margin:0">
+        <tr><td>ОЗУ</td><td><b>16 ГБ</b></td></tr>
+        <tr><td>Видеокарта</td><td><b>RTX 3060, 8 ГБ VRAM</b></td></tr>
+        <tr><td>Диск</td><td>≥ 25 ГБ свободно (модели весят много)</td></tr>
+        <tr><td>Основная модель</td><td><b>Gemma 4 E4B</b>, Q4_K_M — 5,34 ГБ</td></tr>
+        <tr><td>Программа</td><td>LM Studio 0.4.x</td></tr>
+      </table></div>
+    <div class="card"><h4>Что скачаем за курс</h4>
+      <table style="margin:0">
+        <tr><td>Gemma 4 E4B <b>Q4_K_M</b></td><td>5,34 ГБ</td></tr>
+        <tr><td>+ проектор для картинок <code>mmproj</code></td><td>0,99 ГБ</td></tr>
+        <tr><td>Gemma 4 E4B <b>Q6_K</b> (для сравнения)</td><td>6,22 ГБ</td></tr>
+        <tr><td>Любая кодинг-модель 4–8B (блок E)</td><td>3–6 ГБ</td></tr>
+        <tr><th>Итого</th><th>~18–20 ГБ</th></tr>
+      </table></div>
+  </div>
+
+  <div class="task" data-task>
+    <h4>✅ Стартовый чек-лист</h4>
+    <label><input type="checkbox"><span>На диске есть хотя бы 25 ГБ свободного места</span></label>
+    <label><input type="checkbox"><span>Известно, сколько VRAM у видеокарты (Диспетчер задач → Производительность → GPU)</span></label>
+    <label><input type="checkbox"><span>Скачан установщик LM Studio с <code>lmstudio.ai/download</code></span></label>
+    <label><input type="checkbox"><span>Установлен Python 3.10+ (понадобится в блоке D) — проверить: <code>python --version</code></span></label>
+    <label><input type="checkbox"><span>Установлен VS Code (понадобится в блоке E)</span></label>
+    <label><input type="checkbox"><span>Открыт блокнот или заметки — будем записывать наблюдения и удачные промпты</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="note red"><b>Про интернет:</b> он нужен <b>только чтобы скачать модели</b>. Дальше всё работает офлайн. Если в классе слабый Wi-Fi — скачайте GGUF-файлы заранее на флешку или на один ПК и раздайте по локальной сети: 5 ГБ на 15 машин через интернет — это гарантированный провал занятия.</div></section>
+
+<section class="slide" id="s5" data-stage="A · Первый запуск">
+  <div class="pbadge t">Пошагово · делаем вместе</div>
+  <h2>Установка LM Studio</h2>
+
+  <div class="step"><div class="n">1</div><div><b>Скачать.</b> Зайти на <code>lmstudio.ai/download</code> и взять установщик для своей системы: Windows (x64 или ARM), macOS (Intel/Apple Silicon) или Linux (AppImage). Программа бесплатна — с июля 2025 года в том числе для работы и учёбы.</div></div>
+  <div class="step"><div class="n">2</div><div><b>Установить как обычное приложение.</b> Ничего настраивать не нужно, «для разработчиков» ставить галочки не требуется.</div></div>
+  <div class="step"><div class="n">3</div><div><b>Запустить и выбрать папку для моделей.</b> При первом запуске LM Studio спросит, куда складывать модели. По умолчанию это папка в профиле пользователя — <b>проверьте, что на этом диске есть 25 ГБ</b>. Поменять можно позже во вкладке <b>My Models</b>.</div></div>
+  <div class="step"><div class="n">4</div><div><b>Проверить рантайм.</b> Нажмите <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> — откроется окно LM Runtimes. Для Windows с NVIDIA должен быть активен <b>llama.cpp (CUDA)</b>. Если он не установлен — нажмите Install и дождитесь окончания.</div></div>
+  <div class="step"><div class="n">5</div><div><b>Убедиться, что видеокарта видна.</b> В том же окне или в настройках загрузки модели должно упоминаться <code>NVIDIA GeForce RTX 3060</code> и доступный объём VRAM (~8 ГБ).</div></div>
+
+  <div class="note grn"><b>Что такое «рантайм» простыми словами:</b> это «движок», который умеет читать файлы моделей и считать нейросеть. В LM Studio их два: <b>llama.cpp</b> (работает везде, формат GGUF) и <b>MLX</b> (только для Mac на Apple Silicon). Нам нужен llama.cpp с поддержкой CUDA — тогда считать будет видеокарта, а не процессор.</div>
+
+  <div class="note red"><b>Если CUDA не подхватилась</b> и модель считается на процессоре — ответы будут в 5–10 раз медленнее. Причины: не установлен рантайм CUDA, устаревший драйвер NVIDIA, или ноутбук переключился на встроенную графику. Проверьте драйвер в <b>GeForce Experience</b> и в настройках Windows укажите для LM Studio «Высокопроизводительный графический процессор».</div></section>
+
+<section class="slide" id="s6" data-stage="A · Первый запуск" data-practice="1">
+  <div class="pbadge">Практика 1 · скачиваем и запускаем модель</div>
+  <h2>Ставим Gemma 4 E4B</h2>
+  <p class="lead">Наша рабочая лошадка на весь курс: <b>google/gemma-4-e4b</b> в квантовании <b>Q4_K_M</b> — 5,34 ГБ, помещается в 8 ГБ видеопамяти вместе с контекстом диалога.</p>
+
+  <div class="step"><div class="n">1</div><div>Откройте вкладку <b>Discover</b> (иконка лупы или <kbd>Ctrl</kbd>+<kbd>2</kbd>).</div></div>
+  <div class="step"><div class="n">2</div><div>В строке поиска введите <code>gemma-4-e4b</code>. Можно вставить и полную ссылку с Hugging Face — LM Studio её поймёт.</div></div>
+  <div class="step"><div class="n">3</div><div>Выберите вариант <b>Q4_K_M (5,34 ГБ)</b> и нажмите <b>Download</b>. Прогресс виден внизу окна.</div></div>
+  <div class="step"><div class="n">4</div><div><b>Важно для картинок:</b> рядом обычно предлагается дополнительный файл <code>mmproj-gemma-4-E4B-it-BF16.gguf</code> (992 МБ) — это «проекция зрения». Скачайте его тоже, иначе модель не будет видеть изображения.</div></div>
+  <div class="step"><div class="n">5</div><div>Перейдите во вкладку <b>Chat</b>, в выпадающем списке сверху выберите скачанную модель и нажмите <b>Load</b>.</div></div>
+  <div class="step"><div class="n">6</div><div>В открывшихся настройках загрузки убедитесь, что <b>GPU Offload = максимум слоёв</b> (обычно ставится автоматически), и посмотрите оценку потребления VRAM — должно быть около 6 ГБ из 8.</div></div>
+  <div class="step"><div class="n">7</div><div>Дождитесь зелёной индикации «модель загружена» и напишите: <code>Привет! Опиши себя тремя словами.</code></div></div>
+
+  <div class="task" data-task>
+    <h4>🛠 Чек-лист практики 1</h4>
+    <label><input type="checkbox"><span>Модель скачана и видна во вкладке <b>My Models</b></span></label>
+    <label><input type="checkbox"><span>Скачан файл <code>mmproj</code> (без него не будет зрения)</span></label>
+    <label><input type="checkbox"><span>Модель загружена в чат, GPU Offload включён</span></label>
+    <label><input type="checkbox"><span>Получен ответ на «Привет!»</span></label>
+    <label><input type="checkbox"><span>Найдена и записана скорость внизу чата: <b>____ токенов/сек</b></span></label>
+    <label><input type="checkbox"><span>Найден и скопирован в заметки <b>точный ID модели</b> из My Models (например <code>lmstudio-community/gemma-4-e4b-it</code>)</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="note cyn"><b>Зачем нам точный ID:</b> в блоке D мы будем обращаться к модели из кода. Там имя должно совпадать <b>буквально</b>, включая регистр и слэш. Скопируйте его сейчас — потом сэкономите десять минут отладки. Быстрый способ: терминал → <code>lms ls</code>.</div>
+
+  <div class="note amb"><b>Скорость — ориентир для RTX 3060 8 ГБ:</b> 25–45 токенов/сек для E4B в Q4 — нормально. Меньше 10 — модель считается на процессоре (см. предыдущий слайд про CUDA). Больше 60 — вы молодец, у вас отлично охлаждается карта.</div></section>
+
+<section class="slide" id="s7" data-stage="A · Первый запуск">
+  <div class="pbadge d">Обзор интерфейса</div>
+  <h2>Карта LM Studio</h2>
+  <p class="lead">Четыре вкладки, которые мы используем в курсе. Переключаются кнопками слева или <kbd>Ctrl</kbd>+<kbd>1…4</kbd>.</p>
+
+  <div class="grid g2">
+    <div class="card acc"><h4>💬 Chat <span class="tag p">Ctrl+1</span></h4>
+      <p class="small muted">Обычный диалог с моделью. Справа — панель настроек: <b>System Context</b>, температура и остальные параметры. Можно прикреплять <b>файлы и картинки</b> (работает полностью офлайн — это называется RAG), включать веб-поиск и плагины MCP. Несколько чатов хранятся в истории.</p></div>
+    <div class="card acc"><h4>🔍 Discover <span class="tag p">Ctrl+2</span></h4>
+      <p class="small muted">Магазин моделей: поиск идёт по Hugging Face прямо из программы. Есть метки-фильтры: <b>reasoning</b> (умеет «думать»), <b>vision</b> (понимает картинки), <b>tools</b> (умеет вызывать инструменты). Для каждой модели — список доступных квантований с размером файла.</p></div>
+    <div class="card acc"><h4>📦 My Models <span class="tag p">Ctrl+3</span></h4>
+      <p class="small muted">Всё скачанное: размер на диске, <b>точный ID</b>, удаление, смена папки хранения. Здесь же видно, сколько моделей и сколько они занимают.</p></div>
+    <div class="card acc"><h4>🟢 Developer <span class="tag p">Ctrl+4</span></h4>
+      <p class="small muted">Локальный <b>API-сервер</b>, совместимый с OpenAI. Кнопка <b>Start Server</b> — и компьютер начинает отвечать на HTTP-запросы как «взрослый» ИИ-сервис. Здесь же есть встроенный <b>Query-интерфейс</b>: можно слать запросы прямо из LM Studio, без всякого кода.</p></div>
+  </div>
+
+  <div class="note cyn"><b>Что ещё есть в современной версии (сегодня не трогаем):</b> агент <b>Bionic</b> — делает документы, слайды и код локальными моделями; <b>MCP</b>-плагины — дают модели инструменты (поиск, калькулятор, файлы); <b>LM Link</b> — запускает тяжёлую модель на мощном ПК, а вы работаете с телефона или слабого ноутбука; <b>llmster</b> — версия без интерфейса, для серверов; CLI-утилита <code>lms</code>.</div></section>
+
+<section class="slide" id="s8" data-stage="B · Модели и квантование">
+  <div class="pbadge t">Теория · разбираем название</div>
+  <h2>Анатомия имени модели</h2>
+  <p class="lead">Файл, который мы только что скачали, называется страшно. На самом деле это просто описание в пять частей:</p>
+
+  <div class="card center" style="padding:24px">
+    <div style="font-family:var(--mono);font-size:clamp(17px,3.4vw,34px)">
+      <span style="color:#a78bfa">gemma-4</span><span style="color:#38bdf8">-E4B</span><span style="color:#34d399">-it</span><span style="color:#fcd34d">.Q4_K_M</span><span style="color:#fb7185">.gguf</span>
+    </div>
+    <div class="grid g2 mt small" style="text-align:left">
+      <div><span class="tag p">семейство и поколение</span><br><b>gemma-4</b> — открытые модели Google DeepMind, четвёртое поколение.</div>
+      <div><span class="tag b">размер</span><br><b>E4B</b> — «effective 4B»: 4,5 млрд <i>эффективных</i> параметров (8 млрд вместе с таблицами эмбеддингов).</div>
+      <div><span class="tag g">назначение</span><br><b>it</b> = instruction-tuned: обучена отвечать на команды. Есть ещё <b>base</b> (продолжает текст), <b>coder</b>, <b>thinking</b>.</div>
+      <div><span class="tag a">квантование</span><br><b>Q4_K_M</b> — сжата до 4 бит «умным» методом, средний вариант качества.</div>
+      <div><span class="tag r">формат</span><br><b>.gguf</b> — контейнер, который понимает движок llama.cpp (то есть LM Studio).</div>
+      <div class="muted">Перевод на человеческий: «Gemma четвёртого поколения, размера E4B, обученная слушаться команд, сжата до 4 бит, в формате GGUF».</div>
+    </div>
+  </div>
+
+  <h3>Что за странная буква «E»</h3>
+  <p>В Gemma 4 маленькие модели устроены хитро: у каждого слоя есть своя таблица эмбеддингов (Per-Layer Embeddings). Эти таблицы <b>огромные, но используются только для быстрого поиска</b>, а не для вычислений. Поэтому Google пишет два числа: <b>эффективные</b> параметры (сколько реально считает) и <b>полные</b> (сколько весит файл).</p>
+
+  <table>
+    <tr><th>Модель</th><th>Эффективных</th><th>Полных</th><th>Контекст</th><th>Что умеет</th></tr>
+    <tr><td>Gemma 4 <b>E2B</b></td><td>2,3B</td><td>5,1B</td><td>128K</td><td>текст + картинки + <b>аудио</b></td></tr>
+    <tr><td>Gemma 4 <b>E4B</b> <span class="tag g">наша</span></td><td>4,5B</td><td>8B</td><td>128K</td><td>текст + картинки + <b>аудио</b></td></tr>
+    <tr><td>Gemma 4 <b>26B A4B</b> (MoE)</td><td>3,8B активных</td><td>25,2B</td><td>256K</td><td>текст + картинки</td></tr>
+    <tr><td>Gemma 4 <b>31B</b></td><td>30,7B</td><td>30,7B</td><td>256K</td><td>текст + картинки</td></tr>
+  </table>
+
+  <div class="note grn"><b>Почему E4B — правильный выбор для нашего класса:</b> она мультимодальная (текст, изображения, звук), у неё <b>нативная поддержка системного промпта</b> и встроенные вызовы функций (function calling) — а значит, все практики блока D и E отработают честно. Плюс 140+ языков, включая русский, и режим «размышлений», который можно включать и выключать.</div></section>
+
+<section class="slide" id="s9" data-stage="B · Модели и квантование">
+  <div class="pbadge t">Теория · ключевое понятие курса</div>
+  <h2>Квантование: JPEG для нейросетей</h2>
+  <p class="lead">Каждый параметр модели — это число. Обычно его хранят точно, в 16 битах. <b>Квантование</b> — это округление чисел и хранение их в 4–8 битах. Файл уменьшается в разы, качество падает чуть-чуть.</p>
+
+  <div class="grid g2">
+    <div class="card"><h4>🎵 Аналогия со звуком</h4>
+      <p class="small muted">MP3 на 320 кбит/с и на 96 кбит/с — одна и та же песня. В хороших наушниках разница слышна, в шумном метро — нет. Так и здесь: <b>Q8 и Q4 отвечают почти одинаково</b>, но Q4 занимает вдвое меньше памяти и работает быстрее.</p></div>
+    <div class="card"><h4>🖼 Аналогия с картинкой</h4>
+      <p class="small muted">JPEG с качеством 95% и 60% на превьюшке неотличимы. А вот если начать их <b>увеличивать</b> — полезут артефакты. У моделей то же: на коротких бытовых ответах разницы нет, на длинных рассуждениях и сложном коде — появляется.</p></div>
+  </div>
+
+  <h3>Шкала качества</h3>
+  <div class="scalebar" style="height:44px">
+    <div style="width:16%;background:#4c1d24;color:#fecdd3">Q2 / Q3<br>слишком грубо</div>
+    <div style="width:26%;background:#5b4a12;color:#fde68a">Q4_K_M<br>золотая середина</div>
+    <div style="width:18%;background:#1f5b46;color:#a7f3d0">Q5_K_M<br>чуть точнее</div>
+    <div style="width:16%;background:#164e63;color:#bae6fd">Q6_K<br>почти без потерь</div>
+    <div style="width:24%;background:#3b2f6b;color:#ddd6fe">Q8_0<br>эталон, но тяжёлый</div>
+  </div>
+
+  <div class="grid g3">
+    <div class="card grn"><h4><span class="ok">✔</span> Q4_K_M / Q5_K_M</h4><p class="small muted">Официальная рекомендация LM Studio — <b>4 бита и выше</b>. Буквы: <code>K</code> — «k-quants», более умная схема сжатия; <code>S</code>/<code>M</code>/<code>L</code> — small/medium/large, насколько агрессивно сжаты разные части модели. <b>M</b> — лучший баланс.</p></div>
+    <div class="card red"><h4><span class="no">✘</span> Q2 / Q3</h4><p class="small muted">Модель путает факты, ломает код, зацикливается и теряет нить на длинных ответах. Экономия памяти того не стоит — тем более что у нас её хватает.</p></div>
+    <div class="card"><h4>✨ QAT — отдельная история</h4><p class="small muted">У Gemma 4 есть специальные <b>QAT</b>-версии: их <i>заранее обучали с учётом будущего сжатия</i>. В итоге 4-битная QAT-модель почти не уступает полной 16-битной. Если увидите <code>gemma-4-e4b-qat</code> — это отличный выбор.</p></div>
+  </div>
+
+  <div class="note"><b>Главный принцип выбора:</b> берите <b>самую большую модель</b>, которая влезает в вашу память, и <b>самое низкое приемлемое квантование</b>. Большая модель в Q4 почти всегда умнее маленькой в Q8.</div></section>
+
+<section class="slide" id="s10" data-stage="B · Модели и квантование">
+  <div class="pbadge t">Цифры · официальные данные Google</div>
+  <h2>Сколько памяти нужно Gemma 4</h2>
+  <p class="lead">Таблица из официальной документации Google (с запасом ~20% на служебные данные). Зелёным — то, что влезает в наши <b>8 ГБ VRAM</b>.</p>
+
+  <table>
+    <tr><th>Модель</th><th>BF16 (полная)</th><th>8 бит</th><th>4 бита (Q4)</th><th>На RTX 3060 8 ГБ</th></tr>
+    <tr><td>Gemma 4 <b>E2B</b></td><td>11,4 ГБ</td><td>5,7 ГБ</td><td>2,9 ГБ</td><td class="ok">✔ во всех вариантах</td></tr>
+    <tr><td>Gemma 4 <b>E4B</b> <span class="tag g">наша</span></td><td>17,9 ГБ</td><td>8,9 ГБ</td><td><b>4,5 ГБ</b></td><td class="ok">✔ Q4 · <span class="no">✘</span> полная и 8 бит</td></tr>
+    <tr><td>Gemma 4 <b>12B</b></td><td>26,7 ГБ</td><td>13,4 ГБ</td><td>6,7 ГБ</td><td class="ok">✔ Q4 впритык</td></tr>
+    <tr><td>Gemma 4 <b>26B A4B</b> (MoE)</td><td>57,7 ГБ</td><td>28,8 ГБ</td><td>14,4 ГБ</td><td class="no">✘ только с частью слоёв на CPU</td></tr>
+    <tr><td>Gemma 4 <b>31B</b></td><td>69,9 ГБ</td><td>34,9 ГБ</td><td>17,5 ГБ</td><td class="no">✘</td></tr>
+  </table>
+
+  <div class="grid g2">
+    <div class="card cyn"><h4>Реальные размеры GGUF-файлов E4B</h4>
+      <table style="margin:0">
+        <tr><td><code>Q4_K_M</code></td><td><b>5,34 ГБ</b></td><td class="ok">наш выбор</td></tr>
+        <tr><td><code>Q6_K</code></td><td>6,22 ГБ</td><td class="ok">влезает, но контекст впритык</td></tr>
+        <tr><td><code>Q8_0</code></td><td>8,03 ГБ</td><td class="no">не влезает в 8 ГБ VRAM</td></tr>
+        <tr><td><code>mmproj</code> (зрение)</td><td>0,99 ГБ</td><td>нужен для картинок</td></tr>
+      </table></div>
+    <div class="card amb"><h4>Почему Q6 «впритык»</h4>
+      <p class="small muted">Файл 6,22 ГБ + проектор зрения 0,99 ГБ = <b>7,2 ГБ</b>. Остаётся меньше гигабайта на контекст диалога (KV-кэш). Работать будет, но при длинной переписке LM Studio начнёт выталкивать часть слоёв в оперативную память — и скорость просядет.</p></div>
+  </div>
+
+  <div class="note grn"><b>Вывод для нашего железа:</b> рабочая конфигурация — <b>E4B Q4_K_M + mmproj</b>. Она оставляет ~1,7 ГБ свободной видеопамяти под контекст, чего хватает на десятки тысяч токенов переписки. Хотите сравнить качество — берите Q6_K, но уменьшите длину контекста.</div></section>
+
+<section class="slide" id="s11" data-stage="B · Модели и квантование">
+  <div class="pbadge t">Универсальный инструмент</div>
+  <h2>Формула размера — работает для любой модели</h2>
+
+  <div class="card center" style="padding:22px">
+    <div style="font-family:var(--mono);font-size:clamp(16px,2.7vw,26px)">
+      размер ≈ <span style="color:#38bdf8">параметры (B)</span> × <span style="color:#fcd34d">бит на параметр</span> ÷ 8 &nbsp;=&nbsp; <span style="color:#34d399">гигабайты</span>
+    </div>
+    <p class="small muted" style="margin:10px 0 0">Q4 ≈ 4,5 бита · Q5 ≈ 5,5 · Q6 ≈ 6,6 · Q8 ≈ 8,5. Плюс 0,5–3 ГБ на контекст диалога и мультимодальные модули.</p>
+  </div>
+
+  <h3>Проверяем на своей модели</h3>
+  <p><code>4,5 (эффективных B) × 4,5 (бит) ÷ 8 ≈ 2,5 ГБ</code> — но файл весит <b>5,34 ГБ</b>. Почему?</p>
+  <ul>
+    <li>Формула считает только «вычисляющие» параметры. А в файле лежат ещё <b>таблицы эмбеддингов</b> (поэтому полных параметров 8B, а не 4,5B).</li>
+    <li>K-квантование хранит часть весов точнее, чем «чистые» 4 бита, плюс добавляются масштабы блоков.</li>
+    <li>Отдельно лежит <b>проектор зрения</b> — ещё ~1 ГБ.</li>
+  </ul>
+  <p class="muted small">Вывод: формула годится для <b>быстрой оценки порядка</b> («влезет или нет»), а точный размер всегда смотрите в списке файлов.</p>
+
+  <h3>Быстрая прикидка «что влезет в мои 8 ГБ VRAM»</h3>
+  <table>
+    <tr><th>Хочу модель</th><th>Q4_K_M</th><th>Влезет в 8 ГБ?</th></tr>
+    <tr><td>2–4B</td><td>1,5–2,5 ГБ</td><td class="ok">✔ с огромным запасом</td></tr>
+    <tr><td><b>4,5–8B</b> (наш случай)</td><td>2,5–5,5 ГБ</td><td class="ok">✔ комфортно, остаётся место под контекст</td></tr>
+    <tr><td>12–14B</td><td>6,7–8,5 ГБ</td><td class="no">✘ впритык или нет; часть уедет в ОЗУ → медленнее</td></tr>
+    <tr><td>27B и больше</td><td>16+ ГБ</td><td class="no">✘ только частично на GPU</td></tr>
+    <tr><td>30B MoE (активно 3B)</td><td>~18 ГБ</td><td class="no">✘ по памяти, хотя по скорости было бы быстро</td></tr>
+  </table>
+
+  <div class="note cyn"><b>Важно понимать:</b> если модель не влезает в VRAM целиком, она <b>не перестаёт работать</b>. LM Studio разместит часть слоёв в оперативной памяти (у нас 16 ГБ) и будет считать их на процессоре. Ответы вы получите, но скорость упадёт в разы. Поэтому правило простое: <b>лучше модель поменьше, но целиком на видеокарте</b>.</div></section>
+
+<section class="slide" id="s12" data-stage="B · Модели и квантование" data-practice="1">
+  <div class="pbadge">Практика 2 · сравнение квантований</div>
+  <h2>Сами проверяем, что теряет Q4</h2>
+  <p class="lead">Теория теорией, а теперь измерим. Скачаем вторую версию той же модели и устроим честное сравнение.</p>
+
+  <div class="task" data-task>
+    <h4>🛠 Шаг 1 · подготовить участников</h4>
+    <label><input type="checkbox"><span>В <b>Discover</b> найти <code>gemma-4-e4b</code> и скачать <b>Q6_K</b> (6,22 ГБ)</span></label>
+    <label><input type="checkbox"><span>(По желанию, для наглядности) скачать <b>Q8_0</b> (8,03 ГБ) — он не влезет в VRAM, и это само по себе эксперимент</span></label>
+    <label><input type="checkbox"><span>Открыть два чата: в одном Q4_K_M, в другом Q6_K</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="task" data-task>
+    <h4>🛠 Шаг 2 · прогнать одинаковые тесты</h4>
+    <label><input type="checkbox"><span><b>Тест на арифметику и шаги</b> — промпт ниже, сравнить правильность</span></label>
+    <label><input type="checkbox"><span><b>Тест на связность длинного текста</b> — 15 пунктов без повторов</span></label>
+    <label><input type="checkbox"><span><b>Тест на формат</b> — попросить таблицу или список строго по образцу</span></label>
+    <label><input type="checkbox"><span>Записать скорость обеих моделей (t/s) и занятую память</span></label>
+    <label><input type="checkbox"><span>Сформулировать вывод одной фразой: «На моих задачах разница между Q4 и Q6 ...»</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="grid g3">
+    <div class="card"><p class="small"><b>Тест 1 · логика</b></p>
+      <pre><code>В корзине 17 яблок. Половину
+отдали соседу, треть оставшегося —
+сестре, потом докупили 5.
+Сколько яблок осталось?
+Реши по шагам и проверь себя.</code><button class="copy">копировать</button></pre></div>
+    <div class="card"><p class="small"><b>Тест 2 · связность</b></p>
+      <pre><code>Напиши инструкцию ровно из 15
+пунктов: «Как заварить идеальный
+чай». Нумеруй пункты. Не повторяй
+смысл и не уходи в другие темы.</code><button class="copy">копировать</button></pre></div>
+    <div class="card"><p class="small"><b>Тест 3 · формат</b></p>
+      <pre><code>Составь таблицу из 5 строк:
+«школьный предмет | зачем он
+нужен | оценка от 1 до 5».
+Выведи строго markdown-таблицей,
+без пояснений до и после.</code><button class="copy">копировать</button></pre></div>
+  </div>
+
+  <div class="note amb"><b>Что обычно видно:</b> на коротких бытовых ответах Q4 и Q6 почти неразличимы. Разница проявляется в <b>многоступенчатой арифметике</b>, в удержании формата на длинном выводе и в редких словах. При этом Q6 ест на 1 ГБ больше памяти и чуть медленнее. Отсюда и правило: Q4_K_M — рабочий вариант, Q6/Q8 — когда нужна максимальная точность и есть запас памяти.</div></section>
+
+<section class="slide" id="s13" data-stage="B · Модели и квантование" data-practice="1">
+  <div class="pbadge">Практика 3 · мультимодальность</div>
+  <h2>Показываем модели картинку</h2>
+  <p class="lead">Gemma 4 E4B умеет не только читать, но и <b>смотреть</b> (и даже слушать). Проверим — это самая зрелищная практика курса.</p>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 3</h4>
+    <label><input type="checkbox"><span>Убедиться, что скачан файл <code>mmproj-gemma-4-E4B-it-BF16.gguf</code> (992 МБ) — без него зрения нет</span></label>
+    <label><input type="checkbox"><span>В чате нажать на иконку <b>скрепки/изображения</b> и приложить любую картинку (фото с телефона, скриншот, график)</span></label>
+    <label><input type="checkbox"><span>Спросить: <code>Что изображено на картинке? Опиши подробно.</code></span></label>
+    <label><input type="checkbox"><span>Дать картинку <b>с текстом</b> (фото страницы книги, скриншот ошибки, меню) и попросить: <code>Перепиши весь текст с картинки</code></span></label>
+    <label><input type="checkbox"><span>Дать <b>график или диаграмму</b> и спросить: <code>Какой вывод можно сделать из этого графика?</code></span></label>
+    <label><input type="checkbox"><span>Проверить, где модель ошибается: мелкие детали, счёт предметов, рукописный текст</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <h3>Что попробовать обязательно</h3>
+  <div class="grid g3">
+    <div class="card"><h4>📄 Фото конспекта</h4><p class="small muted">Сфотографируйте страницу учебника или свой конспект → «перепиши текст и составь по нему 5 вопросов». Работает офлайн: ничего не уходит в облако.</p></div>
+    <div class="card"><h4>💻 Скриншот ошибки</h4><p class="small muted">Скриншот красного текста из программы → «объясни ошибку и как её исправить». Очень жизненный сценарий.</p></div>
+    <div class="card"><h4>📊 График</h4><p class="small muted">Диаграмма из интернета → «опиши тренд и сделай вывод». Здесь маленькие модели часто врут в числах — хорошая иллюстрация темы галлюцинаций.</p></div>
+  </div>
+
+  <div class="note cyn"><b>Как это устроено:</b> отдельная небольшая «зрительная» часть модели (vision encoder, ~150 млн параметров) превращает картинку в набор числовых описаний, а языковая модель работает с ними как с обычными токенами. Файл <code>mmproj</code> — как раз «переводчик» между ними. Поэтому без него модель слепая, даже если сама по себе поддерживает изображения.</div>
+
+  <div class="note amb"><b>Про звук:</b> E2B и E4B официально поддерживают ещё и аудио. В LM Studio поддержка звука зависит от версии и рантайма — если кнопки для аудио нет, не страшно: это не входит в обязательную программу.</div></section>
+
+<section class="slide" id="s14" data-stage="B · Модели и квантование" data-practice="1">
+  <div class="pbadge">Практика 4 · reasoning</div>
+  <h2>Режим «подумать»: включаем и выключаем</h2>
+  <p class="lead">Gemma 4 умеет работать в двух режимах: ответить сразу или сначала <b>порассуждать про себя</b>, а потом выдать ответ. Разница в качестве на сложных задачах — огромная.</p>
+
+  <div class="grid g2">
+    <div class="card"><h4>🚀 Быстрый режим</h4><p class="small muted">Модель отвечает сразу. Дёшево по времени, хорошо для простых вопросов, болтовни, коротких справок.</p></div>
+    <div class="card"><h4>🧠 Режим размышлений (thinking / reasoning)</h4><p class="small muted">Сначала генерируется длинная цепочка рассуждений («так, сначала найду половину, потом треть остатка...»), и только затем — ответ. Тратит в разы больше токенов, но заметно точнее в математике, логике и коде.</p></div>
+  </div>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 4</h4>
+    <label><input type="checkbox"><span>Найти в LM Studio переключатель режима размышлений (в панели настроек чата или в выпадающем меню выбора модели)</span></label>
+    <label><input type="checkbox"><span>Задать сложную задачу <b>без</b> размышлений → записать ответ и время</span></label>
+    <label><input type="checkbox"><span>Ту же задачу <b>с</b> размышлениями → сравнить</span></label>
+    <label><input type="checkbox"><span>Посчитать, во сколько раз больше токенов потратила «думающая» модель</span></label>
+    <label><input type="checkbox"><span>Проверить простой вопрос («сколько будет 2+2?») в режиме размышлений — убедиться, что думать там не о чем, а время тратится</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <h3>Задачи для сравнения</h3>
+  <pre><code>Задача 1. У Маши в 3 раза больше конфет, чем у Пети.
+Когда Маша отдала Пете 8 конфет, у них стало поровну.
+Сколько конфет было у каждого сначала?
+
+Задача 2. Напиши функцию на Python, которая принимает список
+чисел и возвращает второй по величине элемент.
+Учти случаи: пустой список, список из одного числа,
+список из одинаковых чисел.
+
+Задача 3. В доме 5 этажей. Лифт едет с 1-го на 3-й за 6 секунд.
+Сколько секунд он будет ехать с 1-го на 5-й, если скорость постоянна?</code><button class="copy">копировать</button></pre>
+
+  <div class="note grn"><b>Главный урок практики:</b> «думать» — это <b>дорого</b>. Включают reasoning только там, где задача действительно сложная. Для «привет, как дела» он бессмысленно жжёт время. Умение выбрать режим — такой же навык, как умение выбрать модель.</div>
+
+  <div class="note amb"><b>Классическая ловушка (задача 3):</b> правильный ответ — 12 секунд, а не 15. Пролётов между этажами четыре, а не пять. Модель без размышлений часто попадает в эту ловушку, «думающая» — обычно нет. Отличный пример, чтобы показать разницу.</div></section>
+
+<section class="slide" id="s15" data-stage="C · Семейства моделей">
+  <div class="pbadge t">Обзор · кто делает открытые модели</div>
+  <h2>Пять семейств и их характер</h2>
+  <p class="lead">Есть <b>базовые семейства</b> — и десятки тысяч их переделок (fine-tune) под болтовню, код, ролевые игры, медицину, переводы.</p>
+
+  <div class="grid g3">
+    <div class="card acc"><h4>🔷 Google — Gemma</h4><p class="small muted">Наша модель. E2B, E4B, 12B, 26B A4B, 31B. Мультимодальные, с режимом размышлений и вызовом функций.</p><span class="tag g">Apache 2.0</span></div>
+    <div class="card"><h4>🟣 Alibaba — Qwen</h4><p class="small muted">Самая широкая линейка в мире: от 0,6B до триллионных MoE. Поколение Qwen3.8 (август 2026). Отдельно — Qwen3-Coder.</p><span class="tag g">Apache 2.0</span></div>
+    <div class="card"><h4>🐋 DeepSeek</h4><p class="small muted">V4-Pro и V4-Flash, плюс знаменитая линейка R1 — модели, которые «думают вслух». Дистилляты R1 влезают в ноутбук.</p><span class="tag g">MIT</span></div>
+    <div class="card"><h4>🌀 Mistral (Франция)</h4><p class="small muted">Mistral 3: Ministral 3B/8B/14B в трёх вариантах (base, instruct, reasoning) и Mistral Large 3 (41B активных из 675B). Для кода — Devstral.</p><span class="tag g">Apache 2.0</span></div>
+    <div class="card"><h4>🦙 Meta* — Llama</h4><p class="small muted">Llama 4 Scout (109B MoE, 17B активных, контекст до 10 млн токенов) и Maverick (400B MoE). Plus Muse Glimmer 30B — под локальных агентов.</p><span class="tag a">своя лицензия</span></div>
+    <div class="card"><h4>➕ Другие</h4><p class="small muted">GLM 5.2 (Zhipu, MIT), Kimi K3 (Moonshot, 2,8 трлн параметров), gpt-oss (OpenAI), Phi (Microsoft), Nemotron (NVIDIA).</p><span class="tag">разные</span></div>
+  </div>
+
+  <div class="note cyn"><b>Что случилось за последний год:</b> открытые модели перестали быть «бюджетным вариантом». Летом 2026-го GLM 5.2, Kimi K3, DeepSeek V4 и Qwen3.8 идут вровень с закрытыми флагманами. В июле 2026 открытое письмо в защиту открытых весов подписали 50 компаний — включая OpenAI, Google, AMD и GitHub.</div>
+
+  <p class="small muted">*Meta признана экстремистской организацией и запрещена на территории РФ.</p></section>
+
+<section class="slide" id="s16" data-stage="C · Семейства моделей">
+  <div class="pbadge t">То, о чём забывают</div>
+  <h2>Лицензия: «открытая» ≠ «делай что хочешь»</h2>
+
+  <table>
+    <tr><th>Лицензия</th><th>Можно</th><th>Подводный камень</th><th>Кто</th></tr>
+    <tr><td><b>Apache 2.0</b></td><td>Всё: коммерция, изменение, перепродажа</td><td>Нужно сохранять уведомление о лицензии</td><td><b>Gemma 4</b>, Qwen3.x, Mistral 3</td></tr>
+    <tr><td><b>MIT</b></td><td>Всё, формулировки ещё короче</td><td>Практически нет</td><td>DeepSeek V4, GLM 5.2</td></tr>
+    <tr><td><b>Llama Community</b></td><td>Коммерция, изменение</td><td>Нельзя конкурировать с Meta; ограничения для сервисов с аудиторией &gt;700 млн</td><td>Llama 4</td></tr>
+    <tr><td><b>Своя (custom)</b></td><td>Смотря что написано</td><td>Читайте текст: лимиты по выручке, региону, типу продукта</td><td>Kimi K3, Qwen3.8-Max</td></tr>
+  </table>
+
+  <div class="grid g2">
+    <div class="card amb"><h4>Open weights ≠ Open source</h4>
+      <p class="small muted"><b>Открытые веса</b> = дали скачать «мозг» модели. <b>Открытый исходный код</b> в строгом смысле = дали ещё код обучения и данные, и всё под OSI-лицензией. Почти все «открытые» ИИ-модели — это открытые <b>веса</b>. Moonshot (Kimi) честно так и пишут.</p></div>
+    <div class="card grn"><h4>Наша Gemma 4 — в хорошем смысле</h4>
+      <p class="small muted"><b>Apache 2.0</b> — одна из самых свободных лицензий: можно бесплатно использовать в коммерческих продуктах, изменять, дообучать и распространять. Требование одно — сохранять текст лицензии и уведомления об авторстве.</p></div>
+  </div>
+
+  <div class="note red"><b>Почему это важно:</b> сделаете проект на модели с неудачной лицензией — и окажется, что продавать его нельзя. Правило: <b>лицензию читаем до начала разработки, а не перед релизом.</b> Смотреть её можно прямо в LM Studio (карточка модели) или на Hugging Face — блок <b>License</b> и файл <code>LICENSE</code>.</div></section>
+
+<section class="slide" id="s17" data-stage="C · Галлюцинации">
+  <div class="pbadge t">Теория · ключевое понятие</div>
+  <h2>Почему ИИ уверенно врёт</h2>
+  <div class="quote">Модель не «знает» факты. Она угадывает следующее слово — так, чтобы это звучало правдоподобно.</div>
+
+  <div class="grid g3">
+    <div class="card"><h4>⏳ Обрезание знаний</h4><p class="small muted">Обучение закончилось на определённой дате (<b>knowledge cutoff</b>). Всё, что произошло позже, модель не видела никогда. Локальные модели особенно «законсервированы»: их никто не обновляет каждый день.</p></div>
+    <div class="card"><h4>🔌 Нет доступа в интернет</h4><p class="small muted">По умолчанию локальная модель — мозг в банке: ни поиска, ни новостей, ни баз данных. Только то, что «зашито» в весах.</p></div>
+    <div class="card"><h4>🎲 Вероятностная природа</h4><p class="small muted">Если модель не знает ответ, она не молчит — она выдаёт <b>наиболее вероятный</b> текст. А вероятный ≠ верный. Так рождаются выдуманные ссылки, законы, цитаты и цены.</p></div>
+  </div>
+
+  <div class="note red"><b>Профессиональный термин: галлюцинация.</b> Опасна она не тем, что модель ошибается, а тем, что ошибается <b>уверенным тоном</b>. Проверять факты — работа человека. Это верно и для ChatGPT, и для Claude, и для любой локальной модели.</div>
+
+  <div class="note grn"><b>Формула безопасного промпта</b> — добавьте в System Context один раз и забудьте:<br>
+  <code>Если у тебя нет достоверных данных — напиши «не знаю» и предложи, где проверить. Не придумывай факты, даты, ссылки и числа.</code></div></section>
+
+<section class="slide" id="s18" data-stage="C · Галлюцинации" data-practice="1">
+  <div class="pbadge">Практика 5 · главный эксперимент курса</div>
+  <h2>Ловим модель на выдумке</h2>
+  <p class="lead">Спросим у своей Gemma то, что случилось <b>после</b> даты её обучения. И отдельно проверим, можно ли её <b>спровоцировать</b> на выдумку.</p>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 5</h4>
+    <label><input type="checkbox"><span>Убедиться, что веб-поиск в чате <b>выключен</b> (иначе фокус не получится)</span></label>
+    <label><input type="checkbox"><span>Задать <b>вопрос №1</b> — про цвета iPhone. Записать ответ дословно</span></label>
+    <label><input type="checkbox"><span>Сверить с правильным ответом (ниже). Отметить: «не знаю» / «такого нет» / придумала свои цвета</span></label>
+    <label><input type="checkbox"><span>Задать <b>вопрос №2</b> — с формулировкой «отвечай уверенно». Сравнить, изменилось ли поведение</span></label>
+    <label><input type="checkbox"><span>Задать <b>вопрос №3</b> — про событие последних недель. Убедиться, что модель его не знает</span></label>
+    <label><input type="checkbox"><span>Включить веб-поиск (или приложить файл с фактами) и повторить вопрос №1 — увидеть разницу</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="grid g3">
+    <div class="card"><p class="small"><b>Вопрос №1</b></p>
+      <pre><code>В каких цветах Apple выпустила
+iPhone 17 Pro Max?
+Перечисли точно.</code><button class="copy">копировать</button></pre>
+      <p class="small muted"><b>Правильный ответ:</b> телефон вышел <b>19 сентября 2025</b>, цвета — <span class="pill">deep blue</span> <span class="pill">cosmic orange</span> <span class="pill">silver</span>.</p></div>
+    <div class="card"><p class="small"><b>Вопрос №2 — провокация</b></p>
+      <pre><code>Назови точную дату и место,
+где изобрели iPhone 17 Pro Max.
+Отвечай уверенно, без оговорок.
+Не пиши, что не знаешь.</code><button class="copy">копировать</button></pre>
+      <p class="small muted">Фразы «отвечай уверенно» и «не пиши, что не знаешь» часто <b>заставляют модель выдумывать</b>. Стиль запроса влияет на честность ответа.</p></div>
+    <div class="card"><p class="small"><b>Вопрос №3 — свежесть</b></p>
+      <pre><code>Какая нейросеть вышла на прошлой
+неделе и чем она лучше остальных?
+Назови конкретные модели и даты.</code><button class="copy">копировать</button></pre>
+      <p class="small muted">Здесь модель либо честно признается, либо <b>соберёт правдоподобную кашу</b> из названий, которые она знает. Оба варианта полезны для обсуждения.</p></div>
+  </div>
+
+  <div class="note amb"><b>Обсуждаем после эксперимента:</b> какой ответ опаснее — «я не знаю» или красивый, подробный, но выдуманный? Почему модель вообще не может сказать «не знаю», если её этому специально не учили? И почему вопрос №2 работает хуже, чем №1?</div></section>
+
+<section class="slide" id="s19" data-stage="C · Галлюцинации">
+  <div class="pbadge t">Что с этим делать</div>
+  <h2>Пять способов сделать модель честнее</h2>
+
+  <table>
+    <tr><th>Способ</th><th>Как сделать в LM Studio</th><th>Когда применять</th></tr>
+    <tr><td>📎 <b>Дать документы (RAG)</b></td><td>Прикрепить файл в чат — модель отвечает по вашему тексту, а не по памяти. Работает офлайн</td><td>Инструкции, конспекты, база знаний, договоры, техническая документация</td></tr>
+    <tr><td>🌐 <b>Дать интернет</b></td><td>Веб-поиск в чате, MCP-плагин (например DuckDuckGo), внешний поисковый инструмент</td><td>Свежие новости, цены, курсы, события «на сегодня»</td></tr>
+    <tr><td>✍️ <b>Разрешить «не знаю»</b></td><td>Строка в System Context: «Если не уверен — так и напиши. Не выдумывай ссылки и цифры»</td><td>Всегда. Стоит ноль рублей и убирает половину галлюцинаций</td></tr>
+    <tr><td>🧠 <b>Включить reasoning</b></td><td>Режим размышлений (практика 4) или отдельная reasoning-модель: DeepSeek R1, Ministral reasoning</td><td>Математика, логика, код — там, где важен ход решения</td></tr>
+    <tr><td>🔍 <b>Проверять самому</b></td><td>Просить источник, переспрашивать, сверять с поисковиком, задавать тот же вопрос другой модели</td><td>Всё, что имеет последствия: деньги, здоровье, право, оценки</td></tr>
+  </table>
+
+  <div class="note cyn"><b>Приём «два свидетеля»:</b> если ответ важный — задайте тот же вопрос <b>двум разным моделям</b> (например, Gemma 4 E4B и Qwen3-4B). Совпали — скорее всего, правда. Разошлись — точно надо проверять вручную. У нас на машинах это бесплатно.</div>
+
+  <div class="note grn"><b>И главное:</b> ни один из способов не делает модель непогрешимой. Они лишь <b>снижают</b> долю выдумок. Ответственность за факты всегда на человеке.</div></section>
+
+<section class="slide" id="s20" data-stage="C · Галлюцинации" data-keep="1">
+  <div class="divider-slide">
+    <div class="num">01</div>
+    <div class="kicker">Конец первой части</div>
+    <h2>Часть 1 пройдена</h2>
+    <p class="lead">Вы установили LM Studio, запустили Gemma 4 E4B на видеокарте, разобрались, что такое квантование и сколько памяти нужно моделям, научились показывать модели картинки, включать режим размышлений — и поймали её на выдумке.</p>
+
+    <div class="grid g3 mt">
+      <div class="card grn"><h4>Умеете</h4><p class="small muted">выбирать модель под своё железо и осознанно брать Q4_K_M</p></div>
+      <div class="card grn"><h4>Понимаете</h4><p class="small muted">чем открытые веса отличаются от открытого кода и зачем читать лицензию</p></div>
+      <div class="card grn"><h4>Не верите</h4><p class="small muted">на слово фактам, которых нет в данных обучения</p></div>
+    </div>
+
+    <h3>Дальше — часть 2</h3>
+    <div class="flowline">
+      <span>Настроим характер модели</span><i>→</i><span>Научим её отдавать JSON</span><i>→</i><span>Поднимем свой API-сервер</span><i>→</i><span>Напишем бота, сайт и кодинг-ассистента</span>
+    </div>
+
+    <div class="note amb"><b>Это естественная точка перерыва.</b> Если занятие заканчивается здесь — вторая часть начинается со слайда 21 и не требует ничего, кроме уже установленной и работающей модели.</div>
+  </div></section>
+
+<section class="slide" id="s21" data-stage="D · Настройки модели" data-practice="1">
+  <div class="pbadge">Практика 6 · характер модели</div>
+  <h2>System Context: «прошивка личности»</h2>
+  <p class="lead">Одна и та же Gemma может быть строгим инженером, школьным репетитором или стендапером. Разница — в одной инструкции, которую модель видит <b>перед каждым</b> вашим сообщением.</p>
+
+  <div class="grid g3">
+    <div class="card"><h4>🧊 Строгий технарь</h4>
+      <pre><code>Ты — технический ассистент.
+Отвечай кратко и строго по делу,
+без воды и без дисклеймеров.
+Если данных не хватает — задай
+один уточняющий вопрос.
+Если не знаешь факт — так и скажи,
+не выдумывай.</code><button class="copy">копировать</button></pre></div>
+    <div class="card"><h4>🎓 Репетитор для школьника</h4>
+      <pre><code>Ты — терпеливый репетитор для
+ученика 8 класса. Объясняй просто,
+с примерами из жизни. Не давай
+готовый ответ сразу: сначала
+подведи ученика к нему вопросом.
+Проверяй понимание в конце.</code><button class="copy">копировать</button></pre></div>
+    <div class="card"><h4>🎭 Шутливый ведущий</h4>
+      <pre><code>Ты — весёлый ведущий квиза.
+Отвечай живо, с шутками и эмодзи,
+но факты не искажай. Каждый ответ
+заканчивай вопросом к зрителям.
+Не больше пяти предложений.</code><button class="copy">копировать</button></pre></div>
+  </div>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 6</h4>
+    <label><input type="checkbox"><span>В чате открыть правую панель настроек → найти поле <b>System Context</b> (System Prompt)</span></label>
+    <label><input type="checkbox"><span>Задать вопрос <b>без</b> системного промпта: <code>Объясни, что такое квантование модели</code></span></label>
+    <label><input type="checkbox"><span>Вставить промпт «репетитор» → новый чат → тот же вопрос</span></label>
+    <label><input type="checkbox"><span>Вставить промпт «ведущий» → новый чат → тот же вопрос. Сравнить три ответа рядом</span></label>
+    <label><input type="checkbox"><span>Написать <b>свой</b> системный промпт под любую роль (тренер, редактор, экскурсовод, пират) и проверить его</span></label>
+    <label><input type="checkbox"><span>Попробовать «сломать» роль: задать 10 вопросов подряд на другую тему — держится ли характер?</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="note grn"><b>Хорошая новость про Gemma 4:</b> у этой модели <b>нативная поддержка роли <code>system</code></b> — она обучена слушаться системных инструкций специально. Многие старые модели такой поддержки не имеют и воспринимают системный промпт как «просто ещё один текст», поэтому игнорируют его. С Gemma 4 характер держится заметно лучше.</div>
+
+  <div class="note cyn"><b>Как это работает технически:</b> System Context — это сообщение с ролью <code>system</code>, которое уходит модели первым в каждом запросе. Модель не «запоминает» его навсегда, а получает заново каждый раз. Поэтому персональность стабильна — пока вы не поменяете текст. В блоке D мы будем передавать то же самое сообщение уже из кода.</div></section>
+
+<section class="slide" id="s22" data-stage="D · Настройки модели" data-practice="1">
+  <div class="pbadge">Практика 7 · temperature</div>
+  <h2>Temperature: ручка «творческости»</h2>
+  <p class="lead">Модель всегда выбирает следующее слово из списка кандидатов, у каждого своя вероятность. Temperature решает, <b>насколько смело</b> она берёт маловероятные варианты.</p>
+
+  <div class="scalebar" style="height:46px">
+    <div style="width:20%;background:#164e63;color:#bae6fd">0.0–0.2<br>робот</div>
+    <div style="width:25%;background:#1f5b46;color:#a7f3d0">0.3–0.5<br>точно</div>
+    <div style="width:20%;background:#3b2f6b;color:#ddd6fe">0.6–0.8<br>норма</div>
+    <div style="width:20%;background:#5b4a12;color:#fde68a">0.9–1.2<br>креатив</div>
+    <div style="width:15%;background:#4c1d24;color:#fecdd3">1.5+<br>каша</div>
+  </div>
+  <p class="small muted">Технически: температура делит «сырые» оценки слов перед розыгрышем. <b>0</b> — всегда берётся самое вероятное слово (ответ почти повторяем). <b>Выше 1</b> — маловероятные слова получают реальный шанс.</p>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 7</h4>
+    <label><input type="checkbox"><span>Найти <b>Temperature</b> в правой панели настроек чата</span></label>
+    <label><input type="checkbox"><span>Поставить <b>0.1</b> → трижды задать один и тот же промпт → сравнить три ответа (они будут почти одинаковыми)</span></label>
+    <label><input type="checkbox"><span>Поставить <b>1.2</b> → трижды тот же промпт → сравнить (ответы разъедутся)</span></label>
+    <label><input type="checkbox"><span>Поставить <b>2.0</b> → посмотреть, что начинается бессвязица</span></label>
+    <label><input type="checkbox"><span>Заполнить таблицу «задача → температура» (ниже) своими примерами</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card"><p class="small"><b>Промпт для эксперимента</b></p>
+      <pre><code>Придумай название для школьной
+кофейни и объясни выбор
+в одном предложении.</code><button class="copy">копировать</button></pre></div>
+    <div class="card">
+      <table style="margin:0">
+        <tr><th>Задача</th><th>temp</th></tr>
+        <tr><td>Код, JSON, факты, классификация</td><td><b>0.0–0.3</b></td></tr>
+        <tr><td>Техподдержка, инструкции</td><td><b>0.2–0.5</b></td></tr>
+        <tr><td>Обычный диалог, резюме</td><td><b>0.6–0.8</b></td></tr>
+        <tr><td>Стихи, сценарии, брейншторм</td><td><b>0.9–1.2</b></td></tr>
+      </table></div>
+  </div>
+
+  <div class="note red"><b>Типичная ошибка:</b> выкрутить температуру на 1.4 «чтобы было интереснее» и получить бессвязный текст. Правило: <b>выше 1.2 — только для художественных экспериментов.</b> И помните: температура <b>не делает модель умнее</b>, она меняет только способ выбора слова.</div></section>
+
+<section class="slide" id="s23" data-stage="D · Настройки модели">
+  <div class="pbadge t">Теория · 5 минут</div>
+  <h2>Top-k и Top-p: сколько кандидатов рассматривать</h2>
+  <p class="lead">Оба параметра делают одно и то же разными способами — <b>отсекают заведомо неподходящие слова</b> перед розыгрышем.</p>
+
+  <div class="grid g2">
+    <div class="card"><h4>Top-k — «сколько штук»</h4>
+      <p class="small muted">Оставляем <b>k самых вероятных</b> слов, остальные отбрасываем.</p>
+      <p class="small muted"><code>k = 40</code> → выбор из 40 лучших.<br><code>k = 1</code> → всегда самое вероятное слово.<br><code>k = 0</code> → отключено, рассматриваются все.</p></div>
+    <div class="card"><h4>Top-p (Nucleus) — «сколько вероятности»</h4>
+      <p class="small muted">Берём слова по убыванию вероятности и останавливаемся, как только сумма достигла <b>p</b>. Последнее слово, «перешагнувшее» порог, остаётся в игре.</p>
+      <p class="small muted"><code>p = 0.9</code> → в розыгрыше только те слова, что дают вместе 90% вероятности.</p></div>
+  </div>
+
+  <div class="card mt">
+    <h4>🔻 Наглядно: «Сегодня очень хорошая ...»</h4>
+    <table style="margin-top:6px">
+      <tr><th>Слово</th><th>Вероятность</th><th>Накоплено</th><th>Top-k = 3</th><th>Top-p = 0.9</th></tr>
+      <tr><td>погода</td><td>52%</td><td>52%</td><td class="ok">в игре</td><td class="ok">в игре</td></tr>
+      <tr><td>новость</td><td>21%</td><td>73%</td><td class="ok">в игре</td><td class="ok">в игре</td></tr>
+      <tr><td>идея</td><td>14%</td><td>87%</td><td class="ok">в игре</td><td class="ok">в игре</td></tr>
+      <tr><td>собака</td><td>7%</td><td><b>94%</b></td><td>отсечено</td><td class="ok">в игре — именно оно перешагнуло 90%</td></tr>
+      <tr><td>табуретка</td><td>3%</td><td>97%</td><td>отсечено</td><td>отсечено</td></tr>
+      <tr><td>...ещё 260 000 слов словаря</td><td>&lt;1%</td><td>100%</td><td>отсечено</td><td>отсечено</td></tr>
+    </table>
+    <p class="small muted" style="margin-bottom:0">Словарь Gemma 4 — 262 тысячи токенов. Без фильтрации модель каждый раз выбирает из всех них.</p>
+  </div>
+
+  <div class="note grn"><b>Практическое правило:</b> крутите <b>что-то одно</b> — либо Temperature, либо Top-p. Второе оставьте в покое. Меньше значения → ответ предсказуемее. Больше → простор для креатива (и для галлюцинаций).</div></section>
+
+<section class="slide" id="s24" data-stage="D · Настройки модели" data-practice="1">
+  <div class="pbadge">Практика 8 · repeat penalty, max tokens, контекст</div>
+  <h2>Ещё три ручки, которые ломают и чинят ответы</h2>
+
+  <div class="grid g3">
+    <div class="card"><h4>🔁 Repeat Penalty</h4>
+      <p class="small muted">Штрафует уже употреблённые слова — модель перестаёт «заедать».</p>
+      <ul class="small">
+        <li><b>1.0</b> — выключено</li>
+        <li><b>1.05–1.15</b> — рабочая норма</li>
+        <li><b>1.2+</b> — сушит стиль</li>
+        <li><b>1.3+</b> — ломает код и списки: модель избегает нужных повторов (<code>}</code>, <code>return</code>, «шаг 1… шаг 2»)</li>
+      </ul></div>
+    <div class="card"><h4>✂️ Max Tokens</h4>
+      <p class="small muted">Жёсткий потолок длины <b>ответа</b>.</p>
+      <ul class="small">
+        <li><b>128–256</b> — короткий ответ, классификация</li>
+        <li><b>512–1024</b> — абзац-два, обычная задача</li>
+        <li><b>2048–4096</b> — статья, код, рассуждение</li>
+      </ul>
+      <p class="small muted">Если лимит мал, ответ <b>обрежется на полуслове</b> — это не баг, это ваша настройка.</p></div>
+    <div class="card"><h4>📏 Context Length</h4>
+      <p class="small muted">Сколько текста модель <b>помнит</b>: системный промпт + вся переписка + ваш вопрос + ответ. У Gemma 4 E4B заявлено до 128K токенов.</p>
+      <p class="small muted">Но каждый токен контекста <b>ест видеопамять</b>. На 8 ГБ VRAM разумный рабочий диапазон — <b>4096–16384</b>. Поставите 128 000 — модель не загрузится или вывалится в оперативную память.</p></div>
+  </div>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 8</h4>
+    <label><input type="checkbox"><span>Поставить <b>Max Tokens = 60</b> и попросить <code>напиши 10 советов по тайм-менеджменту</code> → увидеть обрезанный ответ</span></label>
+    <label><input type="checkbox"><span>Вернуть <b>Max Tokens = 1024</b> → тот же запрос → нормальный список</span></label>
+    <label><input type="checkbox"><span>Поставить <b>Repeat Penalty = 1.5</b> и попросить написать код → увидеть, как ломается синтаксис</span></label>
+    <label><input type="checkbox"><span>Вернуть <b>1.1</b> → код снова нормальный</span></label>
+    <label><input type="checkbox"><span>Поднять <b>Context Length</b> до 32768 и посмотреть, как изменилась оценка потребления VRAM в настройках загрузки</span></label>
+    <label><input type="checkbox"><span>Проверить память: Диспетчер задач → Производительность → GPU → <b>Выделенная память GPU</b>. Записать, сколько занято</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="note cyn"><b>Разница, которую путают чаще всего:</b> <b>Context Length</b> — сколько модель <i>помнит</i>. <b>Max Tokens</b> — сколько она может <i>написать в ответ</i>. Первое расходует видеопамять, второе экономит время.</div></section>
+
+<section class="slide" id="s25" data-stage="D · Structured Output" data-practice="1">
+  <div class="pbadge">Практика 9 · JSON</div>
+  <h2>Structured Output: ответ строго по форме</h2>
+  <p class="lead">Обычный ответ — текст для человека. Но если ответ пойдёт в <b>бота, базу данных или программу</b>, нужен формат, который понимает машина. Чаще всего — <b>JSON</b>.</p>
+
+  <div class="grid g2">
+    <div class="card red"><h4><span class="no">✘</span> Просьба в промпте</h4>
+      <pre><code>Ты — финансовый аналитик.
+Отвечай строго в формате JSON:
+{"рекомендация": "string",
+ "причина": "string"}</code><button class="copy">копировать</button></pre>
+      <p class="small muted">Работает, но <b>не гарантированно</b>: модель может добавить «Вот ваш ответ:», пояснение после скобок или лишнюю запятую. Программа упадёт.</p></div>
+    <div class="card grn"><h4><span class="ok">✔</span> JSON Schema — настоящая гарантия</h4>
+      <pre><code>{
+  "type": "object",
+  "properties": {
+    "рекомендация": {
+      "type": "string",
+      "enum": ["купить","держать","продать"]
+    },
+    "причина": { "type": "string" },
+    "риск": { "type": "integer",
+              "minimum": 1, "maximum": 10 }
+  },
+  "required": ["рекомендация",
+               "причина","риск"],
+  "additionalProperties": false
+}</code><button class="copy">копировать</button></pre>
+      <p class="small muted">Включается в панели настроек чата (structured output / JSON schema) и передаётся через API. Модель <b>физически не может</b> выдать ничего кроме валидного JSON с этими полями.</p></div>
+  </div>
+
+  <div class="note"><b>Разница на пальцах:</b> промпт — это <i>вежливая просьба</i> «заполни бланк». JSON Schema — это <i>бланк с прорезями</i>: кроме нужных полей вставить некуда. Первое зависит от ума модели, второе гарантируется движком.</div>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 9 — извлекаем данные из текста</h4>
+    <label><input type="checkbox"><span>Включить в чате structured output / JSON schema и вставить схему выше</span></label>
+    <label><input type="checkbox"><span>Задать вопрос: <code>Что делать с акциями компании, которая третий квартал убыточна и потеряла двух ключевых клиентов?</code></span></label>
+    <label><input type="checkbox"><span>Скопировать ответ и проверить его в любом онлайн-валидаторе JSON → должен быть валидным</span></label>
+    <label><input type="checkbox"><span>Написать <b>свою</b> схему: <code>{"товар": str, "цена": number, "валюта": str}</code></span></label>
+    <label><input type="checkbox"><span>Скармливать модели текст объявления и получать из него JSON (пример ниже)</span></label>
+    <label><input type="checkbox"><span>Попробовать «сломать» схему: попросить то, чего в ней нет → убедиться, что модель не может</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <pre><code>Извлеки данные из объявления. Ответ — строго JSON по схеме
+{"товар": string, "цена": number, "валюта": string, "состояние": string}:
+
+«Продам велосипед горный Stels Navigator 700, 21 скорость,
+куплен в прошлом году, катался мало, есть царапины на раме.
+Отдам за 12500 рублей, торг уместен, самовывоз с Восточной.»</code><button class="copy">копировать</button></pre>
+
+  <div class="note amb"><b>Честное предупреждение:</b> схема гарантирует <b>форму</b>, но не <b>содержание</b>. Модель может выдать идеальный JSON с выдуманной причиной или ценой. Формат ≠ достоверность — это мы проходили в блоке C.</div></section>
+
+<section class="slide" id="s26" data-stage="D · Свой API-сервер">
+  <div class="pbadge t">Теория · объясняем на пальцах</div>
+  <h2>Что такое API-сервер и зачем он нам</h2>
+
+  <div class="quote">Сейчас вы общаетесь с моделью <b>через окошко чата</b>, вручную. API-сервер — это способ дать модели <b>телефонную трубку</b>: любая программа сможет позвонить ей и получить ответ.</div>
+
+  <div class="grid g2">
+    <div class="card"><h4>🧩 Из чего состоит «запрос к ИИ»</h4>
+      <ol class="small muted">
+        <li><b>Адрес</b> — куда звоним. У нас: <code>http://localhost:1234/v1</code></li>
+        <li><b>Метод</b> — что делаем. Почти всегда <code>POST</code> («вот данные, обработай»)</li>
+        <li><b>Заголовки</b> — «я прислал JSON»</li>
+        <li><b>Тело запроса</b> — сам JSON: какая модель, какие сообщения, какие настройки</li>
+        <li><b>Ответ</b> — JSON с текстом модели</li>
+      </ol></div>
+    <div class="card"><h4>🔤 Расшифровываем адрес</h4>
+      <table style="margin:0">
+        <tr><td><code>http://</code></td><td>обычный веб-протокол, без шифрования</td></tr>
+        <tr><td><code>localhost</code></td><td>«этот же компьютер». То же самое, что <code>127.0.0.1</code>. Запросы <b>не выходят в интернет</b></td></tr>
+        <tr><td><code>:1234</code></td><td>порт — «номер двери» внутри компьютера. У LM Studio по умолчанию 1234</td></tr>
+        <tr><td><code>/v1</code></td><td>версия интерфейса. Дальше добавляется путь: <code>/chat/completions</code> или <code>/models</code></td></tr>
+      </table></div>
+  </div>
+
+  <h3>Почему это круто</h3>
+  <div class="grid g3">
+    <div class="card grn"><h4>Совместимость с OpenAI</h4><p class="small muted">LM Studio говорит на том же «языке», что и ChatGPT API. Программа, написанная для OpenAI, заработает с вашей локальной моделью — нужно поменять <b>только адрес</b>. Один и тот же код, два разных «мозга».</p></div>
+    <div class="card grn"><h4>Любой язык и любая программа</h4><p class="small muted">Python, JavaScript, C#, Telegram-бот, сайт, игра в Unity, плагин для браузера, Excel через надстройку — всё, что умеет делать HTTP-запросы.</p></div>
+    <div class="card grn"><h4>Дёшево на этапе разработки</h4><p class="small muted">Даже если в финале вы пойдёте на платный ChatGPT или Claude, <b>разрабатывать</b> удобнее локально: ноль счетов, ноль утечек, можно гонять тысячи тестовых запросов.</p></div>
+  </div>
+
+  <div class="note cyn"><b>Что мы сделаем в этом блоке:</b> поднимем сервер → проверим его браузером → отправим запрос из терминала → напишем чат-бота на Python → сделаем веб-страницу с чатом → соберём Telegram-бота → подключим модель к VS Code. Всё своими руками.</div></section>
+
+<section class="slide" id="s27" data-stage="D · Свой API-сервер" data-practice="1">
+  <div class="pbadge">Практика 10 · поднимаем сервер</div>
+  <h2>Запуск API-сервера: пошагово</h2>
+  <p class="lead">Делаем <b>все вместе</b>, шаг за шагом. Ничего устанавливать не нужно — сервер встроен в LM Studio.</p>
+
+  <div class="step"><div class="n">1</div><div><b>Загрузите модель.</b> Сервер отвечает той моделью, которая выбрана. Вкладка <b>Chat</b> → выбрать <code>gemma-4-E4B-it Q4_K_M</code> → <b>Load</b>. Убедитесь, что она действительно загружена (зелёная индикация, VRAM занят).</div></div>
+  <div class="step"><div class="n">2</div><div><b>Откройте вкладку Developer.</b> Это иконка с зелёной консолью в левом меню, либо <kbd>Ctrl</kbd>+<kbd>4</kbd>.</div></div>
+  <div class="step"><div class="n">3</div><div><b>Выберите модель для сервера.</b> В верхней части вкладки есть выпадающий список — в нём должно быть <code>Just-in-Time Model Loading</code> (модель подгружается по запросу) или явно выбранная ваша Gemma. Для урока удобнее второе: меньше сюрпризов.</div></div>
+  <div class="step"><div class="n">4</div><div><b>Нажмите «Start Server».</b> Это переключатель в левом верхнем углу вкладки. В консоли появятся строки логов, и среди них — адрес сервера.</div></div>
+  <div class="step"><div class="n">5</div><div><b>Разрешите доступ в брандмауэре</b>, если Windows спросит. Достаточно «Частных сетей» — наружу, в интернет, сервер не публикуется. Если окна не было — значит, всё уже разрешено.</div></div>
+  <div class="step"><div class="n">6</div><div><b>Проверьте в браузере.</b> Откройте новую вкладку и перейдите по адресу:
+    <pre style="margin:8px 0"><code>http://localhost:1234/v1/models</code><button class="copy">копировать</button></pre>
+    Вы должны увидеть JSON-текст со списком моделей. <b>Если видите — сервер работает.</b> Поздравляю, у вас теперь свой ИИ-API.</div></div>
+  <div class="step"><div class="n">7</div><div><b>Скопируйте точный ID модели</b> из этого JSON — поле <code>"id"</code>. Он понадобится во всех следующих практиках. Выглядит примерно так: <code>lmstudio-community/gemma-4-e4b-it</code>.</div></div>
+
+  <div class="note grn"><b>Как выглядит успешный ответ <code>/v1/models</code>:</b></div>
+  <pre><code>{
+  "object": "list",
+  "data": [
+    {
+      "id": "lmstudio-community/gemma-4-e4b-it",
+      "object": "model",
+      "owned_by": "lmstudio-community",
+      "type": "vlm"
+    }
+  ]
+}</code><button class="copy">копировать</button></pre>
+  <p class="small muted">Обратите внимание на <code>"type": "vlm"</code> — vision-language model. LM Studio честно сообщает, что модель умеет смотреть на картинки: это можно использовать в коде.</p>
+
+  <div class="note cyn"><b>Полезная мелочь:</b> в вкладке Developer есть встроенный интерфейс для тестовых запросов — можно отправить сообщение модели прямо из LM Studio, вообще не написав ни строчки кода. Хороший способ проверить, что сервер живой, прежде чем лезть в терминал.</div></section>
+
+<section class="slide" id="s28" data-stage="D · Свой API-сервер">
+  <div class="pbadge d">Справочник · если что-то не так</div>
+  <h2>Диагностика: сервер не отвечает</h2>
+  <p class="lead">90% проблем решаются по этой таблице. Идём сверху вниз.</p>
+
+  <table>
+    <tr><th>Симптом</th><th>Причина</th><th>Лечение</th></tr>
+    <tr><td>Браузер: «не удалось подключиться к сайту»</td><td>Сервер не запущен</td><td>Вкладка Developer → переключатель <b>Start Server</b> должен быть включён. В консоли должна быть строка с адресом</td></tr>
+    <tr><td>То же, но сервер точно запущен</td><td>Занят порт 1234 (другая программа)</td><td>В настройках сервера смените порт, например на 1235, и обращайтесь к <code>localhost:1235/v1</code></td></tr>
+    <tr><td>То же, и в логах ошибка про <code>EADDRINUSE</code></td><td>Предыдущий экземпляр LM Studio не закрыт</td><td>Закройте все окна LM Studio (проверьте системный трей) и запустите заново</td></tr>
+    <tr><td><code>/v1/models</code> отвечает, но список <b>пустой</b></td><td>Модель не загружена в память</td><td>Загрузите модель в чате, либо в Developer выберите её в выпадающем списке вместо <code>Just-in-Time Model Loading</code></td></tr>
+    <tr><td>Ошибка <code>model not found</code> при запросе</td><td>Имя модели в запросе не совпадает с реальным ID</td><td>Скопируйте ID <b>точно</b> из <code>/v1/models</code> или из My Models. Регистр и слэш имеют значение</td></tr>
+    <tr><td>Ошибка <code>401 Unauthorized</code></td><td>Включён API-ключ</td><td>В настройках сервера отключите требование ключа или передайте его в заголовке <code>Authorization: Bearer ...</code>. Локально ключ обычно не нужен</td></tr>
+    <tr><td>Веб-страница не получает ответ, хотя curl работает</td><td>Заблокирован CORS (браузер запрещает запрос с другого «сайта»)</td><td>В настройках сервера LM Studio включите <b>CORS</b>. Для локальной разработки это безопасно</td></tr>
+    <tr><td>Очень медленные ответы, 1–3 токена/сек</td><td>Модель считается на процессоре</td><td>Проверьте GPU Offload и CUDA-рантайм (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>), обновите драйвер NVIDIA</td></tr>
+    <tr><td>Ответ обрывается на полуслове</td><td>Слишком маленький <code>max_tokens</code></td><td>Поднимите значение в запросе (512–1024 обычно хватает)</td></tr>
+    <tr><td>Windows спросила про брандмауэр, нажали «Отмена»</td><td>Заблокирован доступ</td><td>Панель управления → Брандмауэр Windows → «Разрешение взаимодействия с приложением» → найти LM Studio → поставить галочку</td></tr>
+  </table>
+
+  <div class="note amb"><b>Универсальный совет по отладке:</b> всегда начинайте с самого простого запроса — <code>http://localhost:1234/v1/models</code> в браузере. Если он не работает, проблема в сервере. Если работает — проблема в вашем коде или в имени модели. Это делит все беды пополам и экономит часы.</div></section>
+
+<section class="slide" id="s29" data-stage="D · Свой API-сервер" data-practice="1">
+  <div class="pbadge">Практика 11 · первый запрос без чата</div>
+  <h2>Разговариваем с моделью из терминала</h2>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 11</h4>
+    <label><input type="checkbox"><span>Открыть терминал: <kbd>Win</kbd>+<kbd>R</kbd> → <code>cmd</code> (или PowerShell / Терминал в Linux)</span></label>
+    <label><input type="checkbox"><span>Выполнить команду ниже и получить ответ модели прямо в консоли</span></label>
+    <label><input type="checkbox"><span>Поменять <code>temperature</code> на 1.2 и выполнить ещё раз — увидеть, как изменился ответ</span></label>
+    <label><input type="checkbox"><span>Добавить системное сообщение (роль <code>system</code>) и проверить, что характер изменился</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <h3>Windows · PowerShell</h3>
+  <pre><code>curl.exe http://localhost:1234/v1/chat/completions -H "Content-Type: application/json" -d "{\"model\":\"lmstudio-community/gemma-4-e4b-it\",\"messages\":[{\"role\":\"system\",\"content\":\"Отвечай одним предложением.\"},{\"role\":\"user\",\"content\":\"Объясни, что такое API\"}],\"temperature\":0.4,\"max_tokens\":200}"</code><button class="copy">копировать</button></pre>
+  <p class="small muted">В Windows важно писать именно <code>curl.exe</code>: слово <code>curl</code> без расширения — это псевдоним другой команды, и запрос не уйдёт.</p>
+
+  <h3>Linux / macOS · обычный bash</h3>
+  <pre><code>curl http://localhost:1234/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "lmstudio-community/gemma-4-e4b-it",
+    "messages": [
+      {"role": "system", "content": "Отвечай одним предложением."},
+      {"role": "user",   "content": "Объясни, что такое API"}
+    ],
+    "temperature": 0.4,
+    "max_tokens": 200
+  }'</code><button class="copy">копировать</button></pre>
+
+  <h3>Тот же запрос на Python — читается гораздо легче</h3>
+  <pre><code># один раз установить библиотеку:  pip install openai
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:1234/v1",   # наш локальный сервер
+    api_key="lm-studio",                   # любой текст, локально не проверяется
+)
+
+answer = client.chat.completions.create(
+    model="lmstudio-community/gemma-4-e4b-it",   # точный ID из /v1/models
+    messages=[
+        {"role": "system", "content": "Отвечай одним предложением."},
+        {"role": "user",   "content": "Объясни, что такое API"},
+    ],
+    temperature=0.4,
+    max_tokens=200,
+)
+
+print(answer.choices[0].message.content)</code><button class="copy">копировать</button></pre>
+
+  <div class="note"><b>Смотрите внимательно:</b> в запросе ровно те же параметры, которые мы крутили в чате мышкой — <code>system</code>-сообщение, <code>temperature</code>, <code>max_tokens</code>. Никакой магии: <b>чат в LM Studio сам делает такие же запросы</b>, просто прячет их за красивым интерфейсом.</div></section>
+
+<section class="slide" id="s30" data-stage="D · Свой API-сервер" data-practice="1">
+  <div class="pbadge">Практика 12 · проект «чат-бот в консоли»</div>
+  <h2>Пишем свою первую программу с ИИ</h2>
+  <p class="lead">Полноценный чат-бот: запоминает историю разговора, имеет характер, умеет выходить по команде. Тридцать строк кода.</p>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 12</h4>
+    <label><input type="checkbox"><span>Установить библиотеку: <code>pip install openai</code></span></label>
+    <label><input type="checkbox"><span>Создать файл <code>bot.py</code> и вставить код ниже</span></label>
+    <label><input type="checkbox"><span>Вписать <b>свой</b> точный ID модели (из <code>/v1/models</code>)</span></label>
+    <label><input type="checkbox"><span>Запустить: <code>python bot.py</code> → поговорить с ботом → выйти словом <code>выход</code></span></label>
+    <label><input type="checkbox"><span>Поменять системный промпт на свой и проверить, что характер изменился</span></label>
+    <label><input type="checkbox"><span><b>Усложнение:</b> добавить ограничение истории (хранить только последние 10 сообщений)</span></label>
+    <label><input type="checkbox"><span><b>Усложнение:</b> сделать обработку ошибки «сервер не запущен» — вывести понятное сообщение</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <pre><code>from openai import OpenAI
+
+MODEL = "lmstudio-community/gemma-4-e4b-it"   # ← замените на свой ID
+
+client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
+
+# «личность» бота — одно сообщение с ролью system
+history = [
+    {"role": "system", "content":
+        "Ты — дружелюбный помощник школьника. Отвечай кратко, по делу, "
+        "простым языком. Если не знаешь факт — честно скажи об этом "
+        "и не выдумывай."}
+]
+
+print("Бот запущен. Для выхода напиши: выход\n")
+
+while True:
+    user = input("Вы: ").strip()
+    if not user:
+        continue
+    if user.lower() in ("выход", "exit", "quit"):
+        print("Пока!")
+        break
+
+    history.append({"role": "user", "content": user})
+
+    try:
+        answer = client.chat.completions.create(
+            model=MODEL,
+            messages=history,
+            temperature=0.6,
+            max_tokens=400,
+        )
+        text = answer.choices[0].message.content
+    except Exception as e:
+        print("Ошибка! Проверьте, запущен ли сервер в LM Studio.")
+        print("Подробности:", e)
+        history.pop()          # убираем сообщение, которое не обработали
+        continue
+
+    history.append({"role": "assistant", "content": text})
+    print("Бот:", text, "\n")</code><button class="copy">копировать</button></pre>
+
+  <div class="grid g2">
+    <div class="note cyn"><b>Как это работает:</b> у модели <b>нет памяти</b> между запросами. Каждый раз мы отправляем ей <b>всю историю целиком</b> — список сообщений <code>system → user → assistant → user → ...</code>. Именно поэтому бот «помнит» разговор. Память живёт в вашей программе, а не в модели.</div>
+    <div class="note amb"><b>Отсюда следует ограничение:</b> чем длиннее разговор, тем больше токенов мы отправляем каждый раз → тем медленнее ответы и тем больше видеопамяти нужно. В настоящих продуктах историю обрезают или «сжимают» в краткое резюме.</div>
+  </div></section>
+
+<section class="slide" id="s31" data-stage="D · Свой API-сервер" data-practice="1">
+  <div class="pbadge">Практика 13 · проект «чат на веб-странице»</div>
+  <h2>Свой ChatGPT в браузере — без единой установки</h2>
+  <p class="lead">Один HTML-файл. Никакого Python, никаких библиотек. Браузер сам обращается к вашему локальному серверу.</p>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 13</h4>
+    <label><input type="checkbox"><span>В LM Studio (вкладка Developer) убедиться, что включён <b>CORS</b> — иначе браузер заблокирует запрос</span></label>
+    <label><input type="checkbox"><span>Создать файл <code>chat.html</code> и вставить код ниже</span></label>
+    <label><input type="checkbox"><span>Вписать свой ID модели в константу <code>MODEL</code></span></label>
+    <label><input type="checkbox"><span>Открыть файл двойным щелчком в браузере → написать сообщение → получить ответ</span></label>
+    <label><input type="checkbox"><span>Поменять системный промпт в поле сверху → убедиться, что характер меняется на лету</span></label>
+    <label><input type="checkbox"><span><b>Усложнение:</b> добавить ползунок температуры и передавать его значение в запрос</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="ru"&gt;
+&lt;head&gt;
+&lt;meta charset="utf-8"&gt;
+&lt;title&gt;Мой локальный ИИ&lt;/title&gt;
+&lt;style&gt;
+  body{font-family:sans-serif;max-width:760px;margin:30px auto;padding:0 16px;background:#0b0a14;color:#eee}
+  textarea,input{width:100%;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #444;background:#171527;color:#eee;font:inherit}
+  button{padding:10px 18px;border-radius:8px;border:0;background:#7c3aed;color:#fff;font:inherit;cursor:pointer}
+  .msg{border:1px solid #2d2748;border-radius:12px;padding:12px;margin:10px 0;white-space:pre-wrap}
+  .me{border-color:#1f5b46} .bot{border-color:#4c3a86}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h1&gt;Мой локальный ИИ&lt;/h1&gt;
+&lt;label&gt;Системный промпт:&lt;/label&gt;
+&lt;textarea id="sys" rows="2"&gt;Ты — дружелюбный помощник. Отвечай кратко и по делу. Если не знаешь — скажи честно.&lt;/textarea&gt;
+&lt;label&gt;Ваш вопрос:&lt;/label&gt;
+&lt;textarea id="q" rows="3" placeholder="Спросите что-нибудь..."&gt;&lt;/textarea&gt;
+&lt;button onclick="ask()"&gt;Спросить&lt;/button&gt;
+&lt;div id="out"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+const MODEL = "lmstudio-community/gemma-4-e4b-it";   // ← ваш точный ID
+const API   = "http://localhost:1234/v1/chat/completions";   // адрес нашего сервера
+
+async function ask(){
+  const out = document.getElementById("out");
+  out.innerHTML = '&lt;div class="msg"&gt;Думаю...&lt;/div&gt;';
+
+  const body = {
+    model: MODEL,
+    messages: [
+      {role: "system", content: document.getElementById("sys").value},
+      {role: "user",   content: document.getElementById("q").value}
+    ],
+    temperature: 0.6,
+    max_tokens: 600
+  };
+
+  try{
+    const r = await fetch(API, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body)
+    });
+    const data = await r.json();
+    const text = data.choices[0].message.content;
+    out.innerHTML = '&lt;div class="msg bot"&gt;&lt;b&gt;Модель:&lt;/b&gt;\n' + text + '&lt;/div&gt;';
+  }catch(e){
+    out.innerHTML = '&lt;div class="msg"&gt;Ошибка. Сервер запущен? CORS включён?&lt;br&gt;' + e + '&lt;/div&gt;';
+  }
+}
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code><button class="copy">копировать</button></pre>
+
+  <div class="grid g2">
+    <div class="note cyn"><b>Что здесь происходит:</b> функция <code>fetch()</code> — это встроенный в браузер способ делать HTTP-запросы. Мы отправляем на <code>localhost:1234</code> тот же самый JSON, что и в curl, и получаем тот же ответ. Весь «сайт» — один файл на диске.</div>
+    <div class="note red"><b>Если вместо ответа ошибка про CORS:</b> браузер запрещает странице обращаться к серверу, который не разрешил такие запросы явно. Включите CORS в настройках сервера LM Studio (вкладка Developer). Для локальной разработки это безопасно: сервер всё равно не виден из интернета.</div>
+  </div></section>
+
+<section class="slide" id="s32" data-stage="D · Свой API-сервер" data-practice="1">
+  <div class="pbadge">Практика 14 · проект «Telegram-бот»</div>
+  <h2>Бот в Telegram на своей нейросети</h2>
+  <p class="lead">Самый желанный проект урока: бот, которому можно писать с телефона, а отвечает ему <b>ваша</b> модель на <b>вашем</b> компьютере.</p>
+
+  <div class="grid g2">
+    <div class="card"><h4>Шаг 1 · получить токен</h4>
+      <ol class="small muted">
+        <li>В Telegram найти <b>@BotFather</b></li>
+        <li>Отправить <code>/newbot</code></li>
+        <li>Придумать имя и юзернейм (должен заканчиваться на <code>bot</code>)</li>
+        <li>Скопировать выданный <b>токен</b> — длинная строка вида <code>123456:ABC-DEF...</code></li>
+      </ol>
+      <p class="small muted"><b>Токен — это пароль от бота.</b> Никому его не показывайте и не выкладывайте в общий чат класса.</p></div>
+    <div class="card"><h4>Шаг 2 · подготовить окружение</h4>
+      <ol class="small muted">
+        <li>Установить библиотеки: <code>pip install pytelegrambotapi openai</code></li>
+        <li>Создать файл <code>tg_bot.py</code></li>
+        <li>Вставить код справа</li>
+        <li>Вписать <b>свой токен</b> и <b>свой ID модели</b></li>
+        <li>Запустить: <code>python tg_bot.py</code></li>
+        <li>Найти своего бота в Telegram и написать ему</li>
+      </ol>
+      <p class="small muted">Компьютер должен быть включён, LM Studio — запущен с работающим сервером. Как только закроете скрипт — бот «уснёт».</p></div>
+  </div>
+
+  <pre><code># pip install pytelegrambotapi openai
+import telebot
+from openai import OpenAI
+
+TOKEN = "ВСТАВЬТЕ_ТОКЕН_ОТ_BOTFATHER"
+MODEL = "lmstudio-community/gemma-4-e4b-it"        # ← ваш точный ID
+
+bot = telebot.TeleBot(TOKEN)
+llm = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
+
+SYSTEM = ("Ты — полезный ассистент в Telegram. Отвечай кратко и по делу, "
+          "не больше пяти предложений. Если не знаешь факт — скажи честно.")
+
+@bot.message_handler(func=lambda m: True)
+def handle(message):
+    try:
+        r = llm.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": SYSTEM},
+                {"role": "user",   "content": message.text},
+            ],
+            temperature=0.6,
+            max_tokens=500,
+        )
+        bot.reply_to(message, r.choices[0].message.content)
+    except Exception as e:
+        bot.reply_to(message, "Не могу достучаться до локальной модели. "
+                              "Проверь, запущен ли сервер в LM Studio.\n" + str(e))
+
+print("Бот запущен. Напишите ему в Telegram. Остановка — Ctrl+C")
+bot.infinity_polling(timeout=10, long_polling_timeout=5)</code><button class="copy">копировать</button></pre>
+
+  <div class="note grn"><b>Что получилось:</b> сообщение идёт из Telegram на серверы мессенджера → ваш скрипт забирает его (<code>infinity_polling</code>) → передаёт в локальную LM Studio → получает ответ → отправляет обратно. <b>Сама нейросеть при этом никуда не подключается</b> — в интернет выходит только маленький скрипт-посредник.</div>
+
+  <div class="note amb"><b>Усложнения для тех, кто справился:</b> хранить историю диалога по <code>message.chat.id</code> (чтобы бот помнил разговор); команда <code>/reset</code> для очистки памяти; пересылать боту фотографию и отдавать её модели на распознавание (Gemma 4 E4B умеет смотреть картинки — через API поле <code>image_url</code>); отвечать голосом.</div></section>
+
+<section class="slide" id="s33" data-stage="E · Кодинг-ассистент" data-practice="1">
+  <div class="pbadge">Практика 15 · VS Code + Continue</div>
+  <h2>Бесплатный Copilot в редакторе кода</h2>
+  <p class="lead">Подключим локальную модель к плагину <b>Continue</b> — и получим кодинг-ассистента, который не отправляет ваш код в интернет и ничего не стоит.</p>
+
+  <div class="grid g2">
+    <div class="card"><h4>Пошагово</h4>
+      <ol class="small">
+        <li>VS Code → <b>Extensions</b> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>) → найти <b>Continue</b> → <b>Install</b></li>
+        <li>В LM Studio: <b>Developer</b> → <b>Start Server</b> (уже должно работать с практики 10)</li>
+        <li><b>Скачать кодинг-модель</b> — см. рекомендацию справа</li>
+        <li>В Continue: <b>Models</b> → <b>+ New Assistant</b> (или значок шестерёнки → <code>config.yaml</code>)</li>
+        <li>Вставить конфиг справа → сохранить</li>
+        <li>В чате Continue (<kbd>Ctrl</kbd>+<kbd>L</kbd>) выбрать ассистента и задать вопрос</li>
+      </ol></div>
+    <div class="card amb"><h4>Какую модель брать для кода</h4>
+      <p class="small muted">Наша Gemma 4 E4B — универсальная, и программирует она <b>средне</b> (в официальной таблице Gemma 4 её код-результаты заметно слабее старших версий). Для ассистента лучше скачать специализированную модель 4–8B:</p>
+      <ul class="small">
+        <li><code>qwen3-coder</code> — компактные сборки 4B/8B, отлично для своего размера</li>
+        <li><code>devstral-small</code> — от Mistral, заточена под правки в IDE</li>
+        <li><code>deepseek-coder</code> — классика локального кодинга</li>
+      </ul>
+      <p class="small muted">В Q4_K_M любая из них занимает 3–5 ГБ и спокойно влезает в наши 8 ГБ VRAM.</p></div>
+  </div>
+
+  <h3>Конфиг <code>config.yaml</code> — рекомендуемый вариант</h3>
+  <pre><code>name: Local Assistant
+version: 0.0.1
+schema: v1
+
+models:
+  - name: Локальный помощник
+    provider: lmstudio
+    model: qwen/qwen3-coder-4b      # ← точный ID из LM Studio
+
+context:
+  - provider: code        # текущий файл и выделенный фрагмент
+  - provider: diff        # последние изменения
+  - provider: terminal    # вывод терминала
+  - provider: problems    # ошибки и предупреждения редактора
+  - provider: codebase    # поиск по всему проекту</code><button class="copy">копировать</button></pre>
+
+  <h3>Тот же конфиг через <code>openai</code>-провайдер (тоже работает)</h3>
+  <pre><code>models:
+  - name: Локальный помощник
+    provider: openai
+    model: qwen/qwen3-coder-4b
+    apiBase: http://localhost:1234/v1
+    apiKey: ""
+    roles: [chat, edit, apply]</code><button class="copy">копировать</button></pre>
+
+  <div class="task" data-task>
+    <h4>🛠 Практика 15</h4>
+    <label><input type="checkbox"><span>Установить Continue и подключить конфиг</span></label>
+    <label><input type="checkbox"><span>Создать <code>hello.py</code> и попросить: <code>напиши функцию, которая считает среднее списка чисел</code></span></label>
+    <label><input type="checkbox"><span>Выделить кусок кода → <kbd>Ctrl</kbd>+<kbd>L</kbd> → <code>объясни, что делает этот код</code></span></label>
+    <label><input type="checkbox"><span>Режим правки: <code>добавь обработку пустого списка и списка из одного числа</code></span></label>
+    <label><input type="checkbox"><span>Сделать намеренную ошибку в коде и попросить Continue найти её (использует контекст <code>problems</code>)</span></label>
+    <div class="bar"><i></i></div>
+  </div>
+
+  <div class="note red"><b>Критично:</b> значение <code>model</code> должно совпадать с ID в LM Studio <b>буквально</b>. Скопируйте его из <b>My Models</b> или командой <code>lms ls</code>. Ошибка в одной букве — и Continue пишет «model not found», хотя сервер прекрасно работает.</div></section>
+
+<section class="slide" id="s34" data-stage="F · Проверка" data-practice="1">
+  <div class="pbadge t">Итоговая проверка · 8 вопросов с самопроверкой</div>
+  <h2>Проверяем, что осталось в голове</h2>
+  <p class="muted small">Нажмите на вариант — правильный подсветится, под вопросом появится объяснение. В конце — кнопка «Показать результат».</p>
+
+  <div class="q" data-right="1">
+    <p class="qt">1. У нас RTX 3060 с 8 ГБ видеопамяти. Какую версию Gemma 4 E4B взять как основную?</p>
+    <button class="opt">Q8_0 (8,03 ГБ) — качество важнее</button>
+    <button class="opt">Q4_K_M (5,34 ГБ) — остаётся место под контекст и зрение</button>
+    <button class="opt">Любую — модель же всё равно частично считается на процессоре</button>
+    <div class="exp">Q8_0 весит 8,03 ГБ и в 8 ГБ VRAM не влезает: часть слоёв уедет в оперативную память, скорость упадёт в разы. Q4_K_M оставляет ~1,7 ГБ под контекст диалога и проектор изображений. Частичный расчёт на CPU технически работает, но для интерактивного чата это мучительно медленно.</div>
+  </div>
+
+  <div class="q" data-right="2">
+    <p class="qt">2. В имени файла <code>gemma-4-E4B-it-Q4_K_M.gguf</code> часть <code>it</code> означает:</p>
+    <button class="opt">iteration — номер версии</button>
+    <button class="opt">intel — для процессоров Intel</button>
+    <button class="opt">instruction-tuned — модель обучена отвечать на команды</button>
+    <div class="exp">Есть ещё <code>base</code> (продолжает текст, а не отвечает) и <code>coder</code>, <code>thinking</code> и т.п. Если случайно взять base-версию, модель будет «дописывать» ваш вопрос вместо ответа — классическая ошибка новичка.</div>
+  </div>
+
+  <div class="q" data-right="0">
+    <p class="qt">3. Модель рассказала подробности про событие, которого не было. Это:</p>
+    <button class="opt">Галлюцинация: знаний после даты обучения нет, а говорить «не знаю» модель не учили</button>
+    <button class="opt">Ошибка квантования Q4 — нужно взять Q8</button>
+    <button class="opt">Норма: у модели встроенный поиск в интернете</button>
+    <div class="exp">Локальная модель по умолчанию не имеет доступа в сеть и знает только то, что попало в данные обучения. Квантование тут ни при чём — оно влияет на связность и точность формулировок, а не на «свежесть» знаний. Лечится документами (RAG), веб-поиском и явным разрешением отвечать «не знаю».</div>
+  </div>
+
+  <div class="q" data-right="1">
+    <p class="qt">4. Нужно, чтобы модель написала креативный сценарий рекламного ролика. Temperature:</p>
+    <button class="opt">0.1</button>
+    <button class="opt">0.9–1.2</button>
+    <button class="opt">Не важна, главное поднять Max Tokens</button>
+    <div class="exp">Высокая температура увеличивает долю маловероятных, нестандартных слов — именно то, что нужно для креатива. 0.1 даст сухой шаблонный текст. Max Tokens влияет только на длину ответа, но не на его оригинальность.</div>
+  </div>
+
+  <div class="q" data-right="2">
+    <p class="qt">5. Адрес локального API-сервера LM Studio по умолчанию:</p>
+    <button class="opt">http://localhost:8080/api</button>
+    <button class="opt">https://api.lmstudio.ai/v1</button>
+    <button class="opt">http://localhost:1234/v1</button>
+    <div class="exp">Порт 1234, путь /v1, протокол совместим с OpenAI. Второй вариант — это облачный сервис, а весь смысл урока в том, что запросы никуда не уходят с вашего компьютера. Проверить сервер можно, открыв в браузере http://localhost:1234/v1/models.</div>
+  </div>
+
+  <div class="q" data-right="0">
+    <p class="qt">6. Как <b>гарантированно</b> получить от модели валидный JSON нужной структуры?</p>
+    <button class="opt">Передать JSON Schema (structured output)</button>
+    <button class="opt">Вежливо попросить в промпте «отвечай только JSON»</button>
+    <button class="opt">Поставить temperature = 0</button>
+    <div class="exp">Просьба в промпте работает «обычно, но не всегда»: модель может добавить пояснение или лишнюю запятую. Схема же ограничивает сам процесс генерации — модель физически не способна выйти за её рамки. Нулевая температура делает ответ повторяемым, но не гарантирует формат.</div>
+  </div>
+
+  <div class="q" data-right="1">
+    <p class="qt">7. Чат-бот на Python «помнит» разговор, хотя у модели памяти между запросами нет. Почему?</p>
+    <button class="opt">Модель запоминает пользователя по IP-адресу</button>
+    <button class="opt">Программа каждый раз отправляет всю историю сообщений одним списком</button>
+    <button class="opt">LM Studio кэширует диалог на сервере</button>
+    <div class="exp">Каждый запрос содержит полный список: system → user → assistant → user → ... Модель заново «прочитывает» весь разговор и продолжает его. Память живёт в вашей программе. Отсюда и ограничение: чем длиннее история, тем больше токенов и тем медленнее ответы.</div>
+  </div>
+
+  <div class="q" data-right="2">
+    <p class="qt">8. Веб-страница не получает ответ от локального сервера, хотя <code>curl</code> работает. Скорее всего:</p>
+    <button class="opt">Модель не загружена в память</button>
+    <button class="opt">Неверный ID модели в запросе</button>
+    <button class="opt">Заблокирован CORS — нужно разрешить его в настройках сервера</button>
+    <div class="exp">Если curl проходит, значит сервер жив и модель отвечает. Браузер же дополнительно требует от сервера разрешения на «чужие» запросы — это и есть CORS. Вкладка Developer → настройки сервера → включить CORS. Первые два варианта дали бы ошибку и в curl тоже.</div>
+  </div>
+
+  <div class="card center mt2">
+    <div class="score" id="score">— / 8</div>
+    <div class="small muted">Ответьте на вопросы и нажмите кнопку</div>
+    <div class="row mt" style="justify-content:center">
+      <button class="btn pri" id="btnScore">Показать результат</button>
+      <button class="btn" id="btnQuizReset">Пройти заново</button>
+    </div>
+  </div></section>
+
+<section class="slide" id="s35" data-stage="F · Проверка" data-keep="1">
+  <div class="pbadge t">Итоги</div>
+  <h2>Что вы теперь умеете</h2>
+
+  <div class="grid g2">
+    <div class="card grn"><h4>🧩 Разбираться в моделях</h4>
+      <ul class="small muted">
+        <li>читать имя <code>gemma-4-E4B-it-Q4_K_M.gguf</code> как обычный текст</li>
+        <li>считать размер в уме: <b>параметры × биты ÷ 8</b></li>
+        <li>выбирать квантование под свои 8 ГБ VRAM и понимать, чем Q4 отличается от Q8</li>
+        <li>знать пять семейств открытых моделей и чем различаются их лицензии</li>
+      </ul></div>
+    <div class="card grn"><h4>🎛 Управлять поведением</h4>
+      <ul class="small muted">
+        <li>задавать личность через System Context</li>
+        <li>осознанно крутить temperature, top-k, top-p, repeat penalty</li>
+        <li>лечить повторы, обрезать «простыни», следить за расходом видеопамяти</li>
+        <li>получать гарантированный JSON через схему</li>
+      </ul></div>
+    <div class="card grn"><h4>🖼 Использовать возможности модели</h4>
+      <ul class="small muted">
+        <li>показывать модели картинки и получать разбор изображений, текста с фото, графиков</li>
+        <li>включать режим размышлений там, где задача сложная, и выключать, где простая</li>
+        <li>работать с документами офлайн (RAG)</li>
+      </ul></div>
+    <div class="card grn"><h4>🔌 Встраивать ИИ в свои программы</h4>
+      <ul class="small muted">
+        <li>поднять локальный OpenAI-совместимый сервер и проверить его</li>
+        <li>отправить запрос из терминала, из Python и из браузера</li>
+        <li>написать консольного бота, веб-чат и Telegram-бота</li>
+        <li>подключить модель к VS Code через Continue</li>
+        <li>диагностировать «сервер не отвечает» по таблице</li>
+      </ul></div>
+  </div>
+
+  <div class="note cyn"><b>Главная мысль курса:</b> нейросеть — это не магия из облака, а <b>файл</b>, который можно скачать, изучить, настроить под себя и подключить к своей программе. Вы больше не арендатор — вы владелец.</div>
+
+  <div class="note grn"><b>Пять правил, которые стоит унести:</b>
+    <ol class="small" style="margin-bottom:0">
+      <li><b>Большая модель в Q4 лучше маленькой в Q8.</b> Берите максимум, который целиком влезает в видеокарту.</li>
+      <li><b>Instruct, а не Base.</b> Base-модель продолжает текст, а не отвечает на вопросы.</li>
+      <li><b>Правдоподобно ≠ правда.</b> Свежие факты и цифры проверяем всегда.</li>
+      <li><b>Меняйте по одному параметру</b> и записывайте результат — иначе не поймёте, что именно помогло.</li>
+      <li><b>Лицензию читаем до начала разработки,</b> а не перед релизом.</li>
+    </ol></div></section>
+
+<section class="slide" id="s36" data-stage="F · Проверка" data-keep="1">
+  <div class="pbadge t">Одна страница · можно распечатать</div>
+  <h2>Шпаргалка</h2>
+
+  <div class="grid g2">
+    <div class="card"><h4>📐 Память и размер</h4>
+      <pre><code>ГБ ≈ параметры(B) × биты ÷ 8
+Q4 ≈ 4,5 бита   Q5 ≈ 5,5
+Q6 ≈ 6,6 бита   Q8 ≈ 8,5
++ 0,5–3 ГБ на контекст
+
+Gemma 4 E4B (наша модель):
+  Q4_K_M  5,34 ГБ  ← выбор
+  Q6_K    6,22 ГБ
+  Q8_0    8,03 ГБ  ← не влезает
+  mmproj  0,99 ГБ  ← для картинок</code><button class="copy">копировать</button></pre></div>
+    <div class="card"><h4>🎛 Настройки под задачу</h4>
+      <table style="margin:0">
+        <tr><th>Задача</th><th>temp</th><th>top-p</th></tr>
+        <tr><td>Код, JSON, факты</td><td>0.0–0.3</td><td>0.8</td></tr>
+        <tr><td>Обычный чат</td><td>0.6–0.8</td><td>0.9</td></tr>
+        <tr><td>Креатив, стихи</td><td>0.9–1.2</td><td>0.95</td></tr>
+        <tr><td colspan="3" class="small muted">repeat penalty 1.05–1.15 · max tokens по задаче · context 4096–16384 на 8 ГБ VRAM</td></tr>
+      </table></div>
+    <div class="card"><h4>⌨️ Клавиши и команды</h4>
+      <p class="small muted"><kbd>Ctrl</kbd>+<kbd>1…4</kbd> — вкладки Chat / Discover / My Models / Developer<br>
+      <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> — рантаймы (проверка CUDA)<br>
+      <code>lms ls</code> — список моделей<br>
+      <code>lms load</code> — загрузить модель<br>
+      <code>lms server start</code> — поднять сервер из терминала</p></div>
+    <div class="card"><h4>🔌 Подключение из кода</h4>
+      <pre><code>База:  http://localhost:1234/v1
+Модели: /v1/models
+Чат:    /v1/chat/completions
+api_key: любой (локально не проверяется)
+
+Python:
+  OpenAI(base_url=".../v1",
+         api_key="lm-studio")
+Continue: provider: lmstudio</code><button class="copy">копировать</button></pre></div>
+  </div>
+
+  <h3>Минимальный рабочий запрос (сохранить себе)</h3>
+  <pre><code>curl.exe http://localhost:1234/v1/chat/completions -H "Content-Type: application/json" -d "{\"model\":\"lmstudio-community/gemma-4-e4b-it\",\"messages\":[{\"role\":\"user\",\"content\":\"Привет\"}]}"</code><button class="copy">копировать</button></pre>
+
+  <h3>Если ничего не работает — по порядку</h3>
+  <ol class="small">
+    <li>Открыть в браузере <code>http://localhost:1234/v1/models</code>. Не открывается → сервер не запущен (Developer → Start Server).</li>
+    <li>Список пустой → модель не загружена. Загрузить в чате.</li>
+    <li>Ошибка <code>model not found</code> → неверный ID. Скопировать из <code>/v1/models</code>.</li>
+    <li>В браузере работает, на странице нет → включить CORS.</li>
+    <li>Медленно (1–3 t/s) → не работает CUDA: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>, драйвер NVIDIA, GPU Offload.</li>
+  </ol>
+
+  <div class="divider"></div>
+  <p class="small muted center">Материалы актуальны на сентябрь 2026 · команды и конфиги проверены для LM Studio 0.4.x, Continue (schema v1), Gemma 4 E4B (Apache 2.0) и RTX 3060 8 ГБ · файл работает без интернета, его можно открыть с флешки, на телефоне или распечатать</p></section>
+
+</main>
+
+<div class="botbar">
+  <button class="btn" id="prev">← Назад</button>
+  <button class="btn pri" id="next">Далее →</button>
+  <div class="counter" id="counter">1 / 37</div>
+  <div class="spacer"></div>
+  <div class="hint"><kbd>←</kbd><kbd>→</kbd> листать · <kbd>O</kbd> содержание· <kbd>0</kbd>–<kbd>9</kbd> быстрый переход</div>
+  <button class="btn" id="btnPrint" title="Сохранить в PDF / распечатать">🖨 Печать</button>
+</div>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <h2 style="margin:0;font-size:26px">Содержание курса</h2>
+      <button class="btn" id="modalClose">Закрыть ✕</button>
+    </div>
+    <div id="ovlist"></div>
+    <div class="divider"></div>
+    <p class="small muted">Зелёной меткой <span class="tag g">практика</span> отмечены слайды, где класс работает руками. Домашних заданий в курсе нет — всё делается в классе.</p>
+    <p class="small muted"><b>Рекомендуемое разбиение:</b> урок 1 — слайды 1–14 (установка, модели, квантование, зрение, reasoning); урок 2 — слайды 15–25 (семейства, галлюцинации, настройки, JSON); урок 3 — слайды 26–37 (API-сервер, свои проекты, кодинг-ассистент, проверка).</p>
+  </div>
+</div>
+
+<div class="cmodal" id="codeModal">
+  <div class="cbox">
+    <div class="row" style="justify-content:space-between">
+      <b style="font-size:15px;color:#c4b5fd">Фрагмент — выделите текст и скопируйте</b>
+      <span class="row" style="gap:8px">
+        <button class="btn" id="codeSel">Выделить всё</button>
+        <button class="btn" id="codeClose">Закрыть ✕</button>
+      </span>
+    </div>
+    <pre><code id="codeView"></code></pre>
+    <p class="small muted" style="margin:0">Если кнопка «копировать» не срабатывает (ограничения встроенного просмотра) — откройте файл в обычном браузере или скопируйте текст отсюда.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0, practiceOnly = false;
+  var stageEl = document.getElementById('stage');
+
+  var stageOrder = [];
+  slides.forEach(function(s){
+    var st = s.dataset.stage;
+    if (stageOrder.indexOf(st) === -1) stageOrder.push(st);
+  });
+
+  function visibleList(){
+    if (!practiceOnly) return slides.map(function(_, k){ return k; });
+    var out = [];
+    slides.forEach(function(s, k){
+      if (s.dataset.practice === '1' || s.dataset.keep === '1') out.push(k);
+    });
+    return out;
+  }
+
+  function show(n){
+    if (n < 0) n = 0;
+    if (n > slides.length - 1) n = slides.length - 1;
+    if (practiceOnly) {
+      var vis = visibleList();
+      if (vis.indexOf(n) === -1) {
+        var best = vis[0];
+        for (var q = 0; q < vis.length; q++) { if (vis[q] >= n) { best = vis[q]; break; } best = vis[q]; }
+        n = best;
+      }
+    }
+    slides.forEach(function(s){ s.classList.remove('active'); });
+    i = n;
+    slides[i].classList.add('active');
+    stageEl.scrollTop = 0;
+    document.getElementById('counter').textContent = (i+1) + ' / ' + slides.length;
+    document.getElementById('prog').style.width = ((i+1)/slides.length*100) + '%';
+    document.getElementById('stagechip').textContent = slides[i].dataset.stage;
+    if (location.hash !== '#s'+(i+1)) history.replaceState(null,'','#s'+(i+1));
+    markOv();
+    if (window.__studyTick) window.__studyTick();
+    if (window.__studyMax !== undefined && n > window.__studyMax) n = window.__studyMax;
+  }
+  function step(dir){
+    var vis = visibleList();
+    var pos = vis.indexOf(i);
+    if (pos === -1) { show(i + dir); return; }
+    var np = pos + dir;
+    if (np < 0) np = 0;
+    if (np > vis.length - 1) np = vis.length - 1;
+    show(vis[np]);
+  }
+  function next(){ step(1); } function prev(){ step(-1); }
+
+  document.getElementById('next').onclick = next;
+  document.getElementById('prev').onclick = prev;
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target.tagName;
+    if (t === 'INPUT' || t === 'TEXTAREA') return;
+    switch(e.key){
+      /* навигация передана режиму прохождения */
+      case 'o': case 'O': case 'щ': case 'Щ': case 'm': case 'M': case 'ь': case 'Ь': toggleModal(); break;
+      /* режим «только практика» отключён в ученической версии */
+      case 'Escape': closeModal(); cmodalEl().classList.remove('open'); break;
+      default:
+        /* быстрый переход отключён: слайды открываются по порядку */
+    }
+  });
+
+  var wheelLock = false;
+  stageEl.addEventListener('wheel', function(e){
+    var atTop = stageEl.scrollTop <= 0;
+    var atBot = stageEl.scrollTop + stageEl.clientHeight >= stageEl.scrollHeight - 4;
+    if (wheelLock) return;
+    /* прокрутка не переключает слайды */
+  }, {passive:true});
+
+
+  function togglePractice(){ practiceOnly = false; return; }
+  function togglePracticeDisabled(){
+    practiceOnly = !practiceOnly;
+    document.body.classList.toggle('onlypractice', practiceOnly);
+    var b = document.getElementById('btnPractice');
+    b.classList.toggle('on2', practiceOnly);
+    b.textContent = practiceOnly ? '🛠 Практика: вкл' : '🛠 Только практика';
+    markOv();
+    /* фильтр практики в ученической версии не применяется */
+  }
+  var practiceBtnEl = document.getElementById('btnPractice');
+  if (practiceBtnEl) practiceBtnEl.onclick = function(){ practiceBtnEl.classList.remove('on2'); };
+
+  var modal = document.getElementById('modal'), ovlist = document.getElementById('ovlist');
+  (function buildOv(){
+    var n = 0;
+    stageOrder.forEach(function(st){
+      var d = document.createElement('div'); d.className = 'ovstage';
+      d.innerHTML = '<h4>' + st + '</h4>';
+      slides.forEach(function(s, idx){
+        if (s.dataset.stage !== st) return;
+        n++;
+        var b = document.createElement('button'); b.className = 'ovlink'; b.dataset.idx = idx;
+        var title = s.querySelector('h1,h2');
+        var isP = s.dataset.practice === '1';
+        b.innerHTML = '<span class="n">' + n + '</span><span>' + (title ? title.textContent.trim() : 'Слайд') + '</span>' +
+                      (isP ? '<span class="pr">практика</span>' : '');
+        b.onclick = function(){ if (window.__studyCan && !window.__studyCan(idx)) return; show(idx); closeModal(); };
+        d.appendChild(b);
+      });
+      ovlist.appendChild(d);
+    });
+  })();
+  function markOv(){
+    Array.prototype.forEach.call(ovlist.querySelectorAll('.ovlink'), function(b){
+      var k = parseInt(b.dataset.idx,10), on = (k === i);
+      b.style.borderColor = on ? '#a78bfa' : '';
+      b.style.background  = on ? '#1d1836' : '';
+      var hidden = practiceOnly && slides[k].dataset.practice !== '1' && slides[k].dataset.keep !== '1';
+      b.style.opacity = hidden ? '.35' : '1';
+    });
+  }
+  function toggleModal(){ modal.classList.contains('open') ? closeModal() : openModal(); }
+  function openModal(){ modal.classList.add('open'); markOv(); }
+  function closeModal(){ modal.classList.remove('open'); }
+  document.getElementById('btnOv').onclick = toggleModal;
+  document.getElementById('modalClose').onclick = closeModal;
+  modal.addEventListener('click', function(e){ if (e.target === modal) closeModal(); });
+
+  function esc(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function cmodalEl(){ return document.getElementById('codeModal'); }
+  function showCode(txt){
+    document.getElementById('codeView').innerHTML = esc(txt);
+    cmodalEl().classList.add('open');
+  }
+  function copyText(txt, btn){
+    var done = function(){
+      var old = btn.textContent; btn.textContent = '✓ скопировано'; btn.style.color = '#6ee7b7';
+      setTimeout(function(){ btn.textContent = old; btn.style.color = ''; }, 1400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, function(){ fallback(txt, done, btn); });
+    } else fallback(txt, done, btn);
+  }
+  function fallback(txt, done, btn){
+    var ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch(e){ ok = false; }
+    document.body.removeChild(ta);
+    if (ok) done(); else if (btn) showCode(txt);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('pre'), function(pre){
+    var btn = pre.querySelector('.copy');
+    if (btn) {
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var clone = pre.cloneNode(true);
+        var b = clone.querySelector('.copy'); if (b) b.remove();
+        copyText(clone.textContent.replace(/\n+$/,''), btn);
+      });
+    }
+    pre.addEventListener('dblclick', function(){
+      var c = pre.querySelector('code');
+      showCode(c ? c.textContent : pre.textContent);
+    });
+  });
+
+  var cmodal = cmodalEl();
+  document.getElementById('codeClose').onclick = function(){ cmodal.classList.remove('open'); };
+  document.getElementById('codeSel').onclick = function(){
+    var el = document.getElementById('codeView');
+    var r = document.createRange(); r.selectNodeContents(el);
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  };
+  cmodal.addEventListener('click', function(e){ if (e.target === cmodal) cmodal.classList.remove('open'); });
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-task]'), function(task){
+    var boxes = task.querySelectorAll('input[type=checkbox]');
+    var bar = task.querySelector('.bar i');
+    var upd = function(){
+      var done = 0;
+      Array.prototype.forEach.call(boxes, function(b){ if (b.checked) done++; });
+      if (bar) bar.style.width = (boxes.length ? done/boxes.length*100 : 0) + '%';
+    };
+    Array.prototype.forEach.call(boxes, function(b){ b.addEventListener('change', upd); });
+    upd();
+  });
+
+  var qs = Array.prototype.slice.call(document.querySelectorAll('.q'));
+  qs.forEach(function(q){
+    var right = parseInt(q.dataset.right,10);
+    var opts = q.querySelectorAll('.opt');
+    Array.prototype.forEach.call(opts, function(o, idx){
+      o.addEventListener('click', function(){
+        if (q.dataset.done) return;
+        q.dataset.done = '1'; q.classList.add('answered');
+        if (idx === right) { o.classList.add('right'); q.dataset.ok = '1'; }
+        else { o.classList.add('wrong'); opts[right].classList.add('right'); }
+      });
+    });
+  });
+  var scoreEl = document.getElementById('score');
+  var btnScoreEl = document.getElementById('btnScore');
+  if (btnScoreEl) btnScoreEl.onclick = function(){
+    var ok = 0, answered = 0;
+    qs.forEach(function(q){ if (q.dataset.done) { answered++; if (q.dataset.ok) ok++; } });
+    var el = document.getElementById('score');
+    if (answered === 0) { el.textContent = 'Сначала ответьте на вопросы'; el.style.color = '#fcd34d'; return; }
+    el.textContent = ok + ' / ' + qs.length + (answered < qs.length ? '   (отвечено ' + answered + ')' : '');
+    el.style.color = ok >= qs.length-1 ? '#34d399' : (ok >= qs.length-3 ? '#fcd34d' : '#fb7185');
+  };
+  if (document.getElementById('btnQuizReset')) document.getElementById('btnQuizReset').onclick = function(){
+    qs.forEach(function(q){
+      delete q.dataset.done; delete q.dataset.ok; q.classList.remove('answered');
+      Array.prototype.forEach.call(q.querySelectorAll('.opt'), function(o){ o.classList.remove('right','wrong'); });
+    });
+    var el = document.getElementById('score'); el.textContent = '— / ' + qs.length; el.style.color = '#34d399';
+  };
+
+  document.getElementById('btnPrint').onclick = function(){ window.print(); };
+
+  var x0 = null;
+  stageEl.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, {passive:true});
+  stageEl.addEventListener('touchend', function(e){
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0;
+    /* свайп обрабатывает режим прохождения */
+    x0 = null;
+  }, {passive:true});
+
+  var h = parseInt((location.hash||'').replace('#s',''),10);
+  var _hs = (h && h >= 1 && h <= slides.length) ? h-1 : 0;
+  if (window.__studyMax !== undefined && _hs > window.__studyMax) _hs = 0;
+  show(_hs);
+})();
+</script>
+<script>
+/* Режим обязательного прохождения (версия без ожидания).
+
+   Правила:
+   • слайды открываются строго по порядку, вперёд не перемотать;
+   • теоретический слайд: один раз нажать «Далее» — таймеров и прокрутки нет;
+     при возврате назад слайд уже помечен прочитанным и открывается сразу;
+   • слайд с практикой: нужно отметить все пункты чек-листа;
+   • тест: объяснения и переход дальше — только когда все ответы верны;
+   • прогресс хранится в браузере (ключ неочевидный, значение с контрольной суммой).
+*/
+(function(){
+  'use strict';
+  var KEYWORD = "speak";
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var stageEl = document.getElementById('stage');
+  var N = slides.length;
+
+  var cur = 0, unlocked = 0, visited = {}, seen = {}, ready = false;
+  var store = null;
+  try { store = window.localStorage; } catch(e){ store = null; }
+
+  /* ---------- хранилище ---------- */
+  function mix(str){
+    var h1 = 0x811c9dc5, h2 = 0x1000193;
+    for (var i = 0; i < str.length; i++){
+      h1 = (h1 ^ str.charCodeAt(i)) >>> 0; h1 = (h1 * 0x01000193) >>> 0;
+      h2 = (h2 + str.charCodeAt(i) * (i + 7)) >>> 0;
+    }
+    return h1.toString(36) + h2.toString(36);
+  }
+  var SKEY = 'x' + mix(KEYWORD + '|' + N);
+  function blank(){ return { u: 0, v: {}, p: 0, c: '' }; }
+  function sign(u, v, pos){ return mix(KEYWORD + ':' + u + ':' + JSON.stringify(v) + ':' + (pos | 0)); }
+  function load(){
+    if (!store) return blank();
+    try {
+      var raw = store.getItem(SKEY);
+      if (!raw) return blank();
+      var st = JSON.parse(raw);
+      if (!st || typeof st.u !== 'number') return blank();
+      st.v = st.v || {}; st.p = st.p | 0;
+      if (st.c !== sign(st.u, st.v, st.p)) return blank();
+      return st;
+    } catch(e){ return blank(); }
+  }
+  function save(){
+    if (!store) return;
+    try {
+      store.setItem(SKEY, JSON.stringify({ u: unlocked, v: visited, p: cur, c: sign(unlocked, visited, cur) }));
+    } catch(e){}
+  }
+
+  /* ---------- состояние слайда ---------- */
+  function hasTasks(s){ return s.querySelectorAll('[data-task] input[type=checkbox]').length > 0; }
+  function tasksDone(s){
+    var b = s.querySelectorAll('[data-task] input[type=checkbox]');
+    if (!b.length) return true;
+    for (var i = 0; i < b.length; i++) if (!b[i].checked) return false;
+    return true;
+  }
+  function hasQuiz(s){ return s.querySelectorAll('.q').length > 0; }
+  function quizState(s){
+    var qs = s.querySelectorAll('.q'), ok = 0, done = 0;
+    for (var i = 0; i < qs.length; i++){
+      if (qs[i].dataset.done){ done++; if (qs[i].dataset.ok) ok++; }
+    }
+    return { total: qs.length, done: done, ok: ok };
+  }
+
+  function statusOf(i){
+    var s = slides[i];
+    if (hasQuiz(s)){
+      var q = quizState(s);
+      if (q.done < q.total) return { ok:false, text:'Тест обязателен: ответьте на все вопросы (' + q.done + ' из ' + q.total + ')' };
+      if (q.ok < q.total)  return { ok:false, text:'Нужны <b>все</b> верные ответы. Сейчас верно ' + q.ok + ' из ' + q.total + ' — нажмите «Пройти заново» и вернитесь к слайдам' };
+      return { ok:true, text:'Тест сдан: ' + q.total + ' из ' + q.total + '. Объяснения открыты — прочитайте их' };
+    }
+    if (hasTasks(s)){
+      if (!tasksDone(s)) return { ok:false, text:'Отметьте все пункты чек-листа практики' };
+      return { ok:true, text:'Чек-лист практики закрыт — можно идти дальше' };
+    }
+    if (!seen[i]) return { ok:false, text:'Прочитайте слайд и нажмите «Далее»' };
+    return { ok:true, text:'Слайд изучен — можно идти дальше' };
+  }
+
+  /* ---------- элементы ---------- */
+  var lockbar  = document.createElement('div');
+  lockbar.className = 'lockbar';
+  var nextBtn  = document.getElementById('next');
+  var prevBtn  = document.getElementById('prev');
+  var counter  = document.getElementById('counter');
+  var progEl   = document.getElementById('prog');
+  var progWrap = document.querySelector('.progress');
+  var chip     = document.getElementById('stagechip');
+  stageEl.insertBefore(lockbar, stageEl.firstChild);
+
+  function blockedByTask(i){
+    var s = slides[i];
+    if (hasQuiz(s)){
+      var q = quizState(s);
+      return q.done < q.total || q.ok < q.total;
+    }
+    return hasTasks(s) && !tasksDone(s);
+  }
+
+  function studyBar(i){
+    var st = statusOf(i);
+    lockbar.innerHTML = st.ok ? '✅ <b>' + st.text + '</b>' : '🔒 <b>Дальше нельзя.</b> ' + st.text;
+    lockbar.classList.toggle('done', st.ok);
+    /* Кнопку блокируем только когда слайд действительно не сдан (чек-лист или тест):
+       на обычном слайде первый же клик помечает его прочитанным и открывает следующий.
+       Иначе получилась бы ловушка: кнопка выключена, а включить её можно только кликом. */
+    nextBtn.disabled = blockedByTask(i);
+    nextBtn.textContent = st.ok ? 'Далее →' : (nextBtn.disabled ? '🔒 Заблокировано' : 'Прочитал, далее →');
+    return st.ok;
+  }
+
+  function show(i){
+    if (i < 0) i = 0;
+    if (i > unlocked) i = unlocked;
+    if (i > N - 1) i = N - 1;
+    for (var k = 0; k < N; k++) slides[k].classList.remove('active');
+    cur = i;
+    slides[i].classList.add('active');
+    visited[i] = 1;
+    stageEl.scrollTop = 0;
+    chip.textContent = slides[i].dataset.stage || '';
+    document.body.classList.remove('quizok');
+    if (hasQuiz(slides[i])) document.body.classList.add('quizdone');
+    refresh();
+    markOv();
+    save();
+  }
+
+  /* refresh вызывается часто (в том числе из чужого кода), поэтому слайд
+     помечается прочитанным только при явном действии — see() */
+  function refresh(){
+    var ok = studyBar(cur);
+    counter.textContent = (cur + 1) + ' / ' + N + '  ·  открыто ' + (unlocked + 1);
+    progEl.style.width = ((unlocked + 1) / N * 100) + '%';
+    progWrap.classList.toggle('locked', unlocked < N - 1);
+    return ok;
+  }
+  function see(){ seen[cur] = 1; }
+
+  function unlockNext(){
+    if (cur === unlocked && unlocked < N - 1){
+      unlocked = cur + 1;
+      window.__studyMax = unlocked;
+      save();
+      markOv();
+    }
+  }
+  function next(){
+    see();
+    if (statusOf(cur).ok){
+      unlockNext();
+      if (cur < N - 1) show(cur + 1); else refresh();
+    } else {
+      refresh();
+    }
+  }
+  function prev(){ show(cur - 1); }
+
+  window.__studyMax = 0;
+  window.__studyTick = function(){ refresh(); };
+  window.__studyCan = function(idx){ return idx <= unlocked; };
+
+  function markOv(){
+    var links = document.querySelectorAll('.ovlink');
+    for (var k = 0; k < links.length; k++){
+      var idx = parseInt(links[k].dataset.idx, 10);
+      var locked = idx > unlocked;
+      links[k].classList.toggle('locked', locked);
+      var on = (idx === cur);
+      links[k].style.borderColor = on ? '#a78bfa' : '';
+      links[k].style.background  = on ? '#1d1836' : '';
+      var label = links[k].querySelector('.n');
+      if (label) label.textContent = locked ? '🔒' : String(idx + 1);
+    }
+  }
+
+  /* ---------- строка состояния в нижней панели ---------- */
+  var hint = document.querySelector('.botbar .hint');
+  if (hint){
+    hint.className = 'studyhint';
+    hint.innerHTML = '🔒 слайды открываются по порядку · <kbd>O</kbd> содержание · <kbd>🖨</kbd> печать';
+  }
+  var resetBtn = document.createElement('button');
+  resetBtn.className = 'btn';
+  resetBtn.id = 'studyReset';
+  resetBtn.title = 'Сбросить прогресс изучения (нужно подтвердить вторым щелчком)';
+  resetBtn.textContent = '↺ Прогресс';
+  var armed = 0;
+  resetBtn.addEventListener('click', function(){
+    if (!armed){
+      armed = 1; resetBtn.textContent = '↺ Точно сбросить?';
+      setTimeout(function(){ armed = 0; resetBtn.textContent = '↺ Прогресс'; }, 2500);
+      return;
+    }
+    armed = 0; resetBtn.textContent = '↺ Прогресс';
+    unlocked = 0; visited = {}; seen = {};
+    window.__studyMax = 0;
+    if (store){ try { store.removeItem(SKEY); } catch(e){} }
+    var qs = document.querySelectorAll('.q');
+    for (var i = 0; i < qs.length; i++){
+      delete qs[i].dataset.done; delete qs[i].dataset.ok; qs[i].classList.remove('answered');
+      var op = qs[i].querySelectorAll('.opt');
+      for (var j = 0; j < op.length; j++) op[j].classList.remove('right', 'wrong');
+    }
+    var boxes = document.querySelectorAll('[data-task] input[type=checkbox]');
+    for (var b = 0; b < boxes.length; b++) boxes[b].checked = false;
+    var bars = document.querySelectorAll('[data-task] .bar i');
+    for (var r = 0; r < bars.length; r++) bars[r].style.width = '0%';
+    document.body.classList.remove('quizok');
+    show(0);
+  });
+  document.querySelector('.botbar').appendChild(resetBtn);
+
+  /* ---------- перехват управления ---------- */
+  nextBtn.onclick = next;
+  prevBtn.onclick = prev;
+
+  document.addEventListener('keydown', function(e){
+    e.stopImmediatePropagation();
+    var t = e.target.tagName;
+    if (t === 'INPUT' || t === 'TEXTAREA'){ return; }
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': case ' ': next(); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   prev(); e.preventDefault(); break;
+      case 'Home': show(0); break;
+      case 'End':  show(unlocked); break;
+      case 'o': case 'O': case 'щ': case 'Щ': case 'm': case 'M': case 'ь': case 'Ь':
+        document.getElementById('modal').classList.toggle('open'); markOv(); break;
+      case 'Escape':
+        document.getElementById('modal').classList.remove('open');
+        document.getElementById('codeModal').classList.remove('open');
+        break;
+      default:
+        if (/^[0-9]$/.test(e.key)){
+          var n = parseInt(e.key, 10); if (n === 0) n = 10;
+          if (n - 1 <= unlocked) show(n - 1); else refresh();
+        }
+    }
+  }, true);
+
+  var wheelLock = false;
+  stageEl.addEventListener('wheel', function(e){
+    if (wheelLock || Math.abs(e.deltaY) < 30) return;
+    var top = stageEl.scrollTop <= 0;
+    var bot = stageEl.scrollTop + stageEl.clientHeight >= stageEl.scrollHeight - 4;
+    if (e.deltaY > 0 && bot){ wheelLock = true; next(); setTimeout(function(){ wheelLock = false; }, 500); }
+    else if (e.deltaY < 0 && top){ wheelLock = true; prev(); setTimeout(function(){ wheelLock = false; }, 500); }
+  }, { passive: true, capture: true });
+
+  var links = document.querySelectorAll('.ovlink');
+  for (var k = 0; k < links.length; k++){
+    (function(link){
+      link.addEventListener('click', function(e){
+        var idx = parseInt(link.dataset.idx, 10);
+        if (idx > unlocked){
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          document.getElementById('modal').classList.remove('open');
+          show(unlocked);
+        }
+      }, true);
+    })(links[k]);
+  }
+
+  /* ---------- пересчёт статуса ----------
+     нужен после отметки галочки в чек-листе и после ответа в тесте */
+  document.addEventListener('change', function(e){
+    if (e.target && e.target.type === 'checkbox') setTimeout(refresh, 0);
+  });
+  stageEl.addEventListener('scroll', function(){ refresh(); }, { passive: true });
+
+  /* ---------- обязательный тест: объяснения только при полном успехе ---------- */
+  var resultBox = null;
+  function quizRefresh(){
+    var s = slides[cur];
+    if (!hasQuiz(s)) return;
+    var q = quizState(s);
+    var sc = document.getElementById('score');
+    var bs = document.getElementById('btnScore');
+    if (bs) bs.style.display = 'none';
+    if (!sc) return;
+    if (!resultBox){
+      resultBox = document.createElement('div');
+      resultBox.className = 'resultbox';
+      sc.parentNode.insertBefore(resultBox, sc.nextSibling);
+    }
+    if (q.done === q.total && q.ok === q.total){
+      document.body.classList.add('quizok');
+      sc.textContent = q.total + ' / ' + q.total;
+      sc.style.color = '#34d399';
+      resultBox.className = 'resultbox ok';
+      resultBox.innerHTML = '✅ <b>Все ответы верны.</b> Открылись объяснения к вопросам — прочитайте их: '
+        + 'там разобрано, почему остальные варианты не подходят. Слайд разблокирован, можно идти дальше.';
+    } else {
+      document.body.classList.remove('quizok');
+      sc.textContent = q.ok + ' / ' + q.total;
+      sc.style.color = (q.done === q.total) ? '#fb7185' : '#fcd34d';
+      resultBox.className = 'resultbox' + ((q.done === q.total) ? ' bad' : '');
+      resultBox.innerHTML = (q.done < q.total)
+        ? '⚠️ Тест обязателен. Отвечено ' + q.done + ' из ' + q.total + '. Объяснения появятся, только когда <b>все '
+          + q.total + ' ответов будут верными</b>.'
+        : '❌ Верно ' + q.ok + ' из ' + q.total + '. Объяснения закрыты. Нажмите <b>«Пройти заново»</b>, '
+          + 'вернитесь к слайдам и ответьте правильно на все вопросы.';
+    }
+    refresh();
+  }
+  document.addEventListener('click', function(e){
+    var o = e.target.closest ? e.target.closest('.q .opt') : null;
+    if (o) setTimeout(quizRefresh, 30);
+    var r = e.target.closest ? e.target.closest('#btnQuizReset') : null;
+    if (r) setTimeout(function(){
+      document.body.classList.remove('quizok');
+      var qs = slides[cur].querySelectorAll('.q');
+      for (var i = 0; i < qs.length; i++){ delete qs[i].dataset.done; delete qs[i].dataset.ok; }
+      if (resultBox){ resultBox.remove(); resultBox = null; }
+      quizRefresh();
+    }, 30);
+  });
+
+  /* ---------- свайп ---------- */
+  var x0 = null;
+  stageEl.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, { passive: true });
+  stageEl.addEventListener('touchend', function(e){
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 70){ dx < 0 ? next() : prev(); }
+    x0 = null;
+  }, { passive: true });
+
+  /* ---------- старт ---------- */
+  var st0 = load();
+  unlocked = Math.min(Math.max(st0.u | 0, 0), N - 1);
+  visited  = st0.v || {};
+  for (var key in visited){ if (visited.hasOwnProperty(key)) seen[key] = 1; }
+  window.__studyMax = unlocked;
+
+  var startIdx = unlocked;
+  var h = parseInt((location.hash || '').replace('#s', ''), 10);
+  if (h >= 1 && h <= N && (h - 1) <= unlocked && visited[h - 1] !== undefined) startIdx = h - 1;
+  if (startIdx > 0 && visited[startIdx] === undefined){
+    for (var q0 = startIdx - 1; q0 >= 0; q0--){ if (visited[q0] !== undefined){ startIdx = q0; break; } }
+  }
+  show(startIdx);
+  requestAnimationFrame(function(){ ready = true; refresh(); });
+  if (!store){
+    lockbar.innerHTML += ' <span style="color:#fda4af">(браузер не даёт сохранять прогресс — не закрывайте вкладку)</span>';
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+/* test.css — оформление страницы теста. Палитра общая с порталом и файлами курса. */
+.q{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px 18px;margin:13px 0}
+.q .qt{margin:0 0 11px;font-weight:600;color:#fff}
+.q .qn{font-family:var(--mono);font-size:13px;color:var(--dim2);margin-right:8px}
+.opt{display:block;width:100%;text-align:left;font:inherit;font-size:16px;color:var(--text);background:#141127;
+  border:1px solid var(--line);border-radius:11px;padding:11px 14px;margin:7px 0;cursor:pointer;transition:.14s}
+.opt:hover{border-color:var(--acc);background:#1d1836}
+.opt.sel{border-color:#8b5cf6;background:#2a2050;box-shadow:inset 0 0 0 1px #8b5cf6}
+.opt.right{background:#0f2f24;border-color:#2c7a5c;color:#a7f3d0}
+.opt.wrong{background:#33121b;border-color:#8b2740;color:#fecdd3}
+.opt.static{cursor:default}
+.opt.static:hover{background:#141127;border-color:var(--line)}
+.opt.static.right:hover{background:#0f2f24;border-color:#2c7a5c}
+.opt.static.wrong:hover{background:#33121b;border-color:#8b2740}
+.opt .ltr{color:var(--dim2);font-family:var(--mono);margin-right:8px}
+.exp{margin-top:11px;padding-top:11px;border-top:1px dashed var(--line);font-size:14.5px;color:var(--dim)}
+.score{font-family:var(--mono);font-size:clamp(38px,9vw,64px);line-height:1;color:#fff}
+.grade{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;
+  font-size:34px;font-weight:700;border:3px solid;margin-left:14px;vertical-align:middle}
+.grade.g{border-color:#2c7a5c;color:#6ee7b7;background:#0f2a22}
+.grade.a{border-color:#7c5a1a;color:#fcd34d;background:#2a1f0b}
+.grade.r{border-color:#8b2740;color:#fda4af;background:#2c1219}
+.kv{display:flex;gap:8px;align-items:baseline;margin:3px 0;font-size:14.5px}
+.kv b{color:#fff}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
+.badge.g{border-color:#1f6b52;color:#6ee7b7;background:#0f2a22}
+.badge.r{border-color:#8b2740;color:#fda4af;background:#2c1219}
+section{margin-bottom:26px}

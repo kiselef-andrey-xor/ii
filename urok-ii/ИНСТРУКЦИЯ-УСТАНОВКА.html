@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Установка портала «Локальный ИИ своими руками» — только через графический интерфейс</title>
+<style>
+  :root{
+    --ink:#1d1a2f; --muted:#5d5878; --line:#e3dff2; --card:#ffffff;
+    --acc:#6d4aff; --acc-soft:#efeaff; --ok:#0e7a3c; --ok-bg:#e5f6ec;
+    --warn:#8a5a00; --warn-bg:#fff4dc; --bad:#a11230; --bad-bg:#fdeaee;
+    --code:#f4f2fb;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:#f6f5fb; color:var(--ink);
+    font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  }
+  .page{max-width:900px; margin:0 auto; padding:28px 20px 64px}
+  header.hero{
+    background:linear-gradient(135deg,#2b1e63 0%,#4c2fa8 55%,#6d4aff 100%);
+    color:#fff; border-radius:18px; padding:30px 30px 26px; margin-bottom:26px;
+  }
+  header.hero h1{margin:0 0 6px; font-size:26px; line-height:1.3}
+  header.hero p.sub{margin:0 0 14px; color:#d9d2ff; font-size:15px}
+  .badges{display:flex; flex-wrap:wrap; gap:8px}
+  .badges span{
+    background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.35);
+    color:#fff; border-radius:999px; padding:3px 12px; font-size:13px;
+  }
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:20px 22px; margin:0 0 18px;
+  }
+  h2{font-size:19px; margin:0 0 10px; line-height:1.35}
+  h2 .n{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:30px; height:30px; border-radius:9px; background:var(--acc-soft);
+    color:var(--acc); font-size:15px; font-weight:700; margin-right:10px; padding:0 6px;
+    vertical-align:-6px;
+  }
+  h3{font-size:16px; margin:16px 0 6px}
+  p{margin:8px 0}
+  ul,ol{margin:8px 0; padding-left:22px}
+  li{margin:4px 0}
+  .muted{color:var(--muted); font-size:14px}
+  .small{font-size:14px}
+  code,.code{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    background:var(--code); border:1px solid var(--line); border-radius:6px;
+    padding:1px 6px; font-size:13.5px; word-break:break-all;
+  }
+  .path{color:#4c2fa8; font-weight:600}
+  .click{
+    background:var(--acc-soft); border:1px solid #d9cffb; color:#3b2a99;
+    border-radius:6px; padding:0 6px; font-size:.92em; font-weight:600; white-space:nowrap;
+  }
+  .note{border-radius:10px; padding:12px 14px; margin:12px 0; font-size:14.5px}
+  .note.ok{background:var(--ok-bg); border:1px solid #bfe5cd; color:var(--ok)}
+  .note.warn{background:var(--warn-bg); border:1px solid #f0dcae; color:var(--warn)}
+  .note.bad{background:var(--bad-bg); border:1px solid #f2c3ce; color:var(--bad)}
+  .note b{display:inline}
+  table{border-collapse:collapse; width:100%; margin:10px 0; font-size:14.5px}
+  th,td{border:1px solid var(--line); padding:7px 10px; text-align:left; vertical-align:top}
+  th{background:#f3f0fc; font-weight:700}
+  .steps-mini{counter-reset:none}
+  .gui{
+    background:#faf9ff; border:1px dashed #c9bcf5; border-radius:10px;
+    padding:10px 14px; margin:10px 0; font-size:14.5px;
+  }
+  .gui .arrow{color:var(--acc); font-weight:700; padding:0 2px}
+  ul.check{list-style:none; padding-left:4px}
+  ul.check li{margin:6px 0}
+  ul.check input{transform:scale(1.25); margin-right:9px; accent-color:var(--acc); vertical-align:-2px}
+  .toc{columns:2; column-gap:28px; font-size:14.5px}
+  .toc a{color:#4c2fa8; text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  footer{color:var(--muted); font-size:13px; text-align:center; margin-top:30px}
+  .kbd{
+    display:inline-block; border:1px solid #c9c2e6; border-bottom-width:3px; border-radius:6px;
+    background:#fff; padding:0 7px; font-size:13px; font-family:inherit;
+  }
+  @media (max-width:640px){ .toc{columns:1} header.hero{padding:22px} }
+  @media print{
+    body{background:#fff; font-size:12.5px}
+    .page{max-width:none; padding:0}
+    header.hero{border-radius:0; -webkit-print-color-adjust:exact; print-color-adjust:exact}
+    .card{border:none; border-bottom:1px solid #ccc; border-radius:0; padding:12px 0; break-inside:avoid}
+    .note,.gui,th{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+    a{color:inherit; text-decoration:none}
+    .no-print{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="hero">
+  <h1>Портал курса «Локальный ИИ своими руками»<br>Установка на Synology NAS</h1>
+  <p class="sub">Пошаговая инструкция для DSM 7. <b>Только графический интерфейс</b> — терминал и SSH не понадобятся ни на одном шаге.</p>
+  <div class="badges">
+    <span>Synology DS223 · DSM 7</span>
+    <span>Web Station · PHP 8.2 · Apache 2.4</span>
+    <span>≈ 25–35 минут</span>
+    <span>Нужен файл: kurs-portal.zip</span>
+  </div>
+</header>
+
+<div class="card">
+  <h2>Содержание</h2>
+  <div class="toc">
+    <p style="margin:2px 0"><a href="#s0">Что в архиве и что понадобится</a></p>
+    <p style="margin:2px 0"><a href="#s1">1 · Пакеты: Web Station, PHP 8.2, Apache</a></p>
+    <p style="margin:2px 0"><a href="#s2">2 · Общая папка для базы данных</a></p>
+    <p style="margin:2px 0"><a href="#s3">3 · Права на папку (через File Station)</a></p>
+    <p style="margin:2px 0"><a href="#s4">4 · Загрузка и распаковка архива</a></p>
+    <p style="margin:2px 0"><a href="#s5">5 · Настройка PHP-профиля</a></p>
+    <p style="margin:2px 0"><a href="#s6">6 · Создание веб-портала</a></p>
+    <p style="margin:2px 0"><a href="#s7">7 · Установка портала в браузере</a></p>
+    <p style="margin:2px 0"><a href="#s8">8 · Отключить установщик</a></p>
+    <p style="margin:2px 0"><a href="#s9">9 · Проверка безопасности и здоровья</a></p>
+    <p style="margin:2px 0"><a href="#s10">10 · HTTPS через обратный прокси (по желанию)</a></p>
+    <p style="margin:2px 0"><a href="#s11">11 · Ученики и первый урок</a></p>
+    <p style="margin:2px 0"><a href="#s12">12 · Резервные копии и обновления</a></p>
+    <p style="margin:2px 0"><a href="#faq">Если что-то пошло не так</a></p>
+  </div>
+</div>
+
+<div class="card" id="s0">
+  <h2>Что в архиве и что понадобится</h2>
+  <table>
+    <tr><th>Файл / папка в архиве</th><th>Что это</th></tr>
+    <tr><td><code>kurs/</code></td><td>Весь портал: страницы входа, курса, тестов и кабинета; PHP-серверная часть; файлы уроков; банки вопросов. Эта папка целиком становится сайтом.</td></tr>
+    <tr><td><code>ИНСТРУКЦИЯ-УСТАНОВКА.html</code></td><td>Эта инструкция (её копия после установки будет лежать внутри портала, в папке <code>admin/</code>).</td></tr>
+  </table>
+  <p>Понадобятся:</p>
+  <ul>
+    <li>Synology NAS с DSM 7 (проверено на DS223) и учётная запись <b>администратора</b>;</li>
+    <li>файл <code>kurs-portal.zip</code> на вашем компьютере;</li>
+    <li>браузер и адрес NAS (например, <code>http://192.168.1.50:5000</code> — его видно в
+      <span class="path">Панель управления → Сеть → Сетевой интерфейс</span>, либо на
+      <code>finds.synology.com</code>).</li>
+  </ul>
+  <div class="note ok"><b>Почему без SSH это безопасно.</b> База данных лежит в отдельной общей папке
+  <code>kurs-data</code> — она не является частью сайта, скачать её по ссылке нельзя.
+  Права на запись этой папке выдаются мышкой через File Station, а не командами.</div>
+</div>
+
+<div class="card" id="s1">
+  <h2><span class="n">1</span>Пакеты: Web Station, PHP 8.2, Apache 2.4</h2>
+  <div class="gui"><span class="click">Главное меню</span> <span class="arrow">→</span> <span class="click">Центр пакетов</span></div>
+  <p>Найдите и нажмите <span class="click">Установить</span> для трёх пакетов (если они уже установлены — просто проверьте):</p>
+  <ul>
+    <li><b>Web Station</b> — веб-сервер DSM;</li>
+    <li><b>PHP 8.2</b> (или <b>PHP 8.1</b>) — язык портала;</li>
+    <li><b>Apache HTTP Server 2.4</b> — на нём работают защитные правила <code>.htaccess</code> из архива.</li>
+  </ul>
+  <div class="note bad"><b>Не используйте PHP 7.3 / 7.4 / 8.0</b> — Synology прекратил их поддержку (август 2025), портал на них не заработает.</div>
+</div>
+
+<div class="card" id="s2">
+  <h2><span class="n">2</span>Общая папка для базы данных</h2>
+  <div class="gui"><span class="click">Панель управления</span> <span class="arrow">→</span> <span class="click">Общая папка</span> <span class="arrow">→</span> <span class="click">Создать</span> <span class="arrow">→</span> <span class="click">Создать</span></div>
+  <ul>
+    <li><b>Имя:</b> <code>kurs-data</code> (именно так, латиницей, через дефис);</li>
+    <li><b>Расположение:</b> Volume 1;</li>
+    <li>Шифрование — «Без шифрования», корзину можно отключить;</li>
+    <li>остальные страницы мастера — без изменений, <span class="click">Далее</span> до конца.</li>
+  </ul>
+  <p class="muted">Здесь будут храниться аккаунты (пароли — в виде необратимых хэшей), прогресс учеников,
+  результаты тестов и журнал. Папка находится <b>вне</b> сайта: у неё нет веб-адреса.</p>
+</div>
+
+<div class="card" id="s3">
+  <h2><span class="n">3</span>Права на папку <code>kurs-data</code> — мышкой</h2>
+  <div class="gui"><span class="click">File Station</span> <span class="arrow">→</span> правый клик на папке <code>kurs-data</code> <span class="arrow">→</span> <span class="click">Свойства</span> <span class="arrow">→</span> вкладка <span class="click">Права</span> <span class="arrow">→</span> <span class="click">Создать</span></div>
+  <ul>
+    <li><b>Пользователь или группа:</b> <code>everyone</code>;</li>
+    <li><b>Права:</b> отметьте <b>Чтение</b> и <b>Запись</b>;</li>
+    <li>отметьте <b>«Применить к этой папке, подпапкам и файлам»</b>;</li>
+    <li><span class="click">Готово</span> → <span class="click">Сохранить</span>.</li>
+  </ul>
+  <p>Это нужно, чтобы веб-сервер мог записывать базу данных. Папка не видна по HTTP,
+  поэтому такие права не открывают её содержимое наружу.</p>
+  <div class="note warn"><b>Если строки «everyone» нет</b> — выберите группу <code>http</code>
+  (пользователь веб-сервера DSM) и так же отметьте Чтение + Запись. Смысл тот же.</div>
+</div>
+
+<div class="card" id="s4">
+  <h2><span class="n">4</span>Загрузка и распаковка архива</h2>
+  <div class="gui"><span class="click">File Station</span> <span class="arrow">→</span> папка <code>web</code> <span class="arrow">→</span> <span class="click">Загрузка</span> (или перетащите файл мышкой)</div>
+  <ol>
+    <li>Откройте в File Station общую папку <code>web</code> — её создал пакет Web Station.</li>
+    <li>Загрузите туда файл <code>kurs-portal.zip</code>.</li>
+    <li>Правый клик на архиве → <span class="click">Извлечь</span> → <span class="click">Извлечь сюда</span>.</li>
+    <li>Появится папка <code>web/kurs</code> — это и есть портал. Проверьте, что внутри есть
+      <code>index.php</code>, <code>login.php</code>, папки <code>api</code>, <code>kursy</code>, <code>banks</code>.</li>
+    <li>Рядом распакуется <code>ИНСТРУКЦИЯ-УСТАНОВКА.html</code> — её можно оставить или удалить.</li>
+    <li>Сам архив <code>kurs-portal.zip</code> после распаковки можно удалить (правый клик → Удалить).</li>
+  </ol>
+  <div class="note ok"><b>Ничего переименовывать и перекладывать не нужно</b>: в архиве папка уже называется <code>kurs</code>.</div>
+</div>
+
+<div class="card" id="s5">
+  <h2><span class="n">5</span>Настройка PHP-профиля</h2>
+  <div class="gui"><span class="click">Главное меню</span> <span class="arrow">→</span> <span class="click">Web Station</span> <span class="arrow">→</span> <span class="click">Настройки языка сценариев</span> <span class="arrow">→</span> профиль <b>PHP 8.2</b> <span class="arrow">→</span> <span class="click">Изменить</span></div>
+  <ol>
+    <li>Кнопка <span class="click">Расширения</span> (Extensions): отметьте галочками и сохраните:
+      <ul>
+        <li><code>pdo_sqlite</code> — работа с базой данных;</li>
+        <li><code>sqlite3</code> — та же база, запасной драйвер;</li>
+        <li><code>mbstring</code> — корректная кириллица.</li>
+      </ul>
+    </li>
+    <li>Поле <span class="click">open_basedir</span>:
+      <ul>
+        <li>если поле <b>пустое</b> — не трогайте;</li>
+        <li>если там что-то написано (например, <code>/volume1/web:/tmp</code>) — допишите в конец
+          <code>:/volume1/kurs-data</code>, чтобы получилось
+          <code>/volume1/web:/tmp:/volume1/kurs-data</code>. Иначе PHP не сможет открыть базу.</li>
+      </ul>
+    </li>
+  </ol>
+  <p class="muted">То же самое сделайте для профиля PHP 8.1, если решили использовать его.</p>
+</div>
+
+<div class="card" id="s6">
+  <h2><span class="n">6</span>Создание веб-портала</h2>
+  <div class="gui"><span class="click">Web Station</span> <span class="arrow">→</span> <span class="click">Веб-служба</span> <span class="arrow">→</span> <span class="click">Создать</span> <span class="arrow">→</span> <span class="click">Веб-портал</span> <span class="arrow">→</span> <span class="click">Портал на основе папки</span></div>
+  <ul>
+    <li><b>Документ-корень:</b> <code>/web/kurs</code> (кнопка обзора → папка <code>web</code> → <code>kurs</code>);</li>
+    <li><b>PHP:</b> ваш профиль <b>PHP 8.2</b>;</li>
+    <li><b>Веб-сервер:</b> <b>Apache HTTP Server 2.4</b> — обязательно: защитные правила
+      <code>.htaccess</code> работают только на Apache;</li>
+    <li><b>Имя:</b> например, <code>kurs</code>;</li>
+    <li><b>Имя хоста:</b> можно оставить пустым — DSM назначит порт и покажет его в списке служб
+      (например, <code>8080</code>). Адрес портала будет <code>http://АДРЕС_NAS:8080</code>.
+      Если у вас есть домен/сертификат — укажите имя хоста здесь;</li>
+    <li><span class="click">Далее</span> → <span class="click">Готово</span>.</li>
+  </ul>
+  <div class="note warn"><b>Запишите адрес портала</b> (IP и порт из Web Station) — он понадобится дальше
+  и его вы дадите ученикам. Если DSM показал предупреждение про брандмауэр:
+  <span class="path">Панель управления → Безопасность → Брандмауэр</span> — разрешите этот порт
+  (для школьной сети достаточно профиля «Разрешить» для локальных подсетей).</div>
+</div>
+
+<div class="card" id="s7">
+  <h2><span class="n">7</span>Установка портала в браузере</h2>
+  <div class="gui">Откройте: <code>http://АДРЕС_NAS:ПОРТ/admin/install.php</code></div>
+  <ol>
+    <li><b>Таблица проверки окружения</b> — все строки должны быть зелёными.
+      В красной строке сразу написано, что нажать, чтобы исправить (все исправления — в GUI).</li>
+    <li>Заполните форму:
+      <ul>
+        <li>фамилия и имя преподавателя;</li>
+        <li>логин (латиница, 3–24 символа);</li>
+        <li>пароль — <b>не короче 8 символов</b>;</li>
+        <li>первый класс (например, <code>10Б</code>) и порог зачёта теста (по умолчанию 60 %).</li>
+      </ul>
+    </li>
+    <li>Нажмите <span class="click">Установить и создать преподавателя</span>.</li>
+  </ol>
+  <div class="note bad"><b>Пароль нельзя восстановить.</b> Он сразу превращается в необратимый хэш
+  (Argon2id, а если его нет в PHP — bcrypt) и в таком виде записывается в базу.
+  Восстановить пароль по хэшу не может никто, включая администратора NAS.
+  Запишите пароль в надёжном месте и не используйте пароль от почты.</div>
+  <p class="muted">Установщик сам создаст в папке <code>kurs-data</code> базу данных
+  <code>kurs.db</code> и служебные файлы — вручную туда ничего копировать не нужно.</p>
+</div>
+
+<div class="card" id="s8">
+  <h2><span class="n">8</span>Отключить установщик</h2>
+  <div class="gui"><span class="click">File Station</span> <span class="arrow">→</span> <code>web</code> <span class="arrow">→</span> <code>kurs</code> <span class="arrow">→</span> <code>admin</code> <span class="arrow">→</span> правый клик на <code>install.php</code> <span class="arrow">→</span> <span class="click">Переименовать</span></div>
+  <p>Переименуйте <code>install.php</code> в <code>install.php.off</code> — страница установки
+  перестанет отвечать. Если когда-нибудь понадобится переустановка (см. «Если что-то пошло не так»),
+  переименуйте обратно.</p>
+</div>
+
+<div class="card" id="s9">
+  <h2><span class="n">9</span>Проверка здоровья и безопасности — в браузере</h2>
+  <p>Откройте по очереди три адреса (подставьте адрес своего портала):</p>
+  <table>
+    <tr><th>Адрес</th><th>Что должно быть</th></tr>
+    <tr><td><code>http://АДРЕС:ПОРТ/api/index.php?a=health</code></td>
+        <td>Все проверки зелёные; банки вопросов: <code>U1=32, U2=43, U3=36, U4=44</code></td></tr>
+    <tr><td><code>http://АДРЕС:ПОРТ/banks/u1.json</code></td>
+        <td><b>403 Forbidden</b> (это банк с правильными ответами — он закрыт)</td></tr>
+    <tr><td><code>http://АДРЕС:ПОРТ/kursy/prepod.html</code></td>
+        <td><b>403 Forbidden</b> (это версия курса с заметками преподавателя)</td></tr>
+  </table>
+  <p>Затем войдите как преподаватель на странице входа и осмотрите кабинет:
+  вкладки «Журнал», «Ученики», «Настройки» должны открываться.</p>
+  <div class="note ok"><b>База данных</b> лежит в общей папке <code>kurs-data</code> вне сайта —
+  веб-адреса у неё нет вообще, проверять её нечем и негде. Это правильная картина.</div>
+</div>
+
+<div class="card" id="s10">
+  <h2><span class="n">10</span>HTTPS через обратный прокси <span class="muted">(по желанию, но рекомендуется)</span></h2>
+  <p>Если портал будет доступен из интернета, пароли нужно передавать только по HTTPS.
+  У Synology это настраивается целиком в GUI:</p>
+  <ol>
+    <li><span class="path">Панель управления → Безопасность → Сертификат</span> — добавьте сертификат
+      (например, Let's Encrypt через <span class="click">Добавить → Получить сертификат от Let's Encrypt</span>).</li>
+    <li><span class="path">Панель управления → Портал входа → Дополнительно → Обратный прокси</span> —
+      создайте правило: источник <code>https, ваш домен, 443</code> → назначение
+      <code>http, localhost, порт портала из шага 6</code>.</li>
+    <li>В этом же правиле: вкладка <span class="click">Пользовательские заголовки</span> →
+      <span class="click">Создать</span> → <span class="click">Пользовательский заголовок</span>:
+      имя <code>X-Forwarded-Proto</code>, значение <code>https</code>.</li>
+  </ol>
+  <p>Благодаря этому заголовку портал поймёт, что работает по HTTPS: поставит cookie пометку
+  <span class="click">Secure</span>, и строка «HTTPS» в <code>a=health</code> станет зелёной.</p>
+</div>
+
+<div class="card" id="s11">
+  <h2><span class="n">11</span>Ученики и первый урок</h2>
+  <p>Дайте ученикам адрес портала. На странице входа — вкладка
+  <span class="click">Регистрация</span>: фамилия и имя, логин, пароль, класс
+  (класс создаётся автоматически при первой регистрации).</p>
+  <p>Регистрацию можно в любой момент отключить в кабинете:
+  <span class="path">Кабинет → Настройки → «Разрешить самостоятельную регистрацию»</span>.</p>
+  <h3>Чек-лист первого урока</h3>
+  <ul class="check">
+    <li><label><input type="checkbox"> ученик зарегистрировался и попал в оболочку курса;</label></li>
+    <li><label><input type="checkbox"> слева четыре урока + финальный проект, открыт только первый;</label></li>
+    <li><label><input type="checkbox"> слайды идут по порядку, чек-лист практики блокирует «Далее»;</label></li>
+    <li><label><input type="checkbox"> после сдачи теста урока 1 открылся урок 2;</label></li>
+    <li><label><input type="checkbox"> прогресс переживает закрытие вкладки и вход с другого компьютера;</label></li>
+    <li><label><input type="checkbox"> в кабинете преподавателя видна попытка, CSV открывается в Excel с кириллицей;</label></li>
+    <li><label><input type="checkbox"> кнопка «Выйти» чистит локальный прогресс (за компьютер садится следующий).</label></li>
+  </ul>
+</div>
+
+<div class="card" id="s12">
+  <h2><span class="n">12</span>Резервные копии и обновления</h2>
+  <h3>Резервные копии</h3>
+  <p>Всё ценное (аккаунты, прогресс, оценки, аудит) лежит в одной общей папке <code>kurs-data</code>:</p>
+  <ul>
+    <li><span class="path">Панель управления → Hyper Backup</span> — создайте задачу на папку
+      <code>kurs-data</code> (и, по желанию, <code>web/kurs</code>); или</li>
+    <li>просто периодически копируйте папку <code>kurs-data</code> в другое место средствами
+      File Station (правый клик → <span class="click">Копировать</span>).
+      Лучше делать это, когда порталом никто не пользуется.</li>
+  </ul>
+  <h3>Обновление портала</h3>
+  <ol>
+    <li>Сделайте копию папки <code>kurs-data</code>.</li>
+    <li>В File Station удалите папку <code>web/kurs</code> и распакуйте новый архив так же, как в шаге 4.</li>
+    <li>Откройте <code>api/index.php?a=health</code>.</li>
+  </ol>
+  <p class="muted">База данных при этом не трогается: все аккаунты и результаты останутся.
+  Ученикам переустанавливать ничего не нужно.</p>
+</div>
+
+<div class="card" id="faq">
+  <h2>Если что-то пошло не так</h2>
+  <table>
+    <tr><th>Симптом</th><th>Что сделать (только GUI)</th></tr>
+    <tr>
+      <td>При открытии портала — <b>500 Internal Server Error</b></td>
+      <td>Откройте <code>api/index.php?a=health</code> — красная строка подскажет причину.
+        Чаще всего: не включены расширения PHP (шаг 5) или мешает <code>open_basedir</code>.</td>
+    </tr>
+    <tr>
+      <td>«Каталог данных недоступен для записи»</td>
+      <td>Повторите шаг 3: File Station → <code>kurs-data</code> → Свойства → Права →
+        <code>everyone</code> → Чтение + Запись → применить ко всем вложенным.</td>
+    </tr>
+    <tr>
+      <td>В install.php красная строка «Каталог данных»</td>
+      <td>Папка не создана (шаг 2) или создана с другим именем. Имя должно быть ровно
+        <code>kurs-data</code>, том — Volume 1.</td>
+    </tr>
+    <tr>
+      <td>Страница отдаётся текстом / скачивается вместо выполнения</td>
+      <td>Портал создан без PHP-профиля: Web Station → Веб-служба → изменить портал →
+        выбрать PHP 8.2.</td>
+    </tr>
+    <tr>
+      <td><code>banks/u1.json</code> или <code>kursy/prepod.html</code> открываются вместо 403</td>
+      <td>Портал работает не на Apache: Web Station → Веб-служба → изменить →
+        веб-сервер <b>Apache HTTP Server 2.4</b>. На nginx правила <code>.htaccess</code> не действуют.</td>
+    </tr>
+    <tr>
+      <td>Прогресс не сохраняется</td>
+      <td>Ученик должен войти под своей учёткой (без входа сохранение на сервер не работает).
+        Проверьте строки health и что браузер не в приватном режиме.</td>
+    </tr>
+    <tr>
+      <td>Тест не открывается</td>
+      <td><code>api/index.php?a=health</code>: банки должны быть <code>U1=32, U2=43, U3=36, U4=44</code>.
+        Если ✗ — архив распакован не полностью, повторите шаг 4.</td>
+    </tr>
+    <tr>
+      <td>CSV с оценками «кракозябрами» в Excel</td>
+      <td>Не должно: выгрузка в UTF-8 с BOM и разделителем <code>;</code>.
+        Если у вас другой Excel — используйте выгрузку JSON.</td>
+    </tr>
+    <tr>
+      <td><b>Забыт пароль преподавателя</b></td>
+      <td>Восстановить хэш нельзя. Крайний вариант (потеря всех данных): в File Station
+        переименуйте файл <code>kurs-data/kurs.db</code> в <code>kurs.db.old</code>,
+        верните имя <code>install.php.off</code> → <code>install.php</code> и пройдите шаг 7 заново —
+        портал станет чистым. Поэтому заранее делайте резервные копии (шаг 12).</td>
+    </tr>
+    <tr>
+      <td>Портал не открывается у учеников, но открывается у вас</td>
+      <td>Брандмауэр: <span class="path">Панель управления → Безопасность → Брандмауэр</span> —
+        разрешите порт портала (шаг 6).</td>
+    </tr>
+  </table>
+  <p class="muted">Подробнее о каждой проверке — страница <code>api/index.php?a=health</code>:
+  она сама диагностирует окружение и пишет, что нажать.</p>
+</div>
+
+<footer>
+  Курс «Локальный ИИ своими руками» · портал для Synology DSM 7 ·
+  установка только через графический интерфейс · сентябрь 2026
+</footer>
+
+</div>
+</body>
+</html>
